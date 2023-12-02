@@ -37,7 +37,8 @@ var movinv =
         let data = main.getValues('formEntrada')
         if (data == null) return;
 
-        let products = this.table.DataArray;
+        let products = this.table.DataArray.filter(d => Object.keys(d).length > 0);
+
         if (products.length <= 0) {
             alert('Por favor seleccione un producto.');
             return;
