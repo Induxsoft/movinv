@@ -1,0 +1,129 @@
+#include "dkli.dkh"
+#!
+program
+{
+    #include "functions.dkh"
+    
+    #$ div(class="container")
+    {
+        form(id="formEntrada" class="mt-4")
+        {
+            input(type="hidden" name="tipo_movimiento" value="entrada")
+
+            div(class="d-flex justify-content-between align-items-center mb-3")
+            {
+                h3{$"Crear entrada"}
+                button(type="submit" class="btn btn-sm border-secondary"){$"Guardar"}
+            }
+            div(class="mb-3")
+            {
+                div(class="row")
+                {
+                    div(class="col-6")
+                    {
+                        label{$"Fecha:"}
+                        input(type="date" name="fecha" class="induxsoft-form-control" value="#<date_str(now(),'yyyy-MM-dd')>")
+                    }
+                    div(class="col-6")
+                    {
+                        label{$"Almacen:"}
+                        "input-key"(
+                            id="ik_entrada_almacen"
+                            name="ialmacen"
+                            "data-key"="sys_pk"
+                            "data-search"="codigo"
+                            "data-text"="descripcion"
+                            "data-source"="/movinv/?_view=almacen&s=@search"
+                            columns="codigo,descripcion"
+                            colcaptions="Código,Descripción"
+                            "box-title-text"="Seleccione un almacen"
+                            "box-placeholder-text"="Buscar almacen"
+                            "box-nodata-text"="No se encontraron almacenes"
+                            required="true"
+                            "control-styles"=""
+                        ){$""}
+                    }
+                }
+                div(class="row")
+                {
+                    div(class="col-6")
+                    {
+                        label{$"Referencia:"}
+                        input(type="text" name="referencia" class="induxsoft-form-control" required="true")
+                    }
+                    div(class="col-6")
+                    {
+                        label{$"Categoría:"}
+                        "input-key"(
+                            id="ik_entrada_categoria"
+                            name="icategoria"
+                            "data-key"="sys_pk"
+                            "data-search"="codigo"
+                            "data-text"="descripcion"
+                            "data-source"="/movinv/?_view=categoria&s=@search"
+                            columns="codigo,descripcion"
+                            colcaptions="Código,Descripción"
+                            "box-title-text"="Seleccione un categoría"
+                            "box-placeholder-text"="Buscar categoría"
+                            "box-nodata-text"="No se encontraron categorías"
+                            required="true"
+                            "control-styles"=""
+                        ){$""}
+                    }
+                }
+                div
+                {
+                    label{$"Notas:"}
+                    textarea(class="induxsoft-form-control" required="true" name="descripcion"){$""}
+                }
+            }
+        }
+        div
+        {
+            small{$"Seleccione los productos en la cuadrícula"}
+            div(class="d-flex gap-2")
+            {
+                button(type="button" class="btn btn-sm border-secondary" onclick="movinv.agregarFila()"){$"+"}
+                button(type="button" class="btn btn-sm border-secondary" onclick="movinv.eliminarFila()"){$"-"}
+            }
+            div(style="max-height: 50vh; display: flex;")
+            {
+                "edit-table"(id="et_entrada_productos" style="width: 100%;")
+                {
+                    "edit-thead"
+                    {
+                        "edit-tr"
+                        {
+                            "edit-th"(type="Text" field="codigo" button="true"){$"Código"}
+                            "edit-th"(type="Text" field="descripcion" button="true"){$"Descripción"}
+                            "edit-th"(type="NoEditable" field="unidad"){$"Unidad"}
+                            "edit-th"(type="NoEditable" field="divisa"){$"Divisa"}
+                            "edit-th"(type="Number" field="costoultimo"){$"Costo"}
+                            "edit-th"(type="NoEditable" field="existencia"){$"Existencia"}
+                            "edit-th"(type="Number" field="cantidad"){$"Cantidad"}
+                            "edit-th"(type="NoEditable" field="nueva_existencia"){$"Nva. Exist."}
+                        }
+                    }
+                }
+            }
+            "input-key"(
+                id="ikProducto"
+                "data-key"="sys_pk"
+                "data-search"="codigo"
+                "data-text"="descripcion"
+                "data-source"="/movinv/?_view=producto&s=@search"
+                columns="codigo,descripcion"
+                colcaptions="Código,Descripción"
+                "box-title-text"="Seleccione un producto"
+                "box-placeholder-text"="Buscar producto"
+                "box-nodata-text"="No se encontraron productos"
+                "control-styles"="#container{ display: none !important; }"
+            ){$""}
+        }
+
+        script(src="/_resources/js/movinv.js"){$""}
+        script{$'
+            movinv.tableId = "et_entrada_productos";
+        '}
+    }
+}

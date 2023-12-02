@@ -1,0 +1,2 @@
+GET: /_resources/js/* > /_resources/js/*
+GET: /_resources/css/* > /_resources/css/*

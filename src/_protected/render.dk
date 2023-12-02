@@ -1,0 +1,9 @@
+#include "dkli.dkh"
+#!
+program 
+{
+    #include "functions.dkh"
+    
+    if not(contains(@@(@http_context,"request/headers/http_accept"),"html")) { return }
+    @http_context<"response/text">:replace(file.rtext("web/192.168.0.199/_protected/default.htt"), "#<html>",@@(@http_context,"response/text"))
+}

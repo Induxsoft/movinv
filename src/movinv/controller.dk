@@ -1,0 +1,46 @@
+#include "dkli.dkh"
+#!
+module "controller"
+{
+    switch @@(@http_context,"$request/get/_view")
+    {
+        case "entrada"
+        {
+            /*point @update to cxp.pagarDocumento
+            point @read to cxp.obtenerDocumentoPorPagar
+            @form_view = "cxp.pago.dk"*/
+            @form_view = "entrada.dk"
+            break
+        }
+        case "salida"
+        {
+            @form_view = "salida.dk"
+            break
+        }
+        case "traspaso"
+        {
+            @form_view = "traspaso.dk"
+            break
+        }
+        case "almacen"
+        {
+            point @list to movinv.obtenerAlmacenes
+            break
+        }
+        case "categoria"
+        {
+            point @list to movinv.obtenerCategorias
+            break
+        }
+        case "producto"
+        {
+            point @list to movinv.obtenerProductos
+            break
+        }
+        default
+        {
+            point @create to movinv.agregarMovimiento
+            break
+        }
+    }
+}

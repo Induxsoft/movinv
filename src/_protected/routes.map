@@ -1,0 +1,3 @@
+*: /{_entities_type}/{_entity_id}/{_view?} > /movinv/entry-point.dkl
+*: /{_entities_type}/{_entity_id?} > /movinv/entry-point.dkl
+*: /{_entities_type} > /movinv/entry-point.dkl
