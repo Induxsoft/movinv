@@ -333,8 +333,9 @@ module ":erp.inventario"
                 costo_total=costo_total+xasignar * @@(rw,"#costo")
                 xasignar=0
             }
+            if xasignar==0 { break }
         }
-
+        if xasignar>0 {do rise_error(0,"No fue posible obtener el costo de la salida por falta de existencias.")}
         return round(costo_total,@inventario_divisa_decs)
     }
 
