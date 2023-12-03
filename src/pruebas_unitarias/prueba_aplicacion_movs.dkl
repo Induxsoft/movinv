@@ -1,0 +1,130 @@
+#include "dkli.dkh"
+#!
+program
+{
+    #include "functions.dkh"
+    #include "dbr.dkh"
+    #include "serialize.dkh"
+    #include "inventario.dkl"
+
+    @categoria=1
+    get_rec::
+    {
+        new data
+        {
+            @"sys_guid":uuid()
+            @"sys_dtcreated*":dbr.sql("now()")
+            @"sys_timestamp*":dbr.sql("now()")
+            @"sys_recver":0
+        }
+        
+        return data
+    }
+
+    entrada::&db,referencia, almacen, producto, cantidad, costo
+    {
+        ref cardex=get_rec() 
+        using cardex
+        {
+            @"referencia":referencia
+            @"fecha*":dbr.sql("now()")
+            @"icategoria":@categoria
+        }
+        do dbr.insert(db,"cardex",cardex)
+
+        ref dcardex=get_rec()
+        using dcardex
+        {
+            @"ialmacen":almacen
+            @"iproducto":producto
+            @"entradas":cantidad
+            @"cargos":cantidad*costo
+            @"cpromedio":costo
+            @"tipocambio":1
+            @"fk_cardex_movimientos": dbr.num(db,"select last_insert_id();",@null)
+        }
+
+        do dbr.insert(db,"dcardex",dcardex)
+
+        return @@(dcardex,"fk_cardex_movimientos")
+    }
+
+    salida::&db,referencia, almacen, producto, cantidad
+    {
+        ref cardex=get_rec() 
+        using cardex
+        {
+            @"referencia":referencia
+            @"fecha*":dbr.sql("now()")
+            @"icategoria":@categoria
+        }
+        do dbr.insert(db,"cardex",cardex)
+
+        ref dcardex=get_rec()
+        using dcardex
+        {
+            @"ialmacen":almacen
+            @"iproducto":producto
+            @"salidas":cantidad
+            @"tipocambio":1
+            @"fk_cardex_movimientos": dbr.num(db,"select last_insert_id();",@null)
+        }
+
+        do dbr.insert(db,"dcardex",dcardex)
+
+        return @@(dcardex,"fk_cardex_movimientos")
+    }
+
+    mov::&db,rf
+    {
+        return dbr.num(db,"select sys_pk from cardex where referencia='"+rf+"';",@null)
+    }
+
+
+    
+    ref db=dbr.open("maxi55@MaxiComercio.R5")
+
+    //limpiar los datos
+    do dbr.execute(db,"delete from dcapa",@null)
+    do dbr.execute(db,"delete from dcardex",@null)
+    do dbr.execute(db,"delete from cardex",@null)
+    do dbr.execute(db,"delete from existencias",@null)
+    do dbr.execute(db,"update producto set saldo=0, existencia=0",@null)
+
+    //Crear movimientos
+    almacen=1
+    producto=2
+
+    valuar_salidas=@true
+
+    namespace "erp.inventario"
+
+    do aplicar_mov(db, entrada(db,"E1",almacen,producto,10,150),@true)
+    
+    //do aplicar_mov(db, salida(db,"S1",almacen,producto,4),valuar_salidas)
+
+    //do desaplicar_mov(db,mov(db,"S1"))
+    
+    do aplicar_mov(db, entrada(db,"E2",almacen,producto,12,163),@true)
+    //do aplicar_mov(db, salida(db,"S2",almacen,producto,7),valuar_salidas)
+    //do aplicar_mov(db, salida(db,"S3",almacen,producto,5),valuar_salidas)
+
+    do aplicar_mov(db, entrada(db,"E3",almacen,producto,7,148),@true)    
+    //do aplicar_mov(db, salida(db,"S4",almacen,producto,8),valuar_salidas)
+    //do aplicar_mov(db, salida(db,"S5",almacen,producto,3),valuar_salidas)
+    //do aplicar_mov(db, salida(db,"S6",almacen,producto,2),valuar_salidas)
+
+
+    do aplicar_mov(db, salida(db,"S1",almacen,producto,29),valuar_salidas)
+
+/*
+    do valuar_mov(db, mov(db,"S1"))
+    do valuar_mov(db, mov(db,"S2"))
+    do valuar_mov(db, mov(db,"S3"))
+    do valuar_mov(db, mov(db,"S4"))
+    do valuar_mov(db, mov(db,"S5"))
+    do valuar_mov(db, mov(db,"S6"))
+
+    do desaplicar_mov(db, mov(db,"S6"))*/
+
+}
