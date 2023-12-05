@@ -1,0 +1,284 @@
+#include "ddm.dkh"
+model "movinv"
+{
+    /* 
+    MOVIMIENTOS DE INVENTARIO
+    =======================================================================
+    */
+
+    #include "induxsoft.abstracts.ddm"
+
+    // Cada movimiento tiene relacionada una categoría para obtener reportes.
+    entity "categoria" : "TableModel"
+    {
+        @"codcuenta" string(50) unique
+        @"codigo" string(5) unique required
+        @"descripcion" string(50) unique required
+        @"pmensual" decimal(18,8)
+        @"tipo" int ref:"ctiposcategorias" ["id"]
+        @"padre" int ref:"categoria" ["sys_pk"]
+        @"uf_inhabilitado" bool
+        @"uf_fechainhabilitacion" datetime
+    }
+    // Contiene los datos generales del movimiento
+    entity "cardex" : "TableModel"
+    {
+        @"aplicado" bool
+        @"descripcion" string(8192)
+        @"fecha" date
+        @"referencia" string(255) unique required
+        @"valuado" bool
+        @"doccompra" int ref:"compra" ["sys_pk"]
+        @"docorden" int ref:"orden" ["sys_pk"]
+        @"docventa" int ref:"venta" ["sys_pk"]
+        @"icategoria" int ref:"categoria" ["sys_pk"] required
+    }
+    // Contiene cada partida del movimiento (la entrada o salida de un producto)
+    entity "dcardex" : "TableModel"
+    {
+        @"abonos" decimal(18,8)
+        @"auditado" bool
+        @"cargos" decimal(18,8)
+        @"contabilizado" bool
+        @"cpromedio" decimal(18,8)
+        @"entradas" decimal(18,8)
+        @"partida" string(32)
+        @"poliza" string(32)
+        @"referencia" string(30)
+        @"resto" decimal(18,8)
+        @"salidas" decimal(18,8)
+        @"tipocambio" decimal(18,8)
+        @"valuado" bool
+        @"ialmacen" int ref:"almacen" ["sys_pk"] required
+        @"ilote" int ref:"lote" ["sys_pk"]
+        @"iproducto" int ref:"producto" ["sys_pk"]
+        @"iserie" int ref:"serie" ["sys_pk"]
+        @"rcompra" int ref:"dcompra" ["sys_pk"]
+        @"rventa" int ref:"dventa" ["sys_pk"]
+        @"fk_cardex_movimientos" int ref:"cardex" ["sys_pk"] required
+    }
+    // Contiene identificadores de grupos de productos de características similares o iguales
+    entity "lote" : "TableModel"
+    {
+        @"entradas" decimal(18,8)
+        @"existencia" decimal(18,8)
+        @"fcaducidad" date
+        @"fentrada" date
+        @"numero" string(50) unique required
+        @"iproducto" int ref:"producto" ["sys_pk"] required
+    }
+    // Contiene información e identificación de un producto
+    entity "serie" : "TableModel"
+    {
+        @"fentrada" date 
+        @"fventa" date 
+        @"notas" string(4096) 
+        @"numero" string(50) unique required
+        @"status" int ref:"cstatusseries" ["id"] required
+        @"doccompra" int ref:"compra" ["sys_pk"] 
+        @"docventa" int ref:"venta" ["sys_pk"] 
+        @"ialmacen" int ref:"almacen" ["sys_pk"] 
+        @"iensamble" int ref:"serie" ["sys_pk"] 
+        @"ilote" int ref:"lote" ["sys_pk"] 
+        @"iproducto" int ref:"producto" ["sys_pk"] required
+    }
+    // Almacen de productos
+    entity "almacen" : "TableModel"
+    {
+        @"codcuenta" string(50) unique
+        @"codigo" string(10) unique required
+        @"descripcion" string(50) unique required
+        @"email" string(50)
+        @"fax" string(150)
+        @"telefonos" string(150)
+        @"website" string(150)
+        @"domicilio1" int ref:"domicilio" ["sys_pk"]
+        @"uf_movremoto" bool
+        @"uf_inhabilitado" bool
+        @"uf_fechainhabilitacion" datetime
+        @"uf_formaproduccion" int
+    }
+    // Registro de lotes por almacen
+    entity "clotexalmacen" : "TableModel"
+    {
+        @"cantidad" decimal(18,8)
+        @"ialmacen" int ref:"almacen" ["sys_pk"] required
+        @"fk_lote_exisxalmacen" int ref:"lote" ["sys_pk"] required
+    }
+    // Contiene el saldo y existencia de cada producto en cada almacén
+    entity "existencias" : "TableModel"
+    {
+        @"existencia" decimal(18,8)
+        @"saldo" decimal(18,8)
+        @"ialmacen" int ref:"almacen" ["sys_pk"] required
+        @"fk_producto_iexistencias" int ref:"producto" ["sys_pk"] required
+    }
+    // Contiene información del producto además del saldo y existencia de todos los almacenes de ese producto
+    entity "producto" : "TableModel"
+    {
+        @"adicional" bool
+        @"cdirecto" decimal(18,8)
+        @"cindirecto" decimal(18,8)
+        @"cmanoobra" decimal(18,8)
+        @"cmaquinaria" decimal(18,8)
+        @"codbar1" string(35) unique
+        @"codbar2" string(35) unique
+        @"codbar3" string(35) unique
+        @"codigo" string(35) unique required
+        @"color" int
+        @"comision" decimal(18,8)
+        @"comision1" decimal(18,8)
+        @"comision2" decimal(18,8)
+        @"comision3" decimal(18,8)
+        @"comision4" decimal(18,8)
+        @"comision5" decimal(18,8)
+        @"costopromedio" decimal(18,8)
+        @"costoultimo" decimal(18,8)
+        @"data1" string(500)
+        @"data2" string(500)
+        @"data3" string(500)
+        @"desc2" decimal(18,8)
+        @"desc3" decimal(18,8)
+        @"desc4" decimal(18,8)
+        @"desc5" decimal(18,8)
+        @"descripcion" string(150) unique required
+        @"diasentrega" int
+        @"existencia" decimal(18,8)
+        @"factorb" decimal(18,8)
+        @"factorc" decimal(18,8)
+        @"factord" decimal(18,8)
+        @"factore" decimal(18,8)
+        @"flaglimites" bool
+        @"flagutilidad" bool
+        @"formacomision" int ref:"cformacomisionproducto" ["id"]
+        @"iclase" int ref:"cclaseproducto" ["id"] required
+        @"itipo" int ref:"ctipoproducto" ["id"] required
+        @"lim2" decimal(18,8)
+        @"lim3" decimal(18,8)
+        @"lim4" decimal(18,8)
+        @"lim5" decimal(18,8)
+        @"maximo" decimal(18,8)
+        @"metodovaluacion" int ref:"cmetodosvaluacion" ["id"] required
+        @"minimo" decimal(18,8)
+        @"notas" memo
+        @"padic1" decimal(18,8)
+        @"padic2" decimal(18,8)
+        @"padic3" decimal(18,8)
+        @"padic4" decimal(18,8)
+        @"padic5" decimal(18,8)
+        @"ppuntos" decimal(18,8)
+        @"precio1" decimal(18,8)
+        @"precio2" decimal(18,8)
+        @"precio3" decimal(18,8)
+        @"precio4" decimal(18,8)
+        @"precio5" decimal(18,8)
+        @"puntoro" decimal(18,8)
+        @"reqlote" bool required
+        @"reqserie" bool required
+        @"saldo" decimal(18,8)
+        @"tipocomision" int ref:"ctiposcomisionesproducto" ["id"]
+        @"unidad" string(10) required
+        @"unidadb" string(10)
+        @"unidadc" string(10)
+        @"unidadd" string(10)
+        @"unidade" string(10)
+        @"util1" decimal(18,8)
+        @"util2" decimal(18,8)
+        @"util3" decimal(18,8)
+        @"util4" decimal(18,8)
+        @"util5" decimal(18,8)
+        @"utilmin" decimal(18,8)
+        @"vinculardata" bool
+        @"visible" bool
+        @"idepartamento" int ref:"departamento" ["sys_pk"]
+        @"idivisa" int ref:"divisa" ["sys_pk"] required
+        @"ilinea" int ref:"linea" ["sys_pk"] required
+        @"imarca" int ref:"marca" ["sys_pk"]
+        @"impuestos" int ref:"cfgimpuesto" ["sys_pk"]
+        @"ivariables" int
+        @"proveedor1" int ref:"proveedor" ["sys_pk"]
+        @"proveedor2" int ref:"proveedor" ["sys_pk"]
+        @"proveedor3" int ref:"proveedor" ["sys_pk"]
+        @"uf_solicitarcantidad" bool
+        @"uf_sys_baja" bool
+        @"uf_complemento" bool
+        @"precio106" decimal(18,8)
+        @"precio107" decimal(18,8)
+        @"precio108" decimal(18,8)
+        @"precio109" decimal(18,8)
+        @"precio110" decimal(18,8)
+        @"precio111" decimal(18,8)
+        @"precio112" decimal(18,8)
+        @"precio113" decimal(18,8)
+        @"precio114" decimal(18,8)
+        @"precio115" decimal(18,8)
+        @"precio116" decimal(18,8)
+        @"precio117" decimal(18,8)
+        @"precio118" decimal(18,8)
+        @"precio119" decimal(18,8)
+        @"precio120" decimal(18,8)
+        @"util106" decimal(18,8)
+        @"util107" decimal(18,8)
+        @"util108" decimal(18,8)
+        @"util109" decimal(18,8)
+        @"util110" decimal(18,8)
+        @"util111" decimal(18,8)
+        @"util112" decimal(18,8)
+        @"util113" decimal(18,8)
+        @"util114" decimal(18,8)
+        @"util115" decimal(18,8)
+        @"util116" decimal(18,8)
+        @"util117" decimal(18,8)
+        @"util118" decimal(18,8)
+        @"util119" decimal(18,8)
+        @"util120" decimal(18,8)
+        @"uf_codigoparaproveedor1" string(50)
+        @"uf_codigoparaproveedor2" string(50)
+        @"uf_codigoparaproveedor3" string(50)
+        @"uf_pdv" decimal(18,8)
+        @"uf_dv_diasreorden" int
+        @"uf_dv_inventarioseguridaddias" int
+        @"uf_gruposimilares" int
+        @"uf_inhabilitado" bool
+        @"uf_fechainhabilitacion" datetime
+        @"uf_sat_proser" string(50) required
+        @"uf_sat_uniproser" string(50) required
+    }
+    // Catálogo de monedas o divisas
+    entity "divisa" : "TableModel"
+    {
+        @"codigo" string(5) unique required
+        @"descripcion" string(30) required
+        @"tcambio" decimal(18,8)
+    }
+    // Describe como se han tomado los costos provenientes de distintas entradas.
+    entity "dcapa" : "TableModel"
+    {
+        @"cantidad" decimal(18,8)
+        @"costo" decimal(18,8)
+        @"pkentrada" int required
+        @"fk_dcardex_capas" int ref:"dcardex" ["sys_pk"] required
+    }
+
+    // Relaciones a catálogos
+    entity "ctiposcategorias" : "EnumModel" {}
+    entity "cformacomisionproducto" : "EnumModel" {}
+    entity "cclaseproducto" : "EnumModel" {}
+    entity "ctipoproducto" : "EnumModel" {}
+    entity "cmetodosvaluacion" : "EnumModel" {}
+    entity "ctiposcomisionesproducto" : "EnumModel" {}
+    entity "cstatusseries" : "EnumModel" {}
+
+    // Relaciones a otras tablas
+    entity "compra" : "TableModel" {}
+    entity "orden" : "TableModel" {}
+    entity "venta" : "TableModel" {}
+    entity "dcompra" : "TableModel" {}
+    entity "dventa" : "TableModel" {}
+    entity "domicilio" : "TableModel" {}
+    entity "departamento" : "TableModel" {}
+    entity "linea" : "TableModel" {}
+    entity "marca" : "TableModel" {}
+    entity "cfgimpuesto" : "TableModel" {}
+    entity "proveedor" : "TableModel" {}
+}
