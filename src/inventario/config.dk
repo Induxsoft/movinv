@@ -1,0 +1,22 @@
+#include "dkli.dkh"
+#!
+module "config.dk"
+{
+    // _STATIC RESOURCES
+    @CSS_MAIN = "/$/inventario/css/main.css"
+    @JS_MAIN = "/$/inventario/js/main.js"
+    @JS_MOVINV = "/$/inventario/js/movinv.js"
+
+    // _PACKAGE
+    @URL_BUSCAR_ALMACEN = "/!/inventario/movimiento/?_view=almacen&s=@search"
+    @URL_BUSCAR_CATEGORIA = "/!/inventario/movimiento/?_view=categoria&s=@search"
+    @URL_BUSCAR_PRODUCTO = "/!/inventario/movimiento/?_view=producto&s=@search"
+
+    @MENU = "/!/inventario/"
+
+    @INVENTARIO = "/!/inventario/movimiento/"
+    @INV_ADD_ENTRADA = "/!/inventario/movimiento/_new/entrada/"
+    @INV_ADD_SALIDA = "/!/inventario/movimiento/_new/salida/"
+    @INV_ADD_TRASPASO = "/!/inventario/movimiento/_new/traspaso/"
+    @INV_GET_DOCUMENTO = "/!/inventario/movimiento/_doc/"
+}

@@ -1,0 +1,67 @@
+#include "dkli.dkh"
+#!
+module "list.dk"
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "../config.dk"
+
+    do @context.begin(@crud_context)
+    
+    #$
+    div(class="container")
+    {
+        h1(class="h4 text-primary"){$"Artículos, servicios y ensambles"}
+
+        div
+        {
+            div(class="bg-light my-1")
+            {
+                div(class="btn-group" role="group")
+                {
+                    a(href="#<@MENU>" class="btn btn-secondary btn-sm fw-bolder"){$"<--"}
+                    a(href="#<@INV_ADD_ENTRADA>" class="btn btn-light btn-sm fw-bolder"){$"Agregar entrada"}
+                    a(href="#<@INV_ADD_SALIDA>" class="btn btn-light btn-sm fw-bolder"){$"Agregar salida"}
+                    a(href="#<@INV_ADD_TRASPASO>" class="btn btn-light btn-sm fw-bolder"){$"Agregar traspaso"}
+                    button(type="button" class="btn btn-light btn-sm fw-bolder" onclick="goTo('#<@INV_GET_DOCUMENTO>')"){$"Consultar documento"}
+                    a(href="./" class="btn btn-light btn-sm fw-bolder"){$"Refrescar"}
+                }
+            }
+
+            "edit-table"(class="w-100" id="tbl_productos" data="#<to.json(@('&.'))>")
+            {
+                "edit-thead"
+                {
+                    "edit-tr"
+                    {
+                        "edit-th"(type="NoEditable" field=""){$"Código"}
+                        "edit-th"(type="NoEditable" field=""){$"Descripción"}
+                        "edit-th"(type="NoEditable" field=""){$"Marca"}
+                        "edit-th"(type="NoEditable" field=""){$"Unidad"}
+                        "edit-th"(type="NoEditable" field=""){$"Existencia"}
+                        "edit-th"(type="NoEditable" field=""){$"etc..."}
+                    }
+                }
+            }
+        }
+
+        p{$"#<@('$error/message')>"}
+
+        script
+        {$'
+            var table = document.getElementById("tbl_productos");
+
+            function goTo(url)
+            {
+                if (!url) { alert("No se ha indicado un destino."); return; }
+                if (table.CurrentRowIndex() < 0) { alert("Debe seleccionar una fila"); return; }
+
+                var data = table.DataArray[table.CurrentRowIndex()];
+                if (!data.sys_pk) return;
+
+                var url = url.replace("_doc",data.sys_pk);
+                window.location.href = url;
+            }
+        '}
+    }
+}
