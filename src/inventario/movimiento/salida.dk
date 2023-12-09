@@ -5,123 +5,146 @@ program
     #include "functions.dkh"
     #include "../config.dk"
     
-    #$ div(class="container")
+    #$ div(class="container p-0")
     {
         link(href="#<@CSS_MAIN>" rel="stylesheet")
 
-        form(id="formEntrada" class="mt-4")
+        form(id="formEntrada")
         {
-            input(type="hidden" name="tipo_movimiento" value="salida")
-
-            div(class="d-flex justify-content-between align-items-center mb-3")
+            div(class="main_bar" class="row container-section m-0 px-0 py-2 border-bottom")
             {
-                h3{$"Crear salida"}
-                button(type="submit" class="btn btn-sm border-secondary"){$"Guardar"}
-            }
-            div(class="mb-3")
-            {
-                div(class="row")
+                div(class="col-4 d-flex align-items-center p-0")
                 {
-                    div(class="col-6")
-                    {
-                        label{$"Fecha:"}
-                        input(type="date" name="fecha" class="induxsoft-form-control" value="#<date_str(now(),'yyyy-MM-dd')>")
-                    }
-                    div(class="col-6")
-                    {
-                        label{$"Almacen:"}
-                        "input-key"(
-                            id="ik_salida_almacen"
-                            name="ialmacen"
-                            "data-key"="sys_pk"
-                            "data-search"="codigo"
-                            "data-text"="descripcion"
-                            "data-source"="#<@URL_BUSCAR_ALMACEN>"
-                            columns="codigo,descripcion"
-                            colcaptions="Código,Descripción"
-                            "box-title-text"="Seleccione un almacen"
-                            "box-placeholder-text"="Buscar almacen"
-                            "box-nodata-text"="No se encontraron almacenes"
-                            required="true"
-                            "control-styles"=""
-                        ){$""}
-                    }
+                    h6(class="tex-no-break m-0"){$"Crear salida"}
                 }
-                div(class="row")
+                div(class="col-8 d-flex align-items-center justify-content-end p-0 gap-2")
                 {
-                    div(class="col-6")
-                    {
-                        label{$"Referencia:"}
-                        input(type="text" name="referencia" class="induxsoft-form-control" required="true")
-                    }
-                    div(class="col-6")
-                    {
-                        label{$"Categoría:"}
-                        "input-key"(
-                            id="ik_salida_categoria"
-                            name="icategoria"
-                            "data-key"="sys_pk"
-                            "data-search"="codigo"
-                            "data-text"="descripcion"
-                            "data-source"="#<@URL_BUSCAR_CATEGORIA>"
-                            columns="codigo,descripcion"
-                            colcaptions="Código,Descripción"
-                            "box-title-text"="Seleccione un categoría"
-                            "box-placeholder-text"="Buscar categoría"
-                            "box-nodata-text"="No se encontraron categorías"
-                            required="true"
-                            "control-styles"=""
-                        ){$""}
-                    }
-                }
-                div
-                {
-                    label{$"Notas:"}
-                    textarea(class="induxsoft-form-control" required="true" name="descripcion"){$""}
-                }
-            }
-        }
-        div
-        {
-            small{$"Seleccione los productos en la cuadrícula"}
-            div(class="d-flex gap-2")
-            {
-                button(type="button" class="btn btn-sm border-secondary" onclick="movinv.agregarFila()"){$"+"}
-                button(type="button" class="btn btn-sm border-secondary" onclick="movinv.eliminarFila()"){$"-"}
-            }
-            div(style="max-height: 50vh; display: flex;")
-            {
-                "edit-table"(id="et_salida_productos" style="width: 100%;")
-                {
-                    "edit-thead"
-                    {
-                        "edit-tr"
-                        {
-                            "edit-th"(type="Text" field="codigo" button="true"){$"Código"}
-                            "edit-th"(type="Text" field="descripcion" button="true"){$"Descripción"}
-                            "edit-th"(type="NoEditable" field="unidad"){$"Unidad"}
-                            "edit-th"(type="NoEditable" field="divisa"){$"Divisa"}
-                            "edit-th"(type="NoEditable" field="costoultimo"){$"Costo"}
-                            "edit-th"(type="NoEditable" field="existencia"){$"Existencia"}
-                            "edit-th"(type="Number" field="cantidad"){$"Cantidad"}
-                            "edit-th"(type="NoEditable" field="nueva_existencia"){$"Nva. Exist."}
+                    button(type="submit" class="btn btn-sm border-secondary induxsoft-corners btn-main-action"){$"Guardar"}
+                    a(class="btn btn-sm border-secondary induxsoft-corners border-0 btn-main-action" href="#<@INVENTARIO>") {
+                        svg(xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-lg" viewBox="0 0 16 16") {
+                            path(d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z")
                         }
                     }
                 }
             }
-            "input-key"(
-                id="ikProducto"
-                "data-key"="sys_pk"
-                "data-search"="codigo"
-                "data-text"="descripcion"
-                "data-source"="#<@URL_BUSCAR_PRODUCTO>"
-                columns="codigo,descripcion"
-                colcaptions="Código,Descripción"
-                "box-title-text"="Seleccione un producto"
-                "box-placeholder-text"="Buscar producto"
-                "box-nodata-text"="No se encontraron productos"
-                "control-styles"="#container{ display: none !important; }"
-            ){$""}
+            div(class="work_area" class="container-section")
+            {
+                input(type="hidden" name="tipo_movimiento" value="salida")
+
+                div(class="mb-3")
+                {
+                    div(class="row")
+                    {
+                        div(class="col-6")
+                        {
+                            label{$"Fecha:"}
+                            input(type="date" name="fecha" class="induxsoft-form-control" value="#<date_str(now(),'yyyy-MM-dd')>")
+                        }
+                        div(class="col-6")
+                        {
+                            label{$"Almacen:"}
+                            "input-key"(
+                                id="ik_salida_almacen"
+                                name="ialmacen"
+                                "data-key"="sys_pk"
+                                "data-search"="codigo"
+                                "data-text"="descripcion"
+                                "data-source"="#<@URL_BUSCAR_ALMACEN>"
+                                columns="codigo,descripcion"
+                                colcaptions="Código,Descripción"
+                                "box-title-text"="Seleccione un almacen"
+                                "box-placeholder-text"="Buscar almacen"
+                                "box-nodata-text"="No se encontraron almacenes"
+                                required="true"
+                                "control-styles"=""
+                            ){$""}
+                        }
+                    }
+                    div(class="row")
+                    {
+                        div(class="col-6")
+                        {
+                            label{$"Referencia:"}
+                            input(type="text" name="referencia" class="induxsoft-form-control" required="true")
+                        }
+                        div(class="col-6")
+                        {
+                            label{$"Categoría:"}
+                            "input-key"(
+                                id="ik_salida_categoria"
+                                name="icategoria"
+                                "data-key"="sys_pk"
+                                "data-search"="codigo"
+                                "data-text"="descripcion"
+                                "data-source"="#<@URL_BUSCAR_CATEGORIA>"
+                                columns="codigo,descripcion"
+                                colcaptions="Código,Descripción"
+                                "box-title-text"="Seleccione un categoría"
+                                "box-placeholder-text"="Buscar categoría"
+                                "box-nodata-text"="No se encontraron categorías"
+                                required="true"
+                                "control-styles"=""
+                            ){$""}
+                        }
+                    }
+                    div
+                    {
+                        label{$"Notas:"}
+                        textarea(class="induxsoft-form-control" required="true" name="descripcion"){$""}
+                    }
+                }
+
+                div
+                {
+                    small{$"Seleccione los productos en la cuadrícula"}
+                    div(class="d-flex justify-content-end border")
+                    {
+                        button(class="btn btn-sm d-flex align-items-center justify-content-center gap-2 no-shadow" title="Agregar fila" onclick="movinv.agregarFila()"){
+                            $"#<@@(@icons,'add_row')>"
+                        }
+                        button(class="btn btn-sm d-flex align-items-center justify-content-center gap-2 no-shadow" title="Eliminar fila" onclick="movinv.eliminarFila()"){
+                            $"#<@@(@icons,'remove_row')>"
+                        }
+                    }
+                    div(style="max-height: 50vh; display: flex;")
+                    {
+                        "edit-table"(id="et_salida_productos" style="width: 100%;")
+                        {
+                            "edit-thead"
+                            {
+                                "edit-tr"
+                                {
+                                    "edit-th"(type="Text" field="codigo" button="true"){$"Código"}
+                                    "edit-th"(type="Text" field="descripcion" button="true"){$"Descripción"}
+                                    "edit-th"(type="NoEditable" field="unidad"){$"Unidad"}
+                                    "edit-th"(type="NoEditable" field="divisa"){$"Divisa"}
+                                    "edit-th"(type="NoEditable" field="costoultimo"){$"Costo"}
+                                    "edit-th"(type="NoEditable" field="existencia"){$"Existencia"}
+                                    "edit-th"(type="Number" field="cantidad"){$"Cantidad"}
+                                    "edit-th"(type="NoEditable" field="nueva_existencia"){$"Nva. Exist."}
+                                }
+                            }
+                        }
+                    }
+                    "input-key"(
+                        id="ikProducto"
+                        "data-key"="sys_pk"
+                        "data-search"="codigo"
+                        "data-text"="descripcion"
+                        "data-source"="#<@URL_BUSCAR_PRODUCTO>"
+                        columns="codigo,descripcion"
+                        colcaptions="Código,Descripción"
+                        "box-title-text"="Seleccione un producto"
+                        "box-placeholder-text"="Buscar producto"
+                        "box-nodata-text"="No se encontraron productos"
+                        "control-styles"="#container{ display: none !important; }"
+                    ){$""}
+                }
+            }
+            div(class="status_bar" class="container-section")
+            {
+                $""
+            }
         }
 
         script(src="#<@JS_MAIN>"){$""}

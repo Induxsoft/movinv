@@ -112,11 +112,21 @@ module "model"
 			}
 		}
 
-		@use_transaction = @true
+		@use_transaction = @false
+		do dbr.begin(db)
+
 		data<"aplicado">:1
 		data<"valuado">:1
 		ref res = entity.create(db, params, data)
+
+		do erp.inventario.aplicar_mov(db,@@(res,"#sys_pk"),@true)
+
+		do dbr.commit(db)
 		return res
+		exception{
+			if dbr.in_transaction(db){do dbr.rollback(db)}
+			do rise_error(last_error_code(),last_error())
+		}
 	}
 	function movinv.genDetalle(&product, almacen, entrada)
 	{
