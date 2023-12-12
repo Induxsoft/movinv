@@ -32,6 +32,7 @@ module "Controller configs"
 	//No modifique a menos que sepa lo que está haciendo
 	do crudl.routes.pattern("/_program/")
 	do crudl.routes.entity("/movimiento/","movimiento")
+	do crudl.routes.entity("/cardex/","cardex")
 
 	@dbmvc_path="crudl/"
 	

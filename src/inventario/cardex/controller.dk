@@ -1,0 +1,14 @@
+#include "dkli.dkh"
+#!
+module "controller"
+{
+    switch @@(@http_context,"$request/get/_view")
+    {
+        default
+        {
+            //@form_view = "traspaso.dk"
+            point @read to cardex.obtenerMovimientosProducto
+            break
+        }
+    }
+}

@@ -1,0 +1,18 @@
+#include "dkli.dkh"
+#!
+module "model"
+{
+    function cardex.obtenerMovimientosProducto(&db, &params)
+    {
+        sql = "
+        SELECT DATE_FORMAT(c.fecha, '%d/%m/%Y') fecha, ct.descripcion categoria, c.referencia, IFNULL(d.entradas,0) entradas, IFNULL(d.salidas, 0) salidas, d.tipocambio 
+        FROM dcardex d
+            INNER JOIN cardex c ON d.fk_cardex_movimientos = c.sys_pk
+            INNER JOIN categoria ct ON c.icategoria = ct.sys_pk
+            INNER JOIN producto p ON d.iproducto = p.sys_pk
+        WHERE p.sys_pk=@_entity_id;"
+
+        return dbr.list(db, sql, params)
+    }
+    @table_name = "cardex"
+}

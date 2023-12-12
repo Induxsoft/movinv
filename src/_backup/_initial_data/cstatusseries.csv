@@ -1,6 +1,0 @@
-"ID","Const","sys_recver","sys_lock","sys_deleted"
-"1","cDisponible",\N,\N,\N
-"2","cVendido",\N,\N,\N
-"3","cDevuelto_a_proveedor",\N,\N,\N
-"4","cDevuelto_por_el_cliente",\N,\N,\N
-"5","cEnsamblado",\N,\N,\N

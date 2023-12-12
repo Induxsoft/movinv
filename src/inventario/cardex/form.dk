@@ -1,0 +1,56 @@
+#include "dkli.dkh"
+#!
+module "form.dk"
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "../config.dk"
+
+    do @context.begin(@crud_context)
+
+    ref movs = @("&./")
+
+    #$ div(class="container")
+    {
+        div(id="main_bar" class="row container-section m-0 px-0 py-2 border-bottom sticky-top")
+        {
+            div(class="col-4 d-flex align-items-center p-0")
+            {
+                h6(class="tex-no-break m-0"){$"Cardex"}
+            }
+            div(class="col-8 d-flex align-items-center justify-content-end p-0 gap-2")
+            {
+                a(class="btn btn-sm border-secondary induxsoft-corners btn-main-action border-0" href="#<@INVENTARIO>") {
+                    svg(xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-lg" viewBox="0 0 16 16") {
+                        path(d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z")
+                    }
+                }
+            }
+        }
+        div(id="work_area" class="container-section")
+        {
+            div(style="max-height: 50vh; display: flex;")
+            {
+                "edit-table"(id="et_movimientos_producto" style="width: 100%;" data='#<to.json(movs)>')
+                {
+                    "edit-thead"
+                    {
+                        "edit-tr"
+                        {
+                            "edit-th"(type="NoEditable" field="fecha"){$"Fecha"}
+                            "edit-th"(type="NoEditable" field="categoria"){$"Categoría"}
+                            "edit-th"(type="NoEditable" field="referencia"){$"Referencia"}
+                            "edit-th"(type="NoEditable" field="entradas"){$"Entradas"}
+                            "edit-th"(type="NoEditable" field="salidas"){$"Salidas"}
+                            "edit-th"(type="NoEditable" field="tipocambio"){$"Tipo cambio"}
+                        }
+                    }
+                }
+            }
+        }
+        div(id="status_bar" class="container-section")
+        {
+            $""
+        }
+    }
+}

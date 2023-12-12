@@ -18,7 +18,7 @@ module "config.dk"
     @INV_ADD_ENTRADA = "/!/inventario/movimiento/_new/entrada/"
     @INV_ADD_SALIDA = "/!/inventario/movimiento/_new/salida/"
     @INV_ADD_TRASPASO = "/!/inventario/movimiento/_new/traspaso/"
-    @INV_GET_DOCUMENTO = "/!/inventario/movimiento/_doc/"
+    @INV_GET_DOCUMENTO = "/!/inventario/cardex/@_doc/"
 
     new @icons
     {
