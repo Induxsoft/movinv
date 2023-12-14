@@ -123,9 +123,9 @@ program
                                     "edit-th"(type="NoEditable" field="existencia"){$"Existencia"}
                                     "edit-th"(type="Number" field="cantidad"){$"Cantidad"}
                                     "edit-th"(type="NoEditable" field="nueva_existencia"){$"Nva. Exist."}
-                                    "edit-th"(type="Text" field="serie"){$"Serie"}
-                                    "edit-th"(type="Text" field="lote"){$"Lote"}
-                                    "edit-th"(type="Date" field="caducidad"){$"Caducidad"}
+                                    // "edit-th"(type="Text" field="serie"){$"Serie"}
+                                    // "edit-th"(type="Text" field="lote"){$"Lote"}
+                                    // "edit-th"(type="Date" field="caducidad"){$"Caducidad"}
                                 }
                             }
                         }
@@ -142,6 +142,7 @@ program
                         "box-placeholder-text"="Buscar producto"
                         "box-nodata-text"="No se encontraron productos"
                         "control-styles"="#container{ display: none !important; }"
+                        "hidden-input"="false"
                     ){$""}
                 }
             }
@@ -155,6 +156,7 @@ program
         script(src="#<@JS_MOVINV>"){$""}
         script{$'
             movinv.tableId = "et_entrada_productos";
+            movinv.url_inventario = "#<@INVENTARIO>";
         '}
     }
 }

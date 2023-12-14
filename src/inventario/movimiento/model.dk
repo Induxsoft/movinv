@@ -2,6 +2,8 @@
 #!
 module "model"
 {
+	#include "../movimientos.dkh"
+
 	// =============== ALMACEN
 	function movinv.obtenerAlmacenes(&db, &params)
 	{
@@ -31,7 +33,8 @@ module "model"
 			INNER JOIN divisa d ON p.idivisa = d.sys_pk
 		WHERE IF(IFNULL(@s,'')='', true, (p.codigo LIKE CONCAT('%',@s,'%') OR p.descripcion LIKE CONCAT('%',@s,'%')));"
 
-		return dbr.list(db, sql, params)
+		ref res = dbr.list(db, sql, params)
+		return res
 	}
 
 	// =============== MOVIMIENTOS
@@ -113,18 +116,17 @@ module "model"
 		}
 
 		@use_transaction = @false
+		
 		do dbr.begin(db)
-
-		data<"aplicado">:1
-		data<"valuado">:1
-		ref res = entity.create(db, params, data)
-
+		ref res = record.caseinsensitive(entity.create(db, params, data))
 		do erp.inventario.aplicar_mov(db,@@(res,"#sys_pk"),@true)
-
 		do dbr.commit(db)
+		
 		return res
+
 		exception{
 			if dbr.in_transaction(db){do dbr.rollback(db)}
+			do errordet(@false)
 			do rise_error(last_error_code(),last_error())
 		}
 	}
