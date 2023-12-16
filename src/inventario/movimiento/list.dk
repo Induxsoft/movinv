@@ -7,39 +7,43 @@ module "list.dk"
     #include "../config.dk"
 
     do @context.begin(@crud_context)
-    
+    ref prods = @('&.')
     #$
-    div(class="container")
+    div(class="container p-0")
     {
-        h1(class="h4 text-primary"){$"Artículos, servicios y ensambles"}
-
+        div(id="main_bar" class="row container-section m-0 px-0 py-2 border-bottom")
+        {
+            div(class="col-4 d-flex align-items-center p-0")
+            {
+                h6(class="tex-no-break m-0"){$"Artículos, servicios y ensambles"}
+            }
+            div(class="col-8 d-flex align-items-center justify-content-end p-0 gap-2")
+            {
+                //a(href="#<@MENU>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action"){$"<--"}
+                a(href="#<@INV_ADD_ENTRADA>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action"){$"Agregar entrada"}
+                a(href="#<@INV_ADD_SALIDA>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action"){$"Agregar salida"}
+                a(href="#<@INV_ADD_TRASPASO>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action"){$"Agregar traspaso"}
+                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" onclick="movinv.goTo('#<@INV_GET_DOCUMENTO>')"){$"Consultar documento"}
+                a(href="./" class="btn btn-sm border-secondary induxsoft-corners btn-main-action"){$"Refrescar"}
+            }
+        }
         div
         {
-            div(class="bg-light my-1")
+            div(class="d-flex mb-2")
             {
-                div(class="btn-group" role="group")
-                {
-                    a(href="#<@MENU>" class="btn btn-secondary btn-sm fw-bolder"){$"<--"}
-                    a(href="#<@INV_ADD_ENTRADA>" class="btn btn-light btn-sm fw-bolder"){$"Agregar entrada"}
-                    a(href="#<@INV_ADD_SALIDA>" class="btn btn-light btn-sm fw-bolder"){$"Agregar salida"}
-                    a(href="#<@INV_ADD_TRASPASO>" class="btn btn-light btn-sm fw-bolder"){$"Agregar traspaso"}
-                    button(type="button" class="btn btn-light btn-sm fw-bolder" onclick="goTo('#<@INV_GET_DOCUMENTO>')"){$"Consultar documento"}
-                    a(href="./" class="btn btn-light btn-sm fw-bolder"){$"Refrescar"}
-                }
+                input(class="induxsoft-form-control flex-grow-1" type="text" id="input_search_prod" url="#<@URL_BUSCAR_PRODUCTO>" placeholder="Buscar producto")
+                button(class="btn btn-sm btn-secondary induxsoft-corners" id="btn_search_prod"){$"Buscar"}
             }
-
-            "edit-table"(class="w-100" id="tbl_productos" data="#<to.json(@('&.'))>")
+            "edit-table"(class="w-100" id="tbl_productos")
             {
                 "edit-thead"
                 {
                     "edit-tr"
                     {
-                        "edit-th"(type="NoEditable" field=""){$"Código"}
-                        "edit-th"(type="NoEditable" field=""){$"Descripción"}
-                        "edit-th"(type="NoEditable" field=""){$"Marca"}
-                        "edit-th"(type="NoEditable" field=""){$"Unidad"}
-                        "edit-th"(type="NoEditable" field=""){$"Existencia"}
-                        "edit-th"(type="NoEditable" field=""){$"etc..."}
+                        "edit-th"(type="NoEditable" field="codigo"){$"Código"}
+                        "edit-th"(type="NoEditable" field="descripcion"){$"Descripción"}
+                        "edit-th"(type="NoEditable" field="unidad"){$"Unidad"}
+                        "edit-th"(type="NoEditable" field="existencia"){$"Existencia"}
                     }
                 }
             }
@@ -47,21 +51,9 @@ module "list.dk"
 
         p{$"#<@('$error/message')>"}
 
-        script
-        {$'
-            var table = document.getElementById("tbl_productos");
-
-            function goTo(url)
-            {
-                if (!url) { alert("No se ha indicado un destino."); return; }
-                if (table.CurrentRowIndex() < 0) { alert("Debe seleccionar una fila"); return; }
-
-                var data = table.DataArray[table.CurrentRowIndex()];
-                if (!data.sys_pk) return;
-
-                var url = url.replace("_doc",data.sys_pk);
-                window.location.href = url;
-            }
+        script(src="#<@JS_MOVINV>"){$""}
+        script{$'
+            movinv.tableId = "tbl_productos";
         '}
     }
 }
