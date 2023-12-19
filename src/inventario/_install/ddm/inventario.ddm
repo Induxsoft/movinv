@@ -15,8 +15,8 @@ model "movinv"
         @"codigo" string(5) unique required
         @"descripcion" string(50) unique required
         @"pmensual" decimal(18,8)
-        @"tipo" int ref:"ctiposcategorias" ["id"]
-        @"padre" int ref:"categoria" ["sys_pk"]
+        @"tipo" ref:"ctiposcategorias"
+        @"padre" ref:"categoria"
         @"uf_inhabilitado" bool
         @"uf_fechainhabilitacion" datetime
     }
@@ -28,10 +28,7 @@ model "movinv"
         @"fecha" date
         @"referencia" string(255) unique required
         @"valuado" bool
-        @"doccompra" int ref:"compra" ["sys_pk"]
-        @"docorden" int ref:"orden" ["sys_pk"]
-        @"docventa" int ref:"venta" ["sys_pk"]
-        @"icategoria" int ref:"categoria" ["sys_pk"] required
+        @"icategoria" ref:"categoria" required
     }
     // Contiene cada partida del movimiento (la entrada o salida de un producto)
     entity "dcardex" : "TableModel"
@@ -53,8 +50,6 @@ model "movinv"
         @"ilote" ref:"lote"
         @"iproducto" ref:"producto" required
         @"iserie" ref:"serie"
-        @"rcompra" ref:"dcompra"
-        @"rventa" ref:"dventa"
         @"fk_cardex_movimientos" ref:"cardex" required
     }
     // Contiene identificadores de grupos de productos de características similares o iguales
@@ -65,7 +60,7 @@ model "movinv"
         @"fcaducidad" date
         @"fentrada" date
         @"numero" string(50) unique required
-        @"iproducto" int ref:"producto" ["sys_pk"] required
+        @"iproducto" ref:"producto" required
     }
     // Contiene información e identificación de un producto
     entity "serie" : "TableModel"
@@ -74,13 +69,8 @@ model "movinv"
         @"fventa" date 
         @"notas" string(4096) 
         @"numero" string(50) unique required
-        @"status" int ref:"cstatusseries" ["id"] required
-        @"doccompra" int ref:"compra" ["sys_pk"] 
-        @"docventa" int ref:"venta" ["sys_pk"] 
-        @"ialmacen" int ref:"almacen" ["sys_pk"] 
-        @"iensamble" int ref:"serie" ["sys_pk"] 
-        @"ilote" int ref:"lote" ["sys_pk"] 
-        @"iproducto" int ref:"producto" ["sys_pk"] required
+        @"status" ref:"cstatusseries" required
+        @"iproducto" ref:"producto" required
     }
     // Almacen de productos
     entity "almacen" : "TableModel"
@@ -92,7 +82,6 @@ model "movinv"
         @"fax" string(150)
         @"telefonos" string(150)
         @"website" string(150)
-        @"domicilio1" int ref:"domicilio" ["sys_pk"]
         @"uf_movremoto" bool
         @"uf_inhabilitado" bool
         @"uf_fechainhabilitacion" datetime
@@ -102,17 +91,18 @@ model "movinv"
     entity "clotexalmacen" : "TableModel"
     {
         @"cantidad" decimal(18,8)
-        @"ialmacen" int ref:"almacen" ["sys_pk"] required
-        @"fk_lote_exisxalmacen" int ref:"lote" ["sys_pk"] required
+        @"ialmacen" ref:"almacen" required
+        @"fk_lote_exisxalmacen" ref:"lote"required
     }
     // Contiene el saldo y existencia de cada producto en cada almacén
     entity "existencias" : "TableModel"
     {
         @"existencia" decimal(18,8)
         @"saldo" decimal(18,8)
-        @"ialmacen" int ref:"almacen" ["sys_pk"] required
-        @"fk_producto_iexistencias" int ref:"producto" ["sys_pk"] required
+        @"ialmacen" ref:"almacen" required
+        @"fk_producto_iexistencias" ref:"producto" required
     }
+
     // Contiene información del producto además del saldo y existencia de todos los almacenes de ese producto
     entity "producto" : "TableModel"
     {
@@ -150,7 +140,6 @@ model "movinv"
         @"factore" decimal(18,8)
         @"flaglimites" bool
         @"flagutilidad" bool
-        @"formacomision" ref:"cformacomisionproducto"
         @"iclase" ref:"cclaseproducto" required
         @"itipo" ref:"ctipoproducto" required
         @"lim2" decimal(18,8)
@@ -176,7 +165,6 @@ model "movinv"
         @"reqlote" bool required
         @"reqserie" bool required
         @"saldo" decimal(18,8)
-        @"tipocomision" ref:"ctiposcomisionesproducto"
         @"unidad" string(10) required
         @"unidadb" string(10)
         @"unidadc" string(10)
@@ -190,15 +178,10 @@ model "movinv"
         @"utilmin" decimal(18,8)
         @"vinculardata" bool
         @"visible" bool
-        @"idepartamento" ref:"departamento"
         @"idivisa" ref:"divisa" required
         @"ilinea" ref:"linea" required
-        @"imarca" ref:"marca"
         @"impuestos" ref:"cfgimpuesto" required
         @"ivariables" int
-        @"proveedor1" ref:"proveedor"
-        @"proveedor2" ref:"proveedor"
-        @"proveedor3" ref:"proveedor"
         @"uf_solicitarcantidad" bool
         @"uf_sys_baja" bool
         @"uf_complemento" bool
@@ -257,217 +240,12 @@ model "movinv"
         @"cantidad" decimal(18,8)
         @"costo" decimal(18,8)
         @"pkentrada" int required
-        @"fk_dcardex_capas" int ref:"dcardex" ["sys_pk"] required
+        @"fk_dcardex_capas" ref:"dcardex" required
     }
 
-    // Relaciones a catálogos
-    entity "ctiposcategorias" : "EnumModel" {}
-    entity "cformacomisionproducto" : "EnumModel" {}
-    entity "cclaseproducto" : "EnumModel" {}
-    entity "ctipoproducto" : "EnumModel" {}
-    entity "cmetodosvaluacion" : "EnumModel" {}
-    entity "ctiposcomisionesproducto" : "EnumModel" {}
-    entity "cstatusseries" : "EnumModel" {}
-
-    // Relaciones a otras tablas
-    entity "compra" : "TableModel"
-    {
-        @"auditado" bool
-        @"contabilizado" bool
-        @"descuento1" decimal(18,8)
-        @"descuento2" decimal(18,8)
-        @"directos" decimal(18,8)
-        @"documento" int ref:"cdocumentos" ["id"] required
-        @"fecha" date
-        @"fembarque" date
-        @"fentrega" date
-        @"fliquidacion" date
-        @"formapago" int ref:"cformaspago" ["id"] required
-        @"fultimopago" date
-        @"impuesto1" decimal(18,8)
-        @"impuesto2" decimal(18,8)
-        @"impuesto3" decimal(18,8)
-        @"impuesto4" decimal(18,8)
-        @"indirectos" decimal(18,8)
-        @"notas" memo
-        @"partida" string(32)
-        @"poliza" string(32)
-        @"referencia" string(25) required
-        @"statusadministrativo" int ref:"cstatusadministrativos" ["id"] required
-        @"statusentrega" int ref:"cstatusentrega" ["id"] required
-        @"statusfacturacion" int ref:"cstatusfacturacion" ["id"] required
-        @"statusfinanciero" int ref:"cstatusfinancieros" ["id"] required
-        @"subtotal" decimal(18,8)
-        @"tipoCambio"decimal(18,8)
-        @"vencimiento" date
-        @"aplicadoa" int ref:"compra" ["sys_pk"]
-        @"ialmacen" int ref:"almacen" ["sys_pk"] required
-        @"idivisa" int ref:"divisa" ["sys_pk"] required
-        // @"imovcaja" int ref:"movcaja" ["sys_pk"]
-        // @"imovchequera" int ref:"movcuenta" ["sys_pk"]
-        @"iproveedor" int ref:"proveedor" ["sys_pk"] required
-        @"uf_color" int
-        @"uf_fechacancelacion" datetime
-        @"uf_importado" bool
-        @"uf_iaduana" int
-        @"uf_numdocaduanero" string(200)
-        @"uf_fechadocaduanero" date
-    }
-    entity "orden" : "TableModel"
-    {
-        @"auditada" bool
-        @"cdirecto" decimal(18,8)
-        @"cindirecto" decimal(18,8)
-        @"cmanoobra" decimal(18,8)
-        @"cmaquinaria" decimal(18,8)
-        @"contabilizada" bool
-        @"d1" decimal(18,8)
-        @"d2" decimal(18,8)
-        @"fecha" date
-        @"fprevista" date
-        @"fproduccion" date
-        @"hora" datetime
-        @"hprevista" datetime
-        @"hproduccion" datetime
-        @"importe" decimal(18,8)
-        @"notas" string(4096)
-        @"partida" string(32)
-        @"poliza" string(32)
-        @"referencia" string(50) unique
-        @"status" int ref:"cstatusordenproduccion" ["id"] required
-        @"tiempoproduccion" int
-        @"tiemposervicio" int
-        @"tipocambio" decimal(18,8)
-        //@"iagente" int ref:"agente" ["sys_pk"]
-        @"icconsumo" int ref:"cconsumo" ["sys_pk"] required
-        @"icproduccion" int ref:"cproduccion" ["sys_pk"] required
-        // @"idivisa" int ref:"divisa" ["sys_pk"]
-        // @"iventa" int ref:"venta" ["sys_pk"]
-    }
-    entity "venta" : "TableModel"
-    {
-        @"auditado" bool 
-        @"contabilizado" bool 
-        @"descuento1" decimal(18,8) 
-        @"descuento2" decimal(18,8) 
-        @"dmnsmesa" string(45) 
-        @"dmnsnota" string(255) 
-        @"dmnspersonas" int 
-        @"documento" int ref:"cdocumentos" ["id"] required
-        @"domicilioentrega" string(255) 
-        @"fecha" date required
-        @"fembarque" date 
-        @"fentrega" date 
-        @"fliquidacion" date 
-        @"formapago" int ref:"cformaspago" ["id"] required
-        @"fultimocobro" date 
-        @"importeadicional" decimal(18,8) 
-        @"impuesto1" decimal(18,8) 
-        @"impuesto2" decimal(18,8) 
-        @"impuesto3" decimal(18,8) 
-        @"impuesto4" decimal(18,8) 
-        @"notas" string(32000) 
-        @"partida" string(32) 
-        @"pcomision" decimal(18,8) 
-        @"poliza" string(32) 
-        @"referencia" string(25) unique required
-        // @"statusadministrativo" int ref:"cstatusadministrativos" ["id"] 
-        // @"statusentrega" int ref:"cstatusentrega" ["id"] 
-        // @"statusfacturacion" int ref:"cstatusfacturacion" ["id"] 
-        // @"statusfinanciero" int ref:"cstatusfinancieros" ["id"] 
-        @"subtotal" decimal(18,8) 
-        @"tipocambio" decimal(18,8) 
-        @"tipodomicilio" int 
-        @"txtguia" string(150) 
-        @"vencimiento" date 
-        // @"aplicadoa" int ref:"venta" ["sys_pk"] 
-        // @"iagente" int ref:"agente" ["sys_pk"] 
-        // @"icaja" int ref:"caja" ["sys_pk"] 
-        @"icconsumo" int ref:"cconsumo" ["sys_pk"] required
-        @"icliente" int ref:"cliente" ["sys_pk"] required
-        // @"icorte" int ref:"corte" ["sys_pk"] 
-        @"idivisa" int ref:"divisa" ["sys_pk"] required
-        @"ifolio" int ref:"foliosdocumentos" ["sys_pk"] required
-        // @"iguia" int ref:"guia" ["sys_pk"] 
-        // @"imovcaja" int ref:"movcaja" ["sys_pk"] 
-        // @"iporteador" int ref:"porteador" ["sys_pk"] 
-        // @"irepartidor" int ref:"repartidor" ["sys_pk"] 
-        @"uf_color" int 
-        @"uf_fechacfd" datetime 
-        @"uf_fechacancelacion" datetime 
-        @"uf_dmtipoformato" int 
-        @"xmlformapago" string(255) 
-        @"xmlcondicionespago" string(255) 
-        @"xmlmetodopago" string(255) 
-        @"xmlnumerocuentapago" string(100) 
-    }
-    entity "dcompra" : "TableModel"
-    {
-        @"cantidad" decimal(18,8)
-        @"costototal" decimal(18,8)
-        @"descuento1" decimal(18,8)
-        @"descuento2" decimal(18,8)
-        @"factor" decimal(18,8)
-        @"impuesto1" decimal(18,8)
-        @"impuesto2" decimal(18,8)
-        @"impuesto3" decimal(18,8)
-        @"impuesto4" decimal(18,8)
-        @"notas" string(255)
-        @"precio" decimal(18,8)
-        @"status" int ref:"cstatusdetallecompra" ["id"] required
-        @"tipocambio" decimal(18,8)
-        @"unidad" string(10) required
-        @"xfacturar" decimal(18,8)
-        @"documento" int ref:"compra" ["sys_pk"]
-        @"iproducto" int ref:"producto" ["sys_pk"] required
-        @"fk_compra_detalle" int ref:"compra" ["sys_pk"] required
-    }
-    entity "dventa" : "TableModel"
-    {
-        @"cantidad" decimal(18,8)
-        @"descuento1" decimal(18,8)
-        @"descuento2" decimal(18,8)
-        @"factor" decimal(18,8)
-        @"impuesto1" decimal(18,8)
-        @"impuesto2" decimal(18,8)
-        @"impuesto3" decimal(18,8)
-        @"impuesto4" decimal(18,8)
-        @"notas" string(255)
-        @"precio" decimal(18,8)
-        @"status" int ref:"cstatusdetalleventa" ["id"] required
-        @"tipocambio" decimal(18,8)
-        @"unidad" string(10)
-        @"xfacturar" decimal(18,8)
-        @"xsalir" decimal(18,8)
-        //@"documento" int ref:"venta" ["sys_pk"]
-        @"ialmacen" int ref:"almacen" ["sys_pk"] required
-        @"iproducto" int ref:"producto" ["sys_pk"] required
-        @"fk_venta_detalle" int ref:"venta" ["sys_pk"] required
-    }
-    entity "domicilio" : "TableModel"
-    {
-        @"codpos" string(10)
-        @"colonia" string(150)
-        @"direccion" string(1024)
-        @"notas" string(150)
-        @"telefonos" string(150)
-        //@"iciudad" int ref:"ciudad" ["sys_pk"]
-        @"numint" string(1024)
-        @"numext" string(1024)
-    }
-    entity "departamento" : "TableModel"
-    {
-        @"codigo" string(5) unique required
-        @"comision1" decimal(18,8)
-        @"comision2" decimal(18,8)
-        @"comision3" decimal(18,8)
-        @"comision4" decimal(18,8)
-        @"comision5" decimal(18,8)
-        @"descripcion" string(50) unique required
-    }
     entity "linea" : "TableModel"
     {
-        @"clase" int ref:"cclaseproducto" ["id"] required
+        @"clase" ref:"cclaseproducto" required
         @"codigo" string(15) unique required
         @"color" int
         @"comision1" decimal(18,8)
@@ -480,11 +258,7 @@ model "movinv"
         @"visible" bool
         @"uf_indicaciones" string(4096)
     }
-    entity "marca" : "TableModel"
-    {
-        @"codigo" string(5) unique required
-        @"descripcion" string(50) unique required
-    }
+
     entity "cfgimpuesto" : "TableModel"
     {
         @"i1compra" string(4096)
@@ -503,165 +277,13 @@ model "movinv"
         @"tasa" bool
         @"objetoimp" string(2)
     }
-    entity "proveedor" : "TableModel"
-    {
-        @"codcuenta" string(50) unique 
-        @"codigo" string(35) unique required
-        @"curp" string(35) unique 
-        @"diascredito" int 
-        @"diasentrega" int 
-        @"email" string(50) 
-        @"fax" string(50) 
-        @"limitecredito" decimal(18,8) 
-        @"nombre" string(150) unique required
-        @"notas" string(32000) 
-        @"rfc" string(15) 
-        @"saldo" decimal(18,8) 
-        //@"status" int ref:"cstatusorg" ["id"] 
-        @"tasaiva" int ref:"ctasasiva" ["id"] required
-        @"telefonos" string(50) 
-        @"website" string(150) 
-        // @"contacto1" int ref:"contacto" ["sys_pk"] 
-        // @"contacto2" int ref:"contacto" ["sys_pk"] 
-        // @"contacto3" int ref:"contacto" ["sys_pk"] 
-        // @"domicilio1" int ref:"domicilio" ["sys_pk"] 
-        // @"domicilio2" int ref:"domicilio" ["sys_pk"] 
-        // @"domicilio3" int ref:"domicilio" ["sys_pk"] 
-        @"idivisa" int ref:"divisa" ["sys_pk"] required
-        // @"izona" int ref:"zona" ["sys_pk"] 
-        @"tipo" int ref:"tipoproveedor" ["sys_pk"] required
-        @"uf_sys_baja" bool 
-        @"uf_vueltaviajero" int 
-        // @"uf_tipoop" int ref:"tipooperacion" ["sys_pk"] 
-    }
 
-    entity "cdocumentos" : "EnumModel" {}
-    entity "cformaspago" : "EnumModel" {}
-    entity "cstatusadministrativos" : "EnumModel" {}
-    entity "cstatusentrega" : "EnumModel" {}
-    entity "cstatusfacturacion" : "EnumModel" {}
-    entity "cstatusfinancieros" : "EnumModel" {}
-    entity "cstatusordenproduccion" : "EnumModel" {}
-    entity "cstatusdetallecompra" : "EnumModel" {}
-    entity "cstatusdetalleventa" : "EnumModel" {}
-    entity "ctasasiva" : "EnumModel" {}
-
-    entity "cconsumo" : "TableModel"
-    {
-        @"codigo" string(5) unique required
-        @"descripcion" string(50) unique required
-        @"notas" string(2048)
-        @"precio" int
-        @"ialmacen" int ref:"almacen" ["sys_pk"]
-        @"porcentaje_esperado" decimal(19,8)
-        @"uf_domiciliocfd" int
-        @"uf_expedicioncxc" int
-        @"uf_inhabilitado" bool
-        @"uf_fechainhabilitacion" datetime
-        @"uf_grupoprod" int
-    }
-    entity "cproduccion" : "TableModel"
-    {
-        @"codigo" string(5) unique required
-        @"descripcion" string(30) unique required
-        @"almacenmp" int ref:"almacen" ["sys_pk"] required
-        @"almacenpt" int ref:"almacen" ["sys_pk"] required
-    }
-    entity "cliente" : "TableModel"
-    {
-        @"codcuenta" string(50) unique
-        @"codigo" string(35) unique required
-        @"curp" string(25) unique
-        @"descuento" decimal(19,8)
-        @"diascredito" int
-        @"email" string(80)
-        @"fax" string(150)
-        @"limitecredito" decimal(19,8)
-        @"monedero" decimal(19,8)
-        @"nombre" string(150) unique required
-        @"notas" memo
-        @"precio" decimal(19,8)
-        @"puntos" decimal(19,8)
-        @"rfc" string(15)
-        @"saldo" decimal(19,8)
-        @"saldopuntos" decimal(19,8)
-        // @"status" int ref:"cstatusorg" ["id"]
-        @"telefonos" string(150)
-        @"website" string(150)
-        // @"agente" int ref:"agente" ["sys_pk"]
-        // @"contacto1" int ref:"contacto" ["sys_pk"]
-        // @"contacto2" int ref:"contacto" ["sys_pk"]
-        // @"contacto3" int ref:"contacto" ["sys_pk"]
-        // @"domicilio1" int ref:"domicilio" ["sys_pk"]
-        // @"domicilio2" int ref:"domicilio" ["sys_pk"]
-        // @"domicilio3" int ref:"domicilio" ["sys_pk"]
-        @"idivisa" int ref:"divisa" ["sys_pk"] required
-        @"tipo" int ref:"tipocliente" ["sys_pk"] required
-        // @"zona" int ref:"zona" ["sys_pk"]
-        @"uf_sys_baja" bool
-        @"uf_addenda" bool
-        @"regfiscal" string(3)
-        // Campos que se utilizan en Cuenta Mestra.
-        @"induxsoftnic" string(50)
-        @"giro" memo
-        @"preciotimbre" decimal(19,8)
-        @"color" int
-        @"uf_nomcomercial" string(1024)
-        @"replegal_nombre" string(255)
-        @"replegal_puesto" string(50)
-        @"replegal_email" string(255)
-        @"replegal_telefono" string(50)
-        @"replegal_telefonoaux" string(50)
-        @"contactof_nombre" string(255)
-        @"contactof_puesto" string(50)
-        @"contactof_email" string(255)
-        @"contactof_telefono" string(50)
-        @"contactof_telefonoaux" string(50)
-        @"contactotec_nombre" string(255)
-        @"contactotec_puesto" string(50)
-        @"contactotec_email" string(255)
-        @"contactotec_telefono" string(50)
-        @"contactotec_telefonoaux" string(50)
-    }
-    entity "foliosdocumentos" : "TableModel"
-    {
-        @"cancelado" bool required
-        @"fecha" date required
-        @"folio" int required
-        @"block" int ref:"blockdocumentos" ["sys_pk"] required
-
-        index "idx_foliodoc" unique
-        {
-            field "folio"
-            field "block"
-        }
-    }
-    entity "tipoproveedor" : "TableModel"
-    {
-        @"codigo" string(15) unique required
-        @"descripcion" string(50) unique required
-        @"notas" string(4096) 
-    }
-    entity "tipocliente" : "TableModel"
-    {
-        @"codigo" string(15) unique required
-        @"descripcion" string(50) unique required
-        @"notas" string(4096) 
-    }
-    entity "blockdocumentos" : "TableModel"
-    {
-        @"activo" bool required
-        @"datos" string(255)
-        @"documento" int ref:"cdocumentos" ["id"] required
-        @"finicial" int required
-        @"fiscal" bool required
-        @"fultimo" int required
-        @"idcontrol" string(32)
-        @"numcontrol" int
-        @"serie" string(10)
-        @"uf_cfdfolio" int
-        @"uf_cfdi_info" int
-    }
+    // Relaciones a catálogos
+    entity "ctiposcategorias" : "EnumModel" {}
+    entity "cclaseproducto" : "EnumModel" {}
+    entity "ctipoproducto" : "EnumModel" {}
+    entity "cmetodosvaluacion" : "EnumModel" {}
+    entity "cstatusseries" : "EnumModel" {}
 
     // Información de la aplicación
     entity "sys_app_catalog"

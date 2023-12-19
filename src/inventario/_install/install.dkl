@@ -24,12 +24,10 @@ program
     // Archivos de datos iniciales (Orden de instalación)
     init_files = '
         cclaseproducto.csv,
-        cformacomisionproducto.csv,
         cmetodosvaluacion.csv,
         cstatusseries.csv,
         ctipoproducto.csv,
         ctiposcategorias.csv,
-        ctiposcomisionesproducto.csv,
         divisa.csv,
         categoria.csv,
         almacen.csv,
