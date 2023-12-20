@@ -28,10 +28,12 @@ module "model"
 	function movinv.obtenerProductos(&db, &params)
 	{
 		sql = "
-		SELECT p.sys_pk, p.codigo, p.descripcion, p.unidad, d.codigo divisa, p.costoultimo, p.existencia
+		SELECT p.sys_pk, p.codigo, p.descripcion, p.unidad, d.codigo divisa, IFNULL(p.costoultimo,0) costoultimo, IFNULL(p.existencia,0) existencia
 		FROM producto p
 			INNER JOIN divisa d ON p.idivisa = d.sys_pk
-		WHERE IF(IFNULL(@s,'')='', true, (p.codigo LIKE CONCAT('%',@s,'%') OR p.descripcion LIKE CONCAT('%',@s,'%')));"
+		WHERE IF(IFNULL(@s,'')='', true, (p.codigo LIKE CONCAT('%',@s,'%') OR p.descripcion LIKE CONCAT('%',@s,'%')))"
+
+		if field.exist(params,"tipo") && @@(params,"#tipo") > 0 { sql = sql + " AND p.itipo = @tipo" }
 
 		ref res = dbr.list(db, sql, params)
 		return res

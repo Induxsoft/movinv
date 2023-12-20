@@ -2,6 +2,8 @@ var movinv =
 {
     tableId: '',
     table:null,
+    tEvents:{},
+    tData:[],
     init()
     {
         const formEntrada = document.querySelector('#formEntrada');
@@ -26,6 +28,63 @@ var movinv =
                     this.agregarFilaProducto(data);
                 });
             }
+        }
+
+        this.setTableEvents();
+    },
+    setTableEvents()
+    {
+        if (!this.table) return;
+
+        this.tEvents = this.table.EdiTable.Const.Events;
+        this.tData = this.table.DataArray;
+
+        // this.table.Events[this.tEvents.StartEdition] = (e) => { this.tStartEdition(e); }
+        this.table.Events[this.tEvents.BeforeUpdateCell] = (e) => { this.tBeforeUpdateCell(e); }
+        this.table.Events[this.tEvents.ConfirmEdition] = (e) => { this.tConfirmEdition(e); }
+    },
+    tStartEdition(e) {
+        let currRow = e.sender.RowIndexOfTd(e.td);
+        let field = e.coldef.field;
+        let item = this.tData[currRow];
+
+        if (Object.entries(item ?? {}).length === 0) return;
+    },
+    tBeforeUpdateCell(e) {
+        let currRow = e.sender.RowIndexOfTd(e.td);
+        let field = e.coldef.field;
+        let item = this.tData[currRow];
+
+        if (Object.entries(item ?? {}).length === 0) return;
+
+        if (field == "cantidad" && Number(e.text.trim()) <= 0) {
+            alert("El valor debe ser mayor que 0.");
+            e.cancel = true;
+            return false;
+        }
+    },
+    tConfirmEdition(e) {
+        let currRow = e.sender.RowIndexOfTd(e.td);
+        let field = e.coldef.field;
+        let item = this.tData[currRow];
+
+        if (Object.entries(item ?? {}).length === 0) return;
+
+        switch (this.tableId) {
+            case "et_entrada_productos":
+                if (field == "cantidad") {
+                    item["nueva_existencia"] = Math.add(item.existencia,Number(e.text.trim()));
+                    this.table.UpdateRow(currRow);
+                }
+                break;
+            case "et_salida_productos":
+                if (field == "cantidad") {
+                    item["nueva_existencia"] = Math.sub(item.existencia,Number(e.text.trim()));
+                    this.table.UpdateRow(currRow);
+                }
+                break;
+            case "et_traspaso_productos":
+                break;
         }
     },
     agregarFila()
@@ -66,7 +125,12 @@ var movinv =
         let url = movinv.url_inventario + "_new/";
 
         InduxsoftCrudlModel.InvokeService(url, data, 
-            success => { console.log(success); window.location.reload(); },
+            success => {
+                if (success.message) { alert(success.message); return; }
+                
+                alert("Movimiento creado con éxito.");
+                window.location.reload();
+            },
             failure => { console.log(failure); },
             "POST", false
         );

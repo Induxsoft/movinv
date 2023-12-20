@@ -102,16 +102,16 @@ program
                     small{$"Seleccione los productos en la cuadrícula"}
                     div(class="d-flex justify-content-end border")
                     {
-                        button(class="btn btn-sm d-flex align-items-center justify-content-center gap-2 no-shadow" title="Agregar fila" onclick="movinv.agregarFila()"){
+                        button(class="btn btn-sm d-flex align-items-center justify-content-center gap-2 no-shadow" type="button" title="Agregar fila" onclick="movinv.agregarFila()"){
                             $"#<@@(@icons,'add_row')>"
                         }
-                        button(class="btn btn-sm d-flex align-items-center justify-content-center gap-2 no-shadow" title="Eliminar fila" onclick="movinv.eliminarFila()"){
+                        button(class="btn btn-sm d-flex align-items-center justify-content-center gap-2 no-shadow" type="button" title="Eliminar fila" onclick="movinv.eliminarFila()"){
                             $"#<@@(@icons,'remove_row')>"
                         }
                     }
                     div(style="max-height: 50vh; display: flex;")
                     {
-                        "edit-table"(id="et_salida_productos" style="width: 100%;")
+                        "edit-table"(id="et_salida_productos" style="width: 100%;" data='[{},{},{},{},{},{},{},{},{},{}]')
                         {
                             "edit-thead"
                             {
@@ -129,12 +129,13 @@ program
                             }
                         }
                     }
+                    // Mostrar solo productos inventariables (tipo=2)
                     "input-key"(
                         id="ikProducto"
                         "data-key"="sys_pk"
                         "data-search"="codigo"
                         "data-text"="descripcion"
-                        "data-source"="#<@URL_BUSCAR_PRODUCTO>"
+                        "data-source"="#<@URL_BUSCAR_PRODUCTO + '&tipo=2'>"
                         columns="codigo,descripcion"
                         colcaptions="Código,Descripción"
                         "box-title-text"="Seleccione un producto"

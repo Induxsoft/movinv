@@ -103,10 +103,10 @@ program
                     {
                         small(class="flex-grow-1"){$"Seleccione los productos en la cuadrícula"}
 
-                        button(class="btn btn-sm d-flex align-items-center justify-content-center gap-2 no-shadow" title="Agregar fila" onclick="movinv.agregarFila()"){
+                        button(class="btn btn-sm d-flex align-items-center justify-content-center gap-2 no-shadow" type="button" title="Agregar fila" onclick="movinv.agregarFila()"){
                             $"#<@@(@icons,'add_row')>"
                         }
-                        button(class="btn btn-sm d-flex align-items-center justify-content-center gap-2 no-shadow" title="Eliminar fila" onclick="movinv.eliminarFila()"){
+                        button(class="btn btn-sm d-flex align-items-center justify-content-center gap-2 no-shadow" type="button" title="Eliminar fila" onclick="movinv.eliminarFila()"){
                             $"#<@@(@icons,'remove_row')>"
                         }
                     }
@@ -133,12 +133,13 @@ program
                             }
                         }
                     }
+                    // Mostrar solo productos inventariables (tipo=2)
                     "input-key"(
                         id="ikProducto"
                         "data-key"="sys_pk"
                         "data-search"="codigo"
                         "data-text"="descripcion"
-                        "data-source"="#<@URL_BUSCAR_PRODUCTO>"
+                        "data-source"="#<@URL_BUSCAR_PRODUCTO + '&tipo=2'>" 
                         columns="codigo,descripcion"
                         colcaptions="Código,Descripción"
                         "box-title-text"="Seleccione un producto"
