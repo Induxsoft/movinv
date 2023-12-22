@@ -43,6 +43,7 @@ module "list.dk"
                         "edit-th"(type="NoEditable" field="codigo"){$"Código"}
                         "edit-th"(type="NoEditable" field="descripcion"){$"Descripción"}
                         "edit-th"(type="NoEditable" field="unidad"){$"Unidad"}
+                        "edit-th"(type="NoEditable" field="tipo"){$"Tipo"}
                         "edit-th"(type="NoEditable" field="existencia"){$"Existencia"}
                     }
                 }

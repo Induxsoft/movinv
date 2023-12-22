@@ -26,7 +26,8 @@ var main = {
                 if ((control.getAttribute('type')??'').toLowerCase() == 'number' || ((control.getAttribute('hidden-type')??'') == 'number')) 
                     v = Number(v);
 
-                if (v.toString().trim() != '') values[control.name] = v;
+                    if (v.toString().trim() != '' && (control.name && control.name.toLowerCase() != 'null')) values[control.name] = v;
+
             }
         });
 
