@@ -131,7 +131,7 @@ var movinv =
                 alert("Movimiento creado con éxito.");
                 window.location.reload();
             },
-            failure => { console.log(failure); },
+            failure => { alert(failure.message??failure); },
             "POST", false
         );
     },

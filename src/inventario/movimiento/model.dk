@@ -42,6 +42,13 @@ module "model"
 	// =============== MOVIMIENTOS
 	function movinv.agregarMovimiento(&db, &params, &data)
 	{
+		new p{@"referencia":@@(data,"$referencia")}
+		if trim(@@(data,"$referencia"))==""{data<"referencia*">:@null}
+		if trim(@@(data,"$referencia"))!=""
+		{
+			ref rec=dbr.rec(db,"select * from cardex where referencia=@referencia",p)
+			if not(isnull(rec)){do rise_error(500,"El valor de la referencia ya existe")}
+		}
 		almacen1 = 0
 		almacen2 = 0
 
