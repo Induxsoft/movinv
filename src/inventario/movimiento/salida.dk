@@ -19,9 +19,10 @@ program
                 }
                 div(class="col-8 d-flex align-items-center justify-content-end p-0 gap-2")
                 {
+                    a(href="./" class="btn btn-sm border-secondary induxsoft-corners btn-main-action"){$"#<@@(@icons,'ICON_ARROW_CLOCKWISE')>"}
                     button(type="submit" class="btn btn-sm border-secondary induxsoft-corners btn-main-action d-flex align-items-center gap-2"){
                         $'#<@@(@icons,"file_check")>'
-                        $"Procesar salida"
+                        $"Procesar"
                     }
                     a(class="btn btn-sm border-secondary induxsoft-corners btn-main-action" href="#<@INVENTARIO>") {
                         svg(xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-lg" viewBox="0 0 16 16") {

@@ -15,16 +15,15 @@ module "list.dk"
         {
             div(class="col-4 d-flex align-items-center p-0")
             {
-                h6(class="tex-no-break m-0"){$"Artículos, servicios y ensambles"}
+                h5(class="tex-no-break m-0"){$"Inventario"}
             }
             div(class="col-8 d-flex align-items-center justify-content-end p-0 gap-2")
             {
-                //a(href="#<@MENU>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action"){$"<--"}
-                a(href="#<@INV_ADD_ENTRADA>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action"){$"Agregar entrada"}
-                a(href="#<@INV_ADD_SALIDA>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action"){$"Agregar salida"}
-                a(href="#<@INV_ADD_TRASPASO>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action"){$"Agregar traspaso"}
-                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" onclick="movinv.goTo('#<@INV_GET_DOCUMENTO>')"){$"Consultar documento"}
-                a(href="./" class="btn btn-sm border-secondary induxsoft-corners btn-main-action"){$"Refrescar"}
+                a(href="./" class="btn btn-sm border-secondary induxsoft-corners btn-main-action"){$"#<@@(@icons,'ICON_ARROW_CLOCKWISE')>"}
+                a(href="#<@INV_ADD_ENTRADA>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action"){$"Entrada"}
+                a(href="#<@INV_ADD_SALIDA>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action"){$"Salida"}
+                a(href="#<@INV_ADD_TRASPASO>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action"){$"Traspaso"}
+                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" onclick="movinv.goTo('#<@INV_GET_DOCUMENTO>')"){$"Cardex"}
             }
         }
         div
@@ -32,9 +31,12 @@ module "list.dk"
             div(class="d-flex mb-2")
             {
                 input(class="induxsoft-form-control flex-grow-1" type="text" id="input_search_prod" url="#<@URL_BUSCAR_PRODUCTO>" placeholder="Buscar producto")
-                button(class="btn btn-sm btn-secondary induxsoft-corners" id="btn_search_prod"){$"Buscar"}
+                button(class="btn btn-sm btn-primary induxsoft-corners d-flex gap-2 align-items-center" id="btn_search_prod"){
+                    $"Buscar"
+                    $"#<@@(@icons,'ICON_SEARCH')>"
+                }
             }
-            "edit-table"(class="w-100" id="tbl_productos")
+            "edit-table"(class="w-100" id="tbl_productos" "hidde-selector"="true")
             {
                 "edit-thead"
                 {
