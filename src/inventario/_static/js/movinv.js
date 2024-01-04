@@ -8,14 +8,9 @@ var movinv =
     {
         const formEntrada = document.querySelector('#formEntrada');
         const ikProducto = document.querySelector('#ikProducto');
-        const input_search_prod = document.querySelector('#input_search_prod');
         const btn_search_prod = document.querySelector('#btn_search_prod');
         
         if (formEntrada) formEntrada.addEventListener('submit', e => this.guardarEntrada(e));
-        if (input_search_prod) input_search_prod.addEventListener('keydown', e => {
-            if (e.key === 'Enter')
-                this.buscarProducto();
-        });
         if (btn_search_prod) btn_search_prod.addEventListener('click', e => { this.buscarProducto(); });
         if (this.tableId.trim() != '') 
         {
@@ -143,38 +138,6 @@ var movinv =
         data.cantidad = 1;
         this.table.DataArray[row] = data;
         this.table.UpdateRow(row);
-    },
-    buscarProducto()
-    {
-        let input_search = document.querySelector('#input_search_prod');
-        let search = input_search.value;
-        if (!search.trim()) return;
-
-        let url = input_search.getAttribute('url');
-        url = url.replace('@search', search);
-
-        InduxsoftCrudlModel.InvokeService(url, null, 
-            success => { this.pintarProductos(success) },
-            failure => { alert('No se pudo realizar la busqueda.\n'+JSON.stringify(failure)); },
-            "GET", false
-        );
-    },
-    pintarProductos(data)
-    {
-        let tbl_productos = document.querySelector('#tbl_productos');
-        tbl_productos.DataArray = data;
-        tbl_productos._printRows();
-    },
-    goTo(url)
-    {
-        if (!url) { alert("No se ha indicado un destino."); return; }
-        if (this.table.CurrentRowIndex() < 0) { alert("Debe seleccionar una fila"); return; }
-
-        var data = this.table.DataArray[this.table.CurrentRowIndex()];
-        if (!data.sys_pk) return;
-
-        var url = url.replace("@_doc",data.sys_pk);
-        window.location.href = url;
     }
 }
 

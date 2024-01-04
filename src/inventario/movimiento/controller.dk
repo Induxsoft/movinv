@@ -41,6 +41,7 @@ module "controller"
         {
             point @create to movinv.agregarMovimiento
             point @update to movinv.agregarMovimiento
+            point @list to movinv.obtenerProductos
             break
         }
     }

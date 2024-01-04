@@ -2,6 +2,7 @@
 #!
 module "model"
 {
+	#include "../config.dk"
 	#include "../movimientos.dkh"
 
 	// =============== ALMACEN
@@ -20,7 +21,9 @@ module "model"
 		sql = "
 		SELECT sys_pk, codigo, descripcion
 		FROM categoria
-		WHERE IF(IFNULL(@s,'')='', true, (codigo LIKE CONCAT('%',@s,'%') OR descripcion LIKE CONCAT('%',@s,'%')));"
+		WHERE tipo = 3
+			AND IF(IFNULL(@s,'')='', true, (codigo LIKE CONCAT('%',@s,'%') OR descripcion LIKE CONCAT('%',@s,'%')))
+		ORDER BY codigo;"
 
 		return dbr.list(db, sql, params)
 	}
@@ -37,7 +40,9 @@ module "model"
 
 		if field.exist(params,"tipo") && @@(params,"#tipo") > 0 { sql = sql + " AND p.itipo = @tipo" }
 
-		ref res = dbr.list(db, sql, params)
+		sql = sql + " ORDER BY p.codigo LIMIT #<@default_max_rows>;"
+
+		ref res = dbr.list(db, ftext(sql), params)
 		return res
 	}
 

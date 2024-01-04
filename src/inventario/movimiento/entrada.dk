@@ -33,6 +33,7 @@ program
             }
             div(id="work_area" class="container-section")
             {
+                div(class="#<ifstr(@('error/message')!='','alert alert-danger','')>"){$"#<@('error/message')>"}
                 input(type="hidden" name="tipo_movimiento" value="entrada")
                 
                 div(class="mb-3")
@@ -102,7 +103,7 @@ program
                 {
                     div(class="d-flex justify-content-end border")
                     {
-                        small(class="flex-grow-1"){$"Seleccione los productos en la cuadrícula"}
+                        small(class="flex-grow-1 p-1"){$"Seleccione los productos en la cuadrícula"}
 
                         button(class="btn btn-sm d-flex align-items-center justify-content-center gap-2 no-shadow" type="button" title="Agregar fila" onclick="movinv.agregarFila()"){
                             $"#<@@(@icons,'add_row')>"
