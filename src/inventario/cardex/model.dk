@@ -2,6 +2,8 @@
 #!
 module "model"
 {
+    #include "../config.dk"
+
     function cardex.obtenerMovimientosProducto(&db, &params)
     {
         sql = "
@@ -10,9 +12,14 @@ module "model"
             INNER JOIN cardex c ON d.fk_cardex_movimientos = c.sys_pk
             INNER JOIN categoria ct ON c.icategoria = ct.sys_pk
             INNER JOIN producto p ON d.iproducto = p.sys_pk
-        WHERE p.sys_pk=@_entity_id;"
+        WHERE p.sys_pk=@_entity_id
+            AND IF(IFNULL(@almc,'-1')='-1', true, d.ialmacen=@almc)
+            AND IF(IFNULL(@year,'')='', true, YEAR(c.fecha)=@year)
+            AND IF(IFNULL(@month,'')='', true, (YEAR(c.fecha)=IFNULL(@year,YEAR(NOW())) AND MONTH(c.fecha)=@month))
+            AND IF(IFNULL(@s,'')='', true, c.referencia LIKE CONCAT('%',@s,'%'))
+        LIMIT #<@default_max_rows>;"
 
-        return dbr.list(db, sql, params)
+        return dbr.list(db, ftext(sql), params)
     }
     @table_name = "cardex"
 }
