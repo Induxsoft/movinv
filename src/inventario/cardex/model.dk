@@ -17,6 +17,9 @@ module "model"
             AND IF(IFNULL(@year,'')='', true, YEAR(c.fecha)=@year)
             AND IF(IFNULL(@month,'')='', true, (YEAR(c.fecha)=IFNULL(@year,YEAR(NOW())) AND MONTH(c.fecha)=@month))
             AND IF(IFNULL(@s,'')='', true, c.referencia LIKE CONCAT('%',@s,'%'))
+            AND IF(IFNULL(@range,'-99')='-99', true, (DATE(c.fecha) BETWEEN DATE_ADD(NOW(), INTERVAL -"+str(@@(params,"#range"))+" DAY) AND NOW()))
+            AND IF(IFNULL(@datefrom,'')='' AND IFNULL(@dateto,'')='', true, (DATE(c.fecha) BETWEEN DATE(@datefrom) AND DATE(@dateto)))
+        ORDER BY c.fecha
         LIMIT #<@default_max_rows>;"
 
         return dbr.list(db, ftext(sql), params)

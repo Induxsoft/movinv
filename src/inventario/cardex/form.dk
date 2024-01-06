@@ -7,17 +7,20 @@ module "form.dk"
     #include "dbr.dkh"
     #include "uielements.dkl"
     #include "../config.dk"
+    #include "../_lib/lib.dk"
+    #include "../_lib/scape_special_charactes2.dk"
 
     do @context.begin(@crud_context)
 
     ref movs = @("&./")
-    ref db = @("&database")
+    ref @db = @("&database")
     ref @http_context = @("&http")
     ref get = @@(@http_context, "&request/get")
-    almc = ifstr(@@(get,"$almc")=="","-1",@@(get,"$almc"))
-    dateNow = ndatetime.now()
+    @almc = ifstr(@@(get,"$almc")=="","-1",@@(get,"$almc"))
 
-    function get_almacenes(&db)
+    do scape_special_charactes(movs,"referencia")
+
+    get_almacenes::
     {
         new all_almc
         {
@@ -26,39 +29,34 @@ module "form.dk"
         }
         ref almacenes = list.create()
         do list.add(almacenes, all_almc)
-        ref all = dbr.list(db, "select sys_pk, descripcion almacen FROM almacen;", @null)
+        ref all = dbr.list(@db, "select sys_pk, descripcion almacen FROM almacen;", @null)
         for i = 0; i < list.count(all) { do list.add(almacenes, list.obj(all,i)) }
         return almacenes
     }
 
-    function get_years(dateNow)
+    print_almacenes::
     {
-        yearange = 10
-        yearfrom = ndatetime.add(dateNow, (yearange+1)*-1, "y")
-        ref list = list.create()
-
-        date = yearfrom
-        for i = 1; i < yearange+3
+        new def_almacenes
         {
-            date = ndatetime.add(date, 1 , 'y')
-            do list.add(list, ndatetime.year(date))
+            @"datatable*": get_almacenes()
+            member "attributes"
+            {
+                @"name": "almc"
+                @"class": "form-select form-select-sm induxsoft-corners"
+            }
+            @"text_field": "almacen"
+            @"value_field": "sys_pk"
+            @"selected": @almc
         }
 
-        return list
+        #$ div(class="d-flex gap-2 align-items-center" style="margin-top: -3px; margin-right: 3px;")
+        {
+            small{$"Almacen:"}
+            #! do uie.dbSelect(def_almacenes)
+        }
     }
 
-    new def_almacenes
-    {
-        @"datatable*": get_almacenes(db)
-        member "attributes"
-        {
-            @"name": "almc"
-            @"class": "form-select form-select-sm induxsoft-corners"
-        }
-        @"text_field": "almacen"
-        @"value_field": "sys_pk"
-        @"selected": almc
-    }
+    point @filter_almacen to print_almacenes
 
     #$ div(class="container")
     {
@@ -70,140 +68,16 @@ module "form.dk"
             }
             div(class="col-8 d-flex align-items-center justify-content-end p-0 gap-2")
             {
-                a(href="./" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" title="Refrescar"){$"#<@@(@icons,'ICON_ARROW_CLOCKWISE')>"}
-                a(class="btn btn-sm border-secondary induxsoft-corners btn-main-action" href="#<@INVENTARIO>") {$'#<@@(@icons,"X")>'}
+                a(href="./" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" title="Refrescar"){$"#<@@(@icons,'ICON_ARROW_CLOCKWISE')>"}
+                button(class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" title="Imprimir" onclick="window.print()"){$"#<@@(@icons,'PRINTER')>"}
+                a(class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" href="#<@INVENTARIO>") {$'#<@@(@icons,"X")>'}
             }
         }
         div(id="work_area" class="container-section mt-1")
-        {   
-            form(action="./" method="GET" id="form_filter" class="no-print")
-            {
-                // TABS FILTERS
-                ul(class="nav nav-tabs" id="myTab" role="tablist")
-                {
-                    div(class="d-flex gap-2 align-items-center" style="margin-top: -3px; margin-right: 3px;")
-                    {
-                        small{$"Almacen:"}
-                        #! do uie.dbSelect(def_almacenes)
-                    }
-                    #$ li(class="nav-item" role="presentation"){ button(class="nav-link text-secondary py-1 px-2 rounded-0" id="date-range-tab" "data-bs-toggle"="tab" "data-bs-target"="#date-range" type="button" role="tab" "aria-controls"="date-range" "aria-selected"="false"){small{$"Rango de fechas"} }}
-                    li(class="nav-item" role="presentation"){ button(class="nav-link text-secondary active py-1 px-2 rounded-0" id="months-tab" "data-bs-toggle"="tab" "data-bs-target"="#months" type="button" role="tab" "aria-controls"="months" "aria-selected"="true"){small{$"Ver por cada mes"} }}
-                }
-                // CONTROLS FILTERS
-                div(class="tab-content p-2 border border-top-0 border-bottom-0" id="myTabContent")
-                {
-                    fieldset(class="tab-pane fade" id="date-range" role="tabpanel" "aria-labelledby"="date-range-tab")
-                    {
-                        div(class="d-flex flex-wrap gap-3" id="options_date_container")
-                        {
-                            #! range = @@(get,"#range")
+        {
+            #! do print_date_filter(get, @filter_almacen, @null)
 
-                            #$ div(class="form-check m-0 d-flex gap-2 align-items-center") {
-                                input(class="form-check-input submit" type="radio" name="range" id="op_r1" value="15" "#<ifstr(range==15,'checked','')>"="true")
-                                label(class="form-check-label text-secondary" "for"="op_r1"){small{$"últ. 15 días"}}
-                            }
-                            div(class="form-check m-0 d-flex gap-2 align-items-center") {
-                                input(class="form-check-input submit" type="radio" name="range" id="op_r2" value="30" "#<ifstr(range==30,'checked','')>"="true")
-                                label(class="form-check-label text-secondary" "for"="op_r2"){small{$"últ. 30 días"}}
-                            }
-                            div(class="form-check m-0 d-flex gap-2 align-items-center") {
-                                input(class="form-check-input submit" type="radio" name="range" id="op_r3" value="60" "#<ifstr(range==60,'checked','')>"="true")
-                                label(class="form-check-label text-secondary" "for"="op_r3"){small{$"últ. 60 días"}}
-                            }
-                            div(class="form-check m-0 d-flex gap-2 align-items-center") {
-                                input(class="form-check-input submit" type="radio" name="range" id="op_r4" value="90" "#<ifstr(range==90,'checked','')>"="true")
-                                label(class="form-check-label text-secondary" "for"="op_r4"){small{$"últ. 90 días"}}
-                            }
-                            div(class="form-check m-0 d-flex gap-2 align-items-center") {
-                                input(class="form-check-input" type="radio" name="range" id="op_r5" value="-99" "#<ifstr(range==-99,'checked','')>"="true")
-                                label(class="form-check-label text-secondary" "for"="op_r5"){small{$"Personalizado"}}
-                            }
-                            div(class="d-flex gap-2 align-items-center flex-wrap" id="dates_range_container")
-                            {
-                                #! 
-                                datef = @@(get,"$datefrom")
-                                datet = @@(get,"$dateto")
-                                if trim(datef) == "" { datef = ndatetime.tostr(str(ndatetime.add(dateNow, -1, "m")), "yyyy-MM-dd") }
-                                if trim(datet) == "" { datet = ndatetime.tostr(str(dateNow), "yyyy-MM-dd") }
-                                
-                                #$
-                                small(class="text-secondary"){$"Desde:"}
-                                div{ input(type="date" name="datefrom" class="form-control form-control-sm rounded-0 text-secondary" value="#<datef>" disabled="true") }
-                                small(class="text-secondary"){$"Hasta:"}
-                                div{ input(type="date" name="dateto" class="form-control form-control-sm rounded-0 text-secondary" value="#<datet>" disabled="true") }
-                                
-                                button(type="submit" class="btn btn-sm btn-primary py-0 px-2 d-none" id="btn_dr_accept"){$"Aplicar"}
-                                button(type="button" class="btn btn-sm btn-light py-0 px-2 d-none" id="btn_dr_cancel"){$"Cancelar"}
-                                button(type="button" class="btn btn-sm btn-secondary py-0 px-2" "#<ifstr(range==-99,'','disabled')>"="true" id="btn_dr_change"){$"Cambiar"}
-                            }
-                        }
-                    }
-                    fieldset(class="tab-pane fade show active" id="months" role="tabpanel" "aria-labelledby"="months-tab")
-                    {
-                        div(class="d-flex gap-1 align-items-center flex-wrap")
-                        {
-                            div
-                            {
-                                select(class="form-select form-select-sm induxsoft-corners" name="year" id="select_year_filter")
-                                {
-                                    #! 
-                                    ref years = get_years(dateNow)
-                                    year = @@(get,'#year')
-                                    if year == 0 { year = ndatetime.year(dateNow) }
-                                    
-                                    for i = 0; i < list.count(years) {
-                                        y = list.num(years,i)
-                                        #$ option(value="#<y>" "#<ifstr(year!=y,'','selected')>"="true"){$"#<y>"}
-                                    }
-                                }
-                            }
-                            div(class="flex-grow-1")
-                            {
-                                #! month = @@(get, "#month")
-                                #$ div(class="btn-group flex-wrap" role="group" id="month_options_container")
-                                {
-                                    input(type="radio" class="btn-check" name="month" id="op_m1" autocomplete="off" value="01" "#<ifstr(month==01,'checked','')>"="true")
-                                    label(class="btn btn-sm btn btn-outline-secondary border radio-btn" "for"="op_m1"){small{$"Enero"}}
-
-                                    input(type="radio" class="btn-check" name="month" id="op_m2" autocomplete="off" value="02" "#<ifstr(month==02,'checked','')>"="true")
-                                    label(class="btn btn-sm btn btn-outline-secondary border radio-btn" "for"="op_m2"){small{$"Febrero"}}
-
-                                    input(type="radio" class="btn-check" name="month" id="op_m3" autocomplete="off" value="03" "#<ifstr(month==03,'checked','')>"="true")
-                                    label(class="btn btn-sm btn btn-outline-secondary border radio-btn" "for"="op_m3"){small{$"Marzo"}}
-
-                                    input(type="radio" class="btn-check" name="month" id="op_m4" autocomplete="off" value="04" "#<ifstr(month==04,'checked','')>"="true")
-                                    label(class="btn btn-sm btn btn-outline-secondary border radio-btn" "for"="op_m4"){small{$"Abril"}}
-
-                                    input(type="radio" class="btn-check" name="month" id="op_m5" autocomplete="off" value="05" "#<ifstr(month==05,'checked','')>"="true")
-                                    label(class="btn btn-sm btn btn-outline-secondary border radio-btn" "for"="op_m5"){small{$"Mayo"}}
-
-                                    input(type="radio" class="btn-check" name="month" id="op_m6" autocomplete="off" value="06" "#<ifstr(month==06,'checked','')>"="true")
-                                    label(class="btn btn-sm btn btn-outline-secondary border radio-btn" "for"="op_m6"){small{$"Junio"}}
-
-                                    input(type="radio" class="btn-check" name="month" id="op_m7" autocomplete="off" value="07" "#<ifstr(month==07,'checked','')>"="true")
-                                    label(class="btn btn-sm btn btn-outline-secondary border radio-btn" "for"="op_m7"){small{$"Julio"}}
-
-                                    input(type="radio" class="btn-check" name="month" id="op_m8" autocomplete="off" value="08" "#<ifstr(month==08,'checked','')>"="true")
-                                    label(class="btn btn-sm btn btn-outline-secondary border radio-btn" "for"="op_m8"){small{$"Agosto"}}
-
-                                    input(type="radio" class="btn-check" name="month" id="op_m9" autocomplete="off" value="09" "#<ifstr(month==09,'checked','')>"="true")
-                                    label(class="btn btn-sm btn btn-outline-secondary border radio-btn" "for"="op_m9"){small{$"Septiembre"}}
-
-                                    input(type="radio" class="btn-check" name="month" id="op_m10" autocomplete="off" value="10" "#<ifstr(month==10,'checked','')>"="true")
-                                    label(class="btn btn-sm btn btn-outline-secondary border radio-btn" "for"="op_m10"){small{$"Octubre"}}
-
-                                    input(type="radio" class="btn-check" name="month" id="op_m11" autocomplete="off" value="11" "#<ifstr(month==11,'checked','')>"="true")
-                                    label(class="btn btn-sm btn btn-outline-secondary border radio-btn" "for"="op_m11"){small{$"Noviembre"}}
-
-                                    input(type="radio" class="btn-check" name="month" id="op_m12" autocomplete="off" value="12" "#<ifstr(month==12,'checked','')>"="true")
-                                    label(class="btn btn-sm btn btn-outline-secondary border radio-btn" "for"="op_m12"){small{$"Diciembre"}}
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            form(action="./" method="GET" id="form_search" class="d-flex mb-3 no-print")
+            #$ form(action="./" method="GET" id="form_search" class="d-flex mb-3 no-print")
             {
                 input(class="induxsoft-form-control flex-grow-1" type="text" name="s" placeholder="Buscar por referencia" id="input_search" value='#<@@(get,"$s")>')
                 button(class="btn btn-sm btn-primary induxsoft-corners d-flex gap-2 align-items-center") {
@@ -211,23 +85,57 @@ module "form.dk"
                     $"#<@@(@icons,'ICON_SEARCH')>"
                 }
             }
-
-            div(style="max-height: 50vh; display: flex;")
+            div
             {
-                "edit-table"(id="et_movimientos_producto" style="width: 100%;" data='#<to.json(movs)>')
+                #! lenght = list.count(movs)
+                if lenght <= 0
                 {
-                    "edit-thead"
+                    message = ""
+                    if @@(@crud_context,"$parameters/s") == "" { message = "Sin registros." }
+                    else  { message = "Sin resultados." }
+
+                    #$ div(class="text-center") {
+                        h6(style="background-color: #F5F5F5; padding: 10rem 0;"){"#<message>"}
+                    }
+                }
+                #! else 
+                {
+                    #$ div(style="overflow-y:auto;max-height: 70vh;" class="mb-2" id="list_table_container")
                     {
-                        "edit-tr"
+                        table(class="table")
                         {
-                            "edit-th"(type="NoEditable" field="fecha"){$"Fecha"}
-                            "edit-th"(type="NoEditable" field="categoria"){$"Categoría"}
-                            "edit-th"(type="NoEditable" field="referencia"){$"Referencia"}
-                            "edit-th"(type="NoEditable" field="entradas"){$"Entradas"}
-                            "edit-th"(type="NoEditable" field="salidas"){$"Salidas"}
-                            "edit-th"(type="NoEditable" field="tipocambio"){$"Tipo cambio"}
+                            thead
+                            {
+                                tr
+                                {
+                                    th(class="h6"){$"Fecha"}
+                                    th(class="h6"){$"Categoría"}
+                                    th(class="h6"){$"Referencia"}
+                                    th(class="h6"){$"Entradas"}
+                                    th(class="h6"){$"Salidas"}
+                                    th(class="h6"){$"Tipo cambio"}
+                                }
+                            }
+                            tbody
+                            {
+                                $""
+                                #! for i = 0; i < list.count(movs) {
+                                    ref mov = list.obj(movs, i)
+                                    #$ tr
+                                    {
+                                        td{$"#<@@(mov,'$fecha')>"}
+                                        td{$"#<@@(mov,'$categoria')>"}
+                                        td{$"#<@@(mov,'$referencia')>"}
+                                        td{$"#<trun(@@(mov,'#entradas'))>"}
+                                        td{$"#<trun(@@(mov,'#salidas'))>"}
+                                        td{$"#<@@(mov,'$tipocambio')>"}
+                                    }
+                                } 
+                            }
                         }
                     }
+                    #! a1 = ftext("Mostrando los primeros #<lenght> documentos ordenados por fecha.")
+                    #$ small(class="text-secondary"){$"#<a1>"}
                 }
             }
         }
@@ -235,18 +143,5 @@ module "form.dk"
         {
             $""
         }
-        script(src="#<@JS_CARDEX>"){$""}
-        style{$'
-            .nav-link.active {
-                color: #000 !important;
-                background-color: #F5F5F5 !important;
-                border-bottom-color: transparent !important;
-            }
-            .tab-content {
-                background-color: #F5F5F5 !important;
-            }
-            .form-check-label small { font-size: .8rem; }
-            
-        '}
     }
 }

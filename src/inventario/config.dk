@@ -6,7 +6,7 @@ module "config.dk"
     @CSS_MAIN = "/$/inventario/css/main.css"
     @JS_MAIN = "/$/inventario/js/main.js"
     @JS_MOVINV = "/$/inventario/js/movinv.js"
-    @JS_CARDEX = "/$/inventario/js/cardex.js"
+    @JS_FILTER = "/$/inventario/js/filter.js"
 
     // _PACKAGE
     @URL_BUSCAR_ALMACEN = "/!/inventario/movimiento/?_view=almacen&s=@search"

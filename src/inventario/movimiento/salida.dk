@@ -100,9 +100,9 @@ program
 
                 div
                 {
-                    small{$"Seleccione los productos en la cuadrícula"}
                     div(class="d-flex justify-content-end border")
                     {
+                        small(class="flex-grow-1 p-1"){$"Seleccione los productos en la cuadrícula"}
                         button(class="btn btn-sm d-flex align-items-center justify-content-center gap-2 no-shadow" type="button" title="Agregar fila" onclick="movinv.agregarFila()"){
                             $"#<@@(@icons,'add_row')>"
                         }
