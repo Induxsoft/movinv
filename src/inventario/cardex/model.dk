@@ -13,16 +13,38 @@ module "model"
             INNER JOIN categoria ct ON c.icategoria = ct.sys_pk
             INNER JOIN producto p ON d.iproducto = p.sys_pk
         WHERE p.sys_pk=@_entity_id
-            AND IF(IFNULL(@almc,'-1')='-1', true, d.ialmacen=@almc)
+            AND IF(IFNULL(@s,'')='', true, c.referencia LIKE CONCAT('%',@s,'%'))
             AND IF(IFNULL(@year,'')='', true, YEAR(c.fecha)=@year)
             AND IF(IFNULL(@month,'')='', true, (YEAR(c.fecha)=IFNULL(@year,YEAR(NOW())) AND MONTH(c.fecha)=@month))
-            AND IF(IFNULL(@s,'')='', true, c.referencia LIKE CONCAT('%',@s,'%'))
             AND IF(IFNULL(@range,'-99')='-99', true, (DATE(c.fecha) BETWEEN DATE_ADD(NOW(), INTERVAL -"+str(@@(params,"#range"))+" DAY) AND NOW()))
             AND IF(IFNULL(@datefrom,'')='' AND IFNULL(@dateto,'')='', true, (DATE(c.fecha) BETWEEN DATE(@datefrom) AND DATE(@dateto)))
+            AND IF(IFNULL(@almc,'-1')='-1', true, d.ialmacen=@almc)
+            AND IF(IFNULL(@cat,'-1')='-1', true, ct.sys_pk=@cat)
         ORDER BY c.fecha
         LIMIT #<@default_max_rows>;"
 
-        return dbr.list(db, ftext(sql), params)
+        ref cats = dbr.list(db, "SELECT sys_pk id, concat(codigo, ' - ' ,descripcion) const FROM categoria WHERE tipo = 3;", @null)
+        ref almc = dbr.list(db, "SELECT sys_pk id, descripcion const FROM almacen;", @null)
+
+        new response
+        {
+            @"movs*": dbr.list(db, ftext(sql), params)
+            @"cats*": prepare_filter(cats)
+            @"almc*": prepare_filter(almc)
+        }
+
+        return response
     }
+    prepare_filter::list
+    {
+        new record
+        {
+            @"id": "-1"
+            @"const": "Todos"
+        }
+        do list.ins(list, 0, record)
+        return list
+    }
+
     @table_name = "cardex"
 }
