@@ -70,6 +70,7 @@ model "movinv"
         @"notas" string(4096) 
         @"numero" string(50) unique required
         @"status" ref:"cstatusseries" required
+        @"ilote" ref:"lote"
         @"iproducto" ref:"producto" required
     }
     // Almacen de productos

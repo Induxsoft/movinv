@@ -94,7 +94,7 @@ module ":erp.inventario"
 
                 do afectar_existencia(db,@@(dcardex,"#iproducto"),@@(dcardex,"#ialmacen"), @@(dcardex,"#entradas")*-1,@@(dcardex,"#cargos")*-1)
                 if @@(dcardex,"#reqlote"){
-                    do lotes.afectar_existencia(db,@@(dcardex,"#iproducto"),@@(dcardex,"#ialmacen"),@@(dcardex,"#entradas")*-1) }
+                    do lotes.afectar_existencia(db,@@(dcardex,"#ilote"),@@(dcardex,"#ialmacen"),@@(dcardex,"#entradas")*-1) }
 
                 do dbr.execute(db,"update dcardex set valuado=0, resto=entradas where sys_pk=@dcardex_pk",p)
             }
@@ -105,7 +105,7 @@ module ":erp.inventario"
                 if @@(dcardex,"#valuado") { p<"abonos">:@@(dcardex,"#abonos") }
                 do afectar_existencia(db,@@(dcardex,"#iproducto"),@@(dcardex,"#ialmacen"), @@(dcardex,"#salidas"),@@(p,"#abonos"))
                 if @@(dcardex,"#reqlote"){
-                    do lotes.afectar_existencia(db,@@(dcardex,"#iproducto"),@@(dcardex,"#ialmacen"),@@(dcardex,"#salidas")) }
+                    do lotes.afectar_existencia(db,@@(dcardex,"#ilote"),@@(dcardex,"#ialmacen"),@@(dcardex,"#salidas")) }
 
                 do dbr.execute(db,"update dcardex set valuado=0, resto=entradas where sys_pk=@dcardex_pk",p)
             }
@@ -227,7 +227,7 @@ module ":erp.inventario"
                 do dbr.execute(db,"update dcardex set resto=entradas,valuado=true where sys_pk=@dcardex_pk",p)
                 do afectar_existencia(db,@@(dcardex,"#iproducto"),@@(dcardex,"#ialmacen"), @@(dcardex,"#entradas"),@@(dcardex,"#cargos"))
                 if @@(dcardex,"#reqlote"){
-                    do lotes.afectar_existencia(db,@@(dcardex,"#iproducto"),@@(dcardex,"#ialmacen"),@@(dcardex,"#entradas")) }
+                    do lotes.afectar_existencia(db,@@(dcardex,"#ilote"),@@(dcardex,"#ialmacen"),@@(dcardex,"#entradas")) }
                 
             }
             else if @@(dcardex,"#salidas")>0
@@ -250,7 +250,7 @@ module ":erp.inventario"
                 
                 do afectar_existencia(db,@@(dcardex,"#iproducto"),@@(dcardex,"#ialmacen"), @@(dcardex,"#salidas")*-1,@@(p,"#abonos")*-1)
                 if @@(dcardex,"#reqlote"){
-                    do lotes.afectar_existencia(db,@@(dcardex,"#iproducto"),@@(dcardex,"#ialmacen"),@@(dcardex,"#salidas")*-1) }
+                    do lotes.afectar_existencia(db,@@(dcardex,"#ilote"),@@(dcardex,"#ialmacen"),@@(dcardex,"#salidas")*-1) }
             }
         }
 
@@ -428,20 +428,20 @@ module ":erp.inventario"
 
     module ":erp.inventario.lotes"
     {
-        afectar_existencia::&db,producto,almacen,cantidad
+        afectar_existencia::&db,lote,almacen,cantidad
         {
             new p
             {
-                @"producto":producto
+                @"lote":lote
                 @"almacen":almacen
                 @"cantidad":cantidad
-                @"importe":importe
+                //@"importe":importe
             }
 
             affected=dbr.execute(db,"update clotexalmacen 
                                             set sys_timestamp=now(),
                                             cantidad=cantidad+@cantidad
-                                            where ialmacen=@almacen and fk_lote_exisxalmacen=@producto",p)
+                                            where ialmacen=@almacen and fk_lote_exisxalmacen=@lote",p)
 
             if not(affected) { do rise_error(0,"No se pudo afectar la existencia de lotes por almacén")}
         }
