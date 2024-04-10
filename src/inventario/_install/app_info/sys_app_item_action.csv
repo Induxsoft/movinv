@@ -1,6 +1,6 @@
 "id","title","shorttitle","icon16x16","href","_blank","appid","itemtype","req_context_item_id","act_type"
 
-"GE11","Agregar entrada de productos","Entrada","","/!/inventario/movimiento/_new/entrada/","0","inventario.movimiento","movinv","0","action"
-"GE12","Agregar salida de productos","salida","","/!/inventario/movimiento/_new/salida/","0","inventario.movimiento","movinv","0","action"
-"GE13","Agregar traspaso de productos","Traspaso","","/!/inventario/movimiento/_new/traspaso/","0","inventario.movimiento","movinv","0","action"
-"GE14","Ver cardex del producto","Cardex","","/!/inventario/cardex/@_src_context_item_id/","0","inventario.movimiento","movinv","1","action"
+"GE11","Agregar entrada de productos","Entrada","","/!/inventario/movimiento/_new/entrada/","0","inventario.movimiento","DET031","0","action"
+"GE12","Agregar salida de productos","salida","","/!/inventario/movimiento/_new/salida/","0","inventario.movimiento","DET031","0","action"
+"GE13","Agregar traspaso de productos","Traspaso","","/!/inventario/movimiento/_new/traspaso/","0","inventario.movimiento","DET031","0","action"
+"GE14","Ver cardex del producto","Cardex","","/!/inventario/cardex/@_src_context_item_id/","0","inventario.movimiento","DET031","1","action"
