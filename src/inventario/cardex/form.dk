@@ -13,10 +13,12 @@ module "form.dk"
 
     do @context.begin(@crud_context)
 
-    ref movs = @("&./movs")
     ref @db = @("&database")
     ref @http_context = @("&http")
     ref get = @@(@http_context, "&request/get")
+    ref producto = ifnull(@("&./prod"),record.create())
+    ref movs = ifnull(@("&./movs"),list.create())
+
     @almc = ifstr(@@(get,"$almc")=="","-1",@@(get,"$almc"))
 
     get<"filter-mode">: ifstr(trim(@@(get,"filter-mode"))!="", @@(get,"filter-mode"), "month")
@@ -63,14 +65,23 @@ module "form.dk"
             member @"categoria" { @"caption":"Categoría" }
             member @"referencia" { @"caption":"Referencia" }
             member @"entradas" { @"caption":"Entradas" }
-            member @"salidas" { @"caption":"salidas" }
-            member @"tipocambio" { @"caption":"tipocambio" }
+            member @"salidas" { @"caption":"Salidas" }
+            member @"tipocambio" { @"caption":"T. Cambio" }
+            member @"descripcion" { @"caption":"Descripción" }
         }
+    }
+
+    new nav_config
+    {
+        @"title": @@(producto,"$titulo")
+        @"buttons*": @null
+        @"urlexit": @INVENTARIO
     }
 
     #$ div(class="container-fluid p-0")
     {
-        #! do uie.printMainBar(@null, "Cardex", @true, @INVENTARIO)
+        #! do uie.printV12FormBar(nav_config)
+
         #$ div(id="work_area" class="container-section mt-1 p-2 pt-0")
         {   
             div

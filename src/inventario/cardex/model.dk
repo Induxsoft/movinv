@@ -6,8 +6,26 @@ module "model"
 
     function cardex.obtenerMovimientosProducto(&db, &params)
     {
-        sql = "
-        SELECT DATE_FORMAT(c.fecha, '%d/%m/%Y') fecha, ct.descripcion categoria, c.referencia, IFNULL(d.entradas,0) entradas, IFNULL(d.salidas, 0) salidas, d.tipocambio 
+        sql_product = "
+        SELECT
+            SUBSTRING(CONCAT('Cardex',' - ','[',p.codigo,']',' ',p.descripcion), 1, 50) AS titulo,
+            p.unidad,
+            SUM(IFNULL(ex.existencia,0)) existencia
+		FROM producto p
+			INNER JOIN existencias AS ex ON ex.fk_producto_iexistencias = p.sys_pk
+		WHERE p.sys_pk = @_entity_id
+            AND IF(IFNULL(@almc,'*')='*', TRUE, ex.ialmacen = @fil_almacen)
+        "
+
+        sql_product_movs = "
+        SELECT
+            DATE_FORMAT(c.fecha, '%d/%m/%Y') fecha,
+            ct.descripcion categoria,
+            c.referencia,
+            IFNULL(d.entradas,0) entradas,
+            IFNULL(d.salidas, 0) salidas,
+            d.tipocambio ,
+            IFNULL(c.descripcion,'') AS descripcion
         FROM dcardex d
             INNER JOIN cardex c ON d.fk_cardex_movimientos = c.sys_pk
             INNER JOIN categoria ct ON c.icategoria = ct.sys_pk
@@ -28,7 +46,8 @@ module "model"
 
         new response
         {
-            @"movs*": dbr.list(db, ftext(sql), params)
+            @"prod*": dbr.rec(db, ftext(sql_product), params)
+            @"movs*": dbr.list(db, ftext(sql_product_movs), params)
             @"cats*": prepare_filter(cats)
             @"almc*": prepare_filter(almc)
         }

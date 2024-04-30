@@ -57,17 +57,20 @@ module "list.dk"
         }
     }
 
-    header_act::
-    { 
-        #$ a(href="#<@INV_ADD_ENTRADA>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print"){$"Entrada"}
-        a(href="#<@INV_ADD_SALIDA>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print"){$"Salida"}
-        a(href="#<@INV_ADD_TRASPASO>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print"){$"Traspaso"}
+    new nav_config
+    {
+        @"title": "Inventario"
+        @"buttons*": @null
+        @"urlexit": "/"
+        @"main": ""
+        @"actions*": dbr.apps.itemactions(@('&database'),"DET031","action","",0)
+        @"reports*": dbr.apps.itemactions(@('&database'),"DET031","report","",0)
+        @"jscurrentcontext": "movinv.getCurrentContext"
     }
-    #! point general_act to header_act
 
     #$ div(class="container-fluid p-0")
     {
-        #! do uie.printMainBar(general_act, "Inventario", @true, "")
+        #! do uie.printV12FormBar(nav_config)
 
         #$ div(id="work_area" class="container-section mt-1 p-2 pt-0")
         {

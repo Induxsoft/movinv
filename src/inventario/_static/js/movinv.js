@@ -138,6 +138,13 @@ var movinv =
         data.cantidad = 1;
         this.table.DataArray[row] = data;
         this.table.UpdateRow(row);
+    },
+
+    getCurrentContext()
+    {
+        const table = this.table;
+        const id = (table?.DataArray[table.CurrentRowIndex()]?.sys_pk ?? "");
+        return { item_id:id, context: {} }
     }
 }
 
