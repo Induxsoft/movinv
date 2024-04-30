@@ -5,7 +5,6 @@ module "form.dk"
     #include "functions.dkh"
     #include "serialize.dkh"
     #include "dbr.dkh"
-    #include "uielements.dkl"
     #include "../config.dk"
     #include "../_lib/lib.dk"
     #include "../_lib/scape_special_charactes2.dk"
@@ -18,6 +17,7 @@ module "form.dk"
     ref get = @@(@http_context, "&request/get")
     ref producto = ifnull(@("&./prod"),record.create())
     ref movs = ifnull(@("&./movs"),list.create())
+    ref ttl_movs = ifnull(@("&./tmov"),record.create())
 
     @almc = ifstr(@@(get,"$almc")=="","-1",@@(get,"$almc"))
 
@@ -64,9 +64,40 @@ module "form.dk"
             member @"fecha" { @"caption":"Fecha" }
             member @"categoria" { @"caption":"Categoría" }
             member @"referencia" { @"caption":"Referencia" }
-            member @"entradas" { @"caption":"Entradas" }
-            member @"salidas" { @"caption":"Salidas" }
-            member @"tipocambio" { @"caption":"T. Cambio" }
+            member @"entradas"
+            {
+                @"caption":"Entradas"
+                @"align": "center"
+            }
+            member @"salidas"
+            {
+                @"caption":"Salidas"
+                @"align": "center"
+            }
+            member @"cargos"
+            {
+                @"caption":"Cargos"
+                @"align": "end"
+                @"format": @true
+                @"thousandssep": @true
+                @"decs": 4
+            }
+            member @"abonos"
+            {
+                @"caption":"Abonos"
+                @"align": "end"
+                @"format": @true
+                @"thousandssep": @true
+                @"decs": 4
+            }
+            member @"tipocambio"
+            {
+                @"caption":"T. C"
+                @"align": "end"
+                @"format": @true
+                @"thousandssep": @true
+                @"decs": 6
+            }
             member @"descripcion" { @"caption":"Descripción" }
         }
     }
@@ -82,21 +113,36 @@ module "form.dk"
     {
         #! do uie.printV12FormBar(nav_config)
 
-        #$ div(id="work_area" class="container-section mt-1 p-2 pt-0")
-        {   
+        #$ div(id="work_area" class="container-section p-2 pt-0")
+        {
             div
             {
-                p{$"#<@('$error/message')>"}
+                div(class="d-flex justify-content-end flex-wrap gap-3 mb-1")
+                {
+                    span{ small(class="fw-bold"){$"Existencia y saldo total: "} $"#<@@(producto,'#existencia')>" }
+                    span{ small(class="fw-bold"){$""} $"#<@@(producto,'$unidad')>" }
+                    span{ small(class="fw-bold"){$""} $"#<@@(producto,'$cdivisa')>" }
+                    span{ small(class="fw-bold"){$""} $"#<@@(producto,'$saldo')>" }
+
+                    small(class="text-muted"){$"|"}
+
+                    span{ small(class="fw-bold"){$"Entradas: "} $"#<format(@@(ttl_movs,'#entradas'),'#,0.0000')>" }
+                    span{ small(class="fw-bold"){$"Salidas: "} $"#<format(@@(ttl_movs,'#salidas'),'#,0.0000')>" }
+                    span{ small(class="fw-bold"){$"Cargos: "} $"#<format(@@(ttl_movs,'#cargos'),'$ #,0.0000')>" }
+                    span{ small(class="fw-bold"){$"Abonos: "} $"#<format(@@(ttl_movs,'#abonos'),'$ #,0.0000')>" }
+                }
+
+                div(class="#<ifstr(@('error/message')!='','alert alert-danger','')> overflow-auto"){$"#<@('error/message')>"}
 
                 form(action="./" method="GET" id="form_filter" class="no-print mb-1")
                 {
-                    div(class="d-flex align-items-center")
+                    div(class="py-1 w-100 d-flex gap-2 align-items-center flex-wrap")
                     {
-                        div
+                        div(class="d-flex gap-2")
                         {
-                            #! do uie.dbSelect(def_almacenes)
+                            div{#! do uie.dbSelect(def_almacenes)} #$
                         }
-                        #$ div(class="flex-grow-1")
+                        div(class="flex-grow-1")
                         {
                             "filter-date-range"(
                                 "mode-field"="filter-mode"
@@ -121,15 +167,11 @@ module "form.dk"
                         }
                     }
 
-                    div(class="py-1 w-100 d-flex gap-2 flex-wrap align-items-center")
+                    div(class="py-1 w-100 d-flex gap-2 align-items-center flex-wrap")
                     {
                         div(class="d-flex gap-2")
                         {
-                            div
-                            {
-                                #! do uie.dbSelect(def_category) 
-                                #$
-                            }
+                            div{#! do uie.dbSelect(def_category) } #$
                         }
                         div(class="flex-grow-1")
                         {

@@ -49,11 +49,44 @@ module "list.dk"
         @"leyend": "Mostrando los primeros # productos ordenados por código"
         member @"columns"
         {
-            member @"codigo" { @"caption":"Código" }
+            member @"codigo"
+            {
+                @"caption":"Código"
+                @"width": "8em"
+            }
             member @"descripcion" { @"caption":"Descripción" }
-            member @"unidad" { @"caption":"Unidad" }
-            member @"existencia" { @"caption":"Existencia" }
-            member @"_actions" { @"caption":"Acciones" }
+            member @"unidad"
+            {
+                @"caption":"Unidad"
+                @"width": "8em"
+                @"align": "center"
+            }
+            member @"existencia"
+            {
+                @"caption":"Existencia"
+                @"width": "8em"
+                @"align": "center"
+            }
+            member @"saldo"
+            {
+                @"caption":"Saldo"
+                @"width": "8em"
+                @"align": "end"
+                @"format": @true
+                @"thousandssep": @true
+                @"decs": 4
+            }
+            member @"divisa"
+            {
+                @"caption":"Divisa"
+                @"width": "5em"
+                @"align": "center"
+            }
+            member @"_actions"
+            {
+                @"caption":"Acciones"
+                @"width": "8em"
+            }
         }
     }
 

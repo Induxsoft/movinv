@@ -10,11 +10,14 @@ module "model"
         SELECT
             SUBSTRING(CONCAT('Cardex',' - ','[',p.codigo,']',' ',p.descripcion), 1, 50) AS titulo,
             p.unidad,
-            SUM(IFNULL(ex.existencia,0)) existencia
+            FORMAT(SUM(IFNULL(ex.existencia,0)),4) existencia,
+            FORMAT(IFNULL(p.saldo,0),4) saldo,
+            dvs.codigo AS cdivisa
 		FROM producto p
+            INNER JOIN divisa AS dvs ON p.idivisa = dvs.sys_pk
 			INNER JOIN existencias AS ex ON ex.fk_producto_iexistencias = p.sys_pk
 		WHERE p.sys_pk = @_entity_id
-            AND IF(IFNULL(@almc,'*')='*', TRUE, ex.ialmacen = @fil_almacen)
+            AND IF(IFNULL(@almc,'-1')='-1', TRUE, ex.ialmacen = @almc)
         "
 
         sql_product_movs = "
@@ -23,7 +26,9 @@ module "model"
             ct.descripcion categoria,
             c.referencia,
             IFNULL(d.entradas,0) entradas,
-            IFNULL(d.salidas, 0) salidas,
+            IFNULL(d.cargos,0) cargos,
+            IFNULL(d.salidas,0) salidas,
+            IFNULL(d.abonos,0) abonos,
             d.tipocambio ,
             IFNULL(c.descripcion,'') AS descripcion
         FROM dcardex d
@@ -39,7 +44,10 @@ module "model"
             AND IF(IFNULL(@almc,'-1')='-1', true, d.ialmacen=@almc)
             AND IF(IFNULL(@cat,'-1')='-1', true, ct.sys_pk=@cat)
         ORDER BY c.fecha
-        LIMIT #<@default_max_rows>;"
+        LIMIT #<@default_max_rows>
+        "
+
+        sql_total_movs = "SELECT SUM(entradas) entradas, SUM(salidas) salidas, SUM(cargos) cargos, SUM(abonos) abonos FROM (#<ftext(sql_product_movs)>) AS tbl"
 
         ref cats = dbr.list(db, "SELECT sys_pk id, concat(codigo, ' - ' ,descripcion) const FROM categoria WHERE tipo = 3;", @null)
         ref almc = dbr.list(db, "SELECT sys_pk id, descripcion const FROM almacen;", @null)
@@ -48,6 +56,7 @@ module "model"
         {
             @"prod*": dbr.rec(db, ftext(sql_product), params)
             @"movs*": dbr.list(db, ftext(sql_product_movs), params)
+            @"tmov*": dbr.rec(db, ftext(sql_total_movs), params)
             @"cats*": prepare_filter(cats)
             @"almc*": prepare_filter(almc)
         }
