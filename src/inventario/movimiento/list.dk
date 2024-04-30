@@ -4,15 +4,34 @@ module "list.dk"
 {
     #include "functions.dkh"
     #include "serialize.dkh"
+    #include "dbr.dkh"
+    #include "dbr.apps.dkl"
+    #include "uielements.v12.dkl"
     #include "../config.dk"
     #include "../_lib/scape_special_charactes2.dk"
-    #include "uielements.v12.dkl"
 
     do @context.begin(@crud_context)
     ref @http_context = @('&http')
     ref get = @@(@http_context,"&request/get")
-    ref prods = @('&.')
+    ref prods = ifnull(@('&./data'),list.create())
     do scape_special_charactes(prods,"codigo,descripcion,unidad,tipo")
+
+    new fil_almacen
+    {
+        @"id": "fil_almacen"
+        @"datatable*": ifnull(@("&./list_almacenes"),list.create())
+        new member @"attributes"
+        {
+            @"class": "induxsoft-form-select"
+            @"name": "fil_almacen"
+            @"onchange": "document.querySelector('#form_filter').submit()"
+        }
+        @"first_text": "(Todos los almacenes)"
+        @"first_value": "*"
+        @"text_field": "dalmacen"
+        @"value_field": "sys_pk"
+        @"selected": @("parameters/fil_almacen")
+    }
 
     for i = 0; i < list.count(prods)
     {
@@ -33,7 +52,6 @@ module "list.dk"
             member @"codigo" { @"caption":"Código" }
             member @"descripcion" { @"caption":"Descripción" }
             member @"unidad" { @"caption":"Unidad" }
-            member @"tipo" { @"caption":"Tipo" }
             member @"existencia" { @"caption":"Existencia" }
             member @"_actions" { @"caption":"Acciones" }
         }
@@ -56,15 +74,26 @@ module "list.dk"
             p{$"#<@('$error/message')>"}
             form(action="./" method="GET" id="form_filter" class="no-print mb-1")
             {
-                "filter-text"(
-                    "id"="micontrol10"
-                    "text-field"="s"
-                    "placeholder"="Buscar por código o descripción"
-                    "form"="#form_filter"
-                    "value"="#<@@(get,'$s')>"
-                    "auto-submit"="true"
-                    "class"="w-100"
-                ){$""}
+                div(class="py-1 w-100 d-flex gap-2 flex-wrap align-items-center")
+                {
+                    div(class="d-flex gap-2")
+                    {
+                        div{#! do uie.dbSelect(fil_almacen) } #$
+                    }
+                    div(class="flex-grow-1")
+                    {
+                        "filter-text"(
+                            "id"="micontrol10"
+                            "text-field"="s"
+                            "placeholder"="Buscar por código o descripción"
+                            "form"="#form_filter"
+                            "value"="#<@@(get,'$s')>"
+                            "auto-submit"="true"
+                            "class"="w-100"
+                        ){$""}
+                    }
+                }
+                
             }
             #! do uie.dbeditable(table_definition,"tbl_productos")
             #$

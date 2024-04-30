@@ -9,7 +9,7 @@ module "model"
 	function movinv.obtenerAlmacenes(&db, &params)
 	{
 		sql = "
-		SELECT sys_pk, codigo, descripcion
+		SELECT sys_pk, codigo, descripcion, CONCAT(codigo,' - ',descripcion) AS dalmacen
 		FROM almacen
 		WHERE IF(IFNULL(@s,'')='', true, (codigo LIKE CONCAT('%',@s,'%') OR descripcion LIKE CONCAT('%',@s,'%')));"
 
@@ -31,19 +31,30 @@ module "model"
 	function movinv.obtenerProductos(&db, &params)
 	{
 		sql = "
-		SELECT p.sys_pk, p.codigo, p.descripcion, p.unidad, d.codigo divisa, IFNULL(p.costoultimo,0) costoultimo, IFNULL(p.existencia,0) existencia,
-		ct.const tipo
+		SELECT p.sys_pk, p.codigo, p.descripcion, p.unidad, d.codigo divisa, IFNULL(p.costoultimo,0) costoultimo, SUM(IFNULL(ex.existencia,0)) existencia
 		FROM producto p
 			INNER JOIN divisa d ON p.idivisa = d.sys_pk
-			INNER JOIN ctipoproducto ct on p.itipo=ct.id
-		WHERE IF(IFNULL(@s,'')='', true, (p.codigo LIKE CONCAT('%',@s,'%') OR p.descripcion LIKE CONCAT('%',@s,'%')))"
+			INNER JOIN existencias AS ex ON ex.fk_producto_iexistencias = p.sys_pk
+		WHERE NOT IFNULL(p.sys_deleted,0)
+			AND p.itipo = 2
+			#<conditions>
+		GROUP BY p.codigo
+		ORDER BY p.codigo
+		LIMIT #<@default_max_rows>
+		"
 
-		if field.exist(params,"tipo") && @@(params,"#tipo") > 0 { sql = sql + " AND p.itipo = @tipo" }
+		conditions = ""
+		if replace(@@(params,"$fil_almacen"),"*","") != "" { conditions = conditions + " AND ex.ialmacen = @fil_almacen" }
+		if @@(params,"#tipo") > 0 { conditions = conditions + " AND p.itipo = @tipo" }
+		if trim(@@(params,"$s")) != "" { conditions = conditions + " AND (p.codigo LIKE CONCAT('%',@s,'%') OR p.descripcion LIKE CONCAT('%',@s,'%'))" }
 
-		sql = sql + " ORDER BY p.codigo LIMIT #<@default_max_rows>;"
+		new data
+		{
+			@"data*": dbr.list(db, ftext(sql), params)
+			@"list_almacenes*": movinv.obtenerAlmacenes(db,params)
+		}
 
-		ref res = dbr.list(db, ftext(sql), params)
-		return res
+		return data
 	}
 
 	// =============== MOVIMIENTOS
