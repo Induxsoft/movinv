@@ -42,7 +42,7 @@ module "model"
 			SUM(IFNULL(ex.existencia,0)) existencia
 		FROM producto p
 			INNER JOIN divisa d ON p.idivisa = d.sys_pk
-			INNER JOIN existencias AS ex ON ex.fk_producto_iexistencias = p.sys_pk
+			LEFT JOIN existencias AS ex ON ex.fk_producto_iexistencias = p.sys_pk
 		WHERE NOT IFNULL(p.sys_deleted,0)
 			AND p.itipo = 2
 			#<conditions>
@@ -51,15 +51,22 @@ module "model"
 		LIMIT #<@default_max_rows>
 		"
 
+		if not(field.exist(params,"fil_almacen")) { params<"fil_almacen"> : -1 }
+		if not(field.exist(params,"fil_claseprod")) { params<"fil_claseprod"> : -1 }
+		if not(field.exist(params,"fil_linea")) { params<"fil_linea"> : -1 }
+
 		conditions = ""
-		if replace(@@(params,"$fil_almacen"),"*","") != "" { conditions = conditions + " AND ex.ialmacen = @fil_almacen" }
-		if @@(params,"#tipo") > 0 { conditions = conditions + " AND p.itipo = @tipo" }
+		if @@(params,"#fil_almacen") > 0 { conditions = conditions + " AND ex.ialmacen = @fil_almacen" }
+		if @@(params,"#fil_claseprod") > 0 { conditions = conditions + " AND p.iclase = @fil_claseprod" }
+		if @@(params,"#fil_linea") > 0 { conditions = conditions + " AND p.ilinea = @fil_linea" }
 		if trim(@@(params,"$s")) != "" { conditions = conditions + " AND (p.codigo LIKE CONCAT('%',@s,'%') OR p.descripcion LIKE CONCAT('%',@s,'%'))" }
 
 		new data
 		{
 			@"data*": dbr.list(db, ftext(sql), params)
 			@"list_almacenes*": movinv.obtenerAlmacenes(db,params)
+			@"list_claseproducto*": dbr.list(db,"SELECT id, const FROM cclaseproducto",@null)
+			@"list_lineas*": dbr.list(db,"SELECT sys_pk, codigo, descripcion FROM linea WHERE NOT IFNULL(sys_deleted,0) AND clase = @fil_claseprod",params)
 		}
 
 		return data
