@@ -37,18 +37,6 @@ var movinv =
         // this.table.Events[this.tEvents.StartEdition] = (e) => { this.tStartEdition(e); }
         this.table.Events[this.tEvents.BeforeUpdateCell] = (e) => { this.tBeforeUpdateCell(e); }
         this.table.Events[this.tEvents.ConfirmEdition] = (e) => { this.tConfirmEdition(e); }
-        this.table.Events[this.tEvents.OnSort] = (e) =>
-        {
-            let table_legend = document.getElementById(`${this.tableId}_leyend`);
-            let length = (this.table?.DataArray ?? []).length;
-            let legend = "No se encontraron resultados.";
-
-            if (!table_legend) return;
-            if (length > 0) legend = "Mostrando los primeros "+length+" registros";
-            if (e && length > 0) legend += " ordenados por '"+e.caption+"' "+e.coldef.sort+"";
-
-            table_legend.textContent = legend;
-        }
     },
     tStartEdition(e) {
         let currRow = e.sender.RowIndexOfTd(e.td);

@@ -20,6 +20,7 @@ module "config.dk"
     @INV_ADD_SALIDA = "/!/inventario/movimiento/_new/salida/"
     @INV_ADD_TRASPASO = "/!/inventario/movimiento/_new/traspaso/"
     @INV_GET_DOCUMENTO = "/!/inventario/cardex/@id/"
+    @INV_GET_EXISTENCIAS = "/!/inventario/movimiento/@id/existencias/"
 
     @default_max_rows=250
 

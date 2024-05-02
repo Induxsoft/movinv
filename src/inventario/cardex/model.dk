@@ -8,20 +8,22 @@ module "model"
     {
         sql_product = "
         SELECT
-            SUBSTRING(CONCAT('Cardex',' - ','[',p.codigo,']',' ',p.descripcion), 1, 50) AS titulo,
+            p.codigo AS cproducto,
+            p.descripcion AS dproducto,
             p.unidad,
-            FORMAT(SUM(IFNULL(ex.existencia,0)),4) existencia,
-            FORMAT(IFNULL(p.saldo,0),4) saldo,
+            SUM(IFNULL(ex.existencia,0)) existencia,
+            SUM(IFNULL(ex.saldo,0)) saldo,
             dvs.codigo AS cdivisa
 		FROM producto p
             INNER JOIN divisa AS dvs ON p.idivisa = dvs.sys_pk
-			INNER JOIN existencias AS ex ON ex.fk_producto_iexistencias = p.sys_pk
+			LEFT JOIN existencias AS ex ON ex.fk_producto_iexistencias = p.sys_pk
 		WHERE p.sys_pk = @_entity_id
             AND IF(IFNULL(@almc,'-1')='-1', TRUE, ex.ialmacen = @almc)
         "
 
         sql_product_movs = "
         SELECT
+            alm.descripcion AS dalmacen,
             DATE_FORMAT(c.fecha, '%d/%m/%Y') fecha,
             ct.descripcion categoria,
             c.referencia,
@@ -32,6 +34,7 @@ module "model"
             d.tipocambio ,
             IFNULL(c.descripcion,'') AS descripcion
         FROM dcardex d
+            INNER JOIN almacen AS alm ON d.ialmacen = alm.sys_pk
             INNER JOIN cardex c ON d.fk_cardex_movimientos = c.sys_pk
             INNER JOIN categoria ct ON c.icategoria = ct.sys_pk
             INNER JOIN producto p ON d.iproducto = p.sys_pk

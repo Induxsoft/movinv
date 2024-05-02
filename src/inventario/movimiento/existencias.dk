@@ -1,0 +1,90 @@
+#include "dkli.dkh"
+#!
+module "existencias.dk"
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "uielements.v12.dkl"
+    #include "../config.dk"
+
+    do @context.begin(@crud_context)
+
+    ref producto = ifnull(@("&./producto"),record.create())
+    ref existencias = ifnull(@("&./existencias"),list.create())
+
+    new table_definition
+    {
+        @"datatable*": existencias
+        @"id": "tbl_existencias"
+
+        member @"attributes"
+        {
+            @"class": "table"
+        }
+        
+        member @"columns"
+        {
+            member @"dalmacen" { @"caption": "Almacén" }
+            member @"existencia"
+            {
+                @"caption": "Existencia"
+                @"format": "#,0.0000"
+                @"summary": "sum"
+
+                member @"attributes"
+                {
+                    @"class": "text-center"
+                }
+            }
+            member @"saldo"
+            {
+                @"caption": "Saldo"
+                @"format": "$ #,0.0000"
+                @"summary": "sum"
+
+                member @"attributes"
+                {
+                    @"class": "text-end"
+                }
+            }
+        }
+
+        @"show_summary": @true
+    }
+
+    new navbar_settings
+    {
+        @"title": "Existencias por almacén"
+        @"urlexit": @INVENTARIO
+    }
+
+    #$
+    div(class="container")
+    {
+        #!
+        do uie.printV12FormBar(navbar_settings)
+        #$
+
+        div(class="#<ifstr(@('error/message')!='','alert alert-danger','')> overflow-auto"){$"#<@('error/message')>"}
+
+        div(class="d-flex justify-content-end flex-wrap gap-3 mb-1")
+        {
+            span(class="flex-grow-1 fw-bold"){$"#<@@(producto,'$tproducto')>"}
+
+            span{ small(class="fw-bold"){$"Existencia y saldo: "} $"#<format(@@(producto,'#existencia'),'#,0.0000')>" }
+            span{ small(class="fw-bold"){$""} $"#<@@(producto,'$unidad')>" }
+            span{ small(class="fw-bold"){$""} $"#<@@(producto,'$cdivisa')>" }
+            span{ small(class="fw-bold"){$""} $"#<format(@@(producto,'#saldo'),'$ #,0.0000')>" }
+        }
+
+        div(class="table-container my-2")
+        {
+            #!
+            do uie.dbTable(table_definition)
+            #$
+        }
+    }
+    #!
+
+    do @context.end()
+}

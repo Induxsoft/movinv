@@ -112,10 +112,12 @@ module "list.dk"
             {
                 @"caption":"Acciones"
                 @"no-print":@true
-                @"width": "8em"
+                @"min-width": "5em"
                 @"template":ftext('
                     <div style="display:flex;gap:8px;justify-content:center;width:100%;" class="no-print">
                         <a href="${\"#<@INV_GET_DOCUMENTO>\".replace(\"@id\",DataRow.sys_pk)}?almc=#<@("#parameters/fil_almacen")>" style="cursor:pointer; text-decoration:none; padding:0px 8px; background-color:#F5F5F5; color:#000;">Cardex</a>
+
+                        <a href="${\"#<@INV_GET_EXISTENCIAS>\".replace(\"@id\",DataRow.sys_pk)}" style="cursor:pointer; text-decoration:none; padding:0px 8px; background-color:#F5F5F5; color:#000;">Existencias</a>
                     </div>
                 ')
             }

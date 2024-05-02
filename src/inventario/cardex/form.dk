@@ -61,7 +61,12 @@ module "form.dk"
         @"leyend": "Mostrando los primeros # documentos ordenados por fecha"
         member @"columns"
         {
-            member @"fecha" { @"caption":"Fecha" }
+            member @"dalmacen" { @"caption":"Almacén" }
+            member @"fecha"
+            {
+                @"caption":"Fecha"
+                @"align": "center"
+            }
             member @"categoria" { @"caption":"Categoría" }
             member @"referencia" { @"caption":"Referencia" }
             member @"entradas"
@@ -102,9 +107,11 @@ module "form.dk"
         }
     }
 
+    if @("#parameters/almc") > 0 { do field.remove(table_definition,"columns/dalmacen") }
+
     new nav_config
     {
-        @"title": @@(producto,"$titulo")
+        @"title": cut("Cardex - "+@@(producto,"$cproducto"),50)
         @"buttons*": @null
         @"urlexit": @INVENTARIO
     }
@@ -119,10 +126,12 @@ module "form.dk"
             {
                 div(class="d-flex justify-content-end flex-wrap gap-3 mb-1")
                 {
-                    span{ small(class="fw-bold"){$"Existencia y saldo total: "} $"#<@@(producto,'#existencia')>" }
+                    span(class="flex-grow-1 fw-bold"){$"#<@@(producto,'$dproducto')>"}
+
+                    span{ small(class="fw-bold"){$"Existencia y saldo: "} $"#<format(@@(producto,'#existencia'),'#,0.0000')>" }
                     span{ small(class="fw-bold"){$""} $"#<@@(producto,'$unidad')>" }
                     span{ small(class="fw-bold"){$""} $"#<@@(producto,'$cdivisa')>" }
-                    span{ small(class="fw-bold"){$""} $"#<@@(producto,'$saldo')>" }
+                    span{ small(class="fw-bold"){$""} $"#<format(@@(producto,'#saldo'),'$ #,0.0000')>" }
 
                     small(class="text-muted"){$"|"}
 

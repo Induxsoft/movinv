@@ -6,9 +6,6 @@ module "controller"
     {
         case "entrada"
         {
-            /*point @update to cxp.pagarDocumento
-            point @read to cxp.obtenerDocumentoPorPagar
-            @form_view = "cxp.pago.dk"*/
             @form_view = "entrada.dk"
             break
         }
@@ -20,6 +17,12 @@ module "controller"
         case "traspaso"
         {
             @form_view = "traspaso.dk"
+            break
+        }
+        case "existencias"
+        {
+            @form_view = "existencias.dk"
+            point @read to movinv.existencias
             break
         }
         case "almacen"

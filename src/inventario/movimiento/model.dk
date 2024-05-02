@@ -202,6 +202,42 @@ module "model"
 		return detail
 	}
 
+	function movinv.existencias(&db,&params)
+	{
+		sql_producto = "
+		SELECT
+			CONCAT('[',p.codigo,']',' ',p.descripcion) AS tproducto,
+			p.unidad,
+			dvs.codigo AS cdivisa,
+			SUM(IFNULL(ex.existencia,0)) existencia,
+            SUM(IFNULL(ex.saldo,0)) saldo
+		FROM producto AS p
+			INNER JOIN divisa AS dvs ON p.idivisa = dvs.sys_pk
+			LEFT JOIN existencias AS ex ON ex.fk_producto_iexistencias = p.sys_pk
+		WHERE p.sys_pk = @_entity_id
+		"
+
+		sql_existencias = "
+		SELECT
+			alm.sys_pk AS ialmacen,
+			alm.codigo AS calmacen,
+			alm.descripcion AS dalmacen,
+			ex.existencia,
+			saldo
+		FROM existencias AS ex
+			INNER JOIN almacen AS alm ON ex.ialmacen = alm.sys_pk
+		WHERE ex.fk_producto_iexistencias = @_entity_id
+		"
+
+		new data
+		{
+			@"producto*": dbr.rec(db,sql_producto,params)
+			@"existencias*": dbr.list(db,sql_existencias,params)
+		}
+
+		return data
+	}
+
 	@table_name = "cardex"
 
     // point @create 	to entity.create
