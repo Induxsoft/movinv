@@ -162,7 +162,7 @@ model "movinv"
         @"precio3" decimal(18,8)
         @"precio4" decimal(18,8)
         @"precio5" decimal(18,8)
-        @"puntoro" decimal(18,8)
+        @"puntoro" decimal(18,8) // Punto de re-orden
         @"reqlote" bool required
         @"reqserie" bool required
         @"saldo" decimal(18,8)
@@ -282,6 +282,25 @@ model "movinv"
         @"uf_tipoi4" string(25)
         @"tasa" bool
         @"objetoimp" string(2)
+    }
+
+    entity "ut_maxmin"
+    {
+        // @"sys_pk" int key required autoincrement
+        @"uf_maximo" decimal(18,8) 
+        @"uf_minimo" decimal(18,8) 
+        @"uf_preorden" decimal(18,8) 
+        @"ialmacen" int ref:"almacen" ["sys_pk"] required
+        @"iproducto" int ref:"producto" ["sys_pk"] required
+        // @"sys_recver" int
+        // @"sys_lock" int
+        // @"sys_deleted" bool
+
+        index "ut_maxmin_idx1" unique
+        {
+            field "ialmacen"
+            field "iproducto"
+        }
     }
 
     // Relaciones a catálogos

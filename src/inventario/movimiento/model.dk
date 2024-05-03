@@ -210,7 +210,10 @@ module "model"
 			p.unidad,
 			dvs.codigo AS cdivisa,
 			SUM(IFNULL(ex.existencia,0)) existencia,
-            SUM(IFNULL(ex.saldo,0)) saldo
+            SUM(IFNULL(ex.saldo,0)) saldo,
+			IFNULL(p.maximo,0) AS maximo,
+			IFNULL(p.minimo,0) AS minimo,
+			IFNULL(p.puntoro,0) AS preorden
 		FROM producto AS p
 			INNER JOIN divisa AS dvs ON p.idivisa = dvs.sys_pk
 			LEFT JOIN existencias AS ex ON ex.fk_producto_iexistencias = p.sys_pk
@@ -223,9 +226,13 @@ module "model"
 			alm.codigo AS calmacen,
 			alm.descripcion AS dalmacen,
 			ex.existencia,
-			saldo
+			ex.saldo,
+			IFNULL(uf_maximo,0) AS maximo,
+			IFNULL(uf_minimo,0) AS minimo,
+			IFNULL(uf_preorden,0) AS preorden
 		FROM existencias AS ex
 			INNER JOIN almacen AS alm ON ex.ialmacen = alm.sys_pk
+			LEFT JOIN ut_maxmin AS mm ON mm.ialmacen = alm.sys_pk AND mm.iproducto = @_entity_id
 		WHERE ex.fk_producto_iexistencias = @_entity_id
 		"
 

@@ -1,0 +1,42 @@
+#include "dkli.dkh"
+#!
+module ""
+{
+    @table_name = "ut_maxmin"
+
+    @list_query = "
+    SELECT
+        mm.ialmacen,
+        mm.iproducto,
+        alm.codigo AS calmacen,
+        alm.descripcion AS dalmacen,
+        prod.codigo AS cproducto,
+        prod.descripcion AS dproducto,
+        IFNULL(mm.uf_maximo,0) AS maximo,
+        IFNULL(mm.uf_minimo,0) AS minimo,
+        IFNULL(mm.uf_preorden,0) AS preorden
+    FROM #<@table_name> AS mm
+        INNER JOIN almacen AS alm ON mm.ialmacen = alm.sys_pk
+        INNER JOIN producto AS prod ON mm.iproducto = prod.sys_pk
+    WHERE TRUE
+        #<conditions>
+    LIMIT #<@default_max_rows>
+    "
+
+    @read_query = "
+    SELECT
+        mm.ialmacen,
+        mm.iproducto,
+        alm.codigo AS calmacen,
+        alm.descripcion AS dalmacen,
+        prod.codigo AS cproducto,
+        prod.descripcion AS dproducto,
+        IFNULL(mm.uf_maximo,0) AS maximo,
+        IFNULL(mm.uf_minimo,0) AS minimo,
+        IFNULL(mm.uf_preorden,0) AS preorden
+    FROM #<@table_name> AS mm
+        INNER JOIN almacen AS alm ON mm.ialmacen = alm.sys_pk
+        INNER JOIN producto AS prod ON mm.iproducto = prod.sys_pk
+    WHERE mm.ialmacen = @ialmacen AND mm.iproducto = @iproducto
+    "
+}

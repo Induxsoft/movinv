@@ -6,6 +6,7 @@ module "Controller configs"
 	#include "serialize.dkh"
 	#include "dbr.dkh"
 	#include "crudl/crudl.dk"
+	#include "./config.dk"
 
 	if @@(@http_context,"$session/user/ids") == "" {
 		@http_context<"response/headers/location"> : "/"
@@ -33,6 +34,7 @@ module "Controller configs"
 	do crudl.routes.pattern("/_program/")
 	do crudl.routes.entity("/movimiento/","movimiento")
 	do crudl.routes.entity("/cardex/","cardex")
+	do crudl.routes.entity("/maxmin/","maxmin")
 
 	@dbmvc_path="crudl/"
 	

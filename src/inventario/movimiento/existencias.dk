@@ -12,10 +12,29 @@ module "existencias.dk"
     ref producto = ifnull(@("&./producto"),record.create())
     ref existencias = ifnull(@("&./existencias"),list.create())
 
+    @_entity_id = @("$parameters/_entity_id")
+
+    function fn_before_cell(&params,&row,&cell)
+    {
+        if @@(cell,"cell_type")!="data" && @@(cell,"cell_type")!="unknow" { return }
+        if @@(cell,"$column") == "_actions"
+        {
+            btn_style = "cursor:pointer; text-decoration:none; padding:0px 8px; background-color:#F5F5F5; color:#000;"
+            ver_cardex_link = path.concat(replace(@INV_GET_DOCUMENTO,"@id",@_entity_id), "?almc="+@@(row,"$ialmacen"))
+
+            cell<"text"> : ftext('
+                <a href="#<ver_cardex_link>" style="#<btn_style>">Cardex</a>
+            ')
+        }
+    }
+    point before_cell to fn_before_cell
+
     new table_definition
     {
-        @"datatable*": existencias
         @"id": "tbl_existencias"
+        @"datatable*": existencias
+        @"show_summary": @true
+        @"before_cell*": before_cell
 
         member @"attributes"
         {
@@ -25,6 +44,36 @@ module "existencias.dk"
         member @"columns"
         {
             member @"dalmacen" { @"caption": "Almacén" }
+            member @"minimo"
+            {
+                @"caption": "Mínimo"
+                @"format": "#,0.0000"
+
+                member @"attributes"
+                {
+                    @"class": "text-center"
+                }
+            }
+            member @"maximo"
+            {
+                @"caption": "Máximo"
+                @"format": "#,0.0000"
+
+                member @"attributes"
+                {
+                    @"class": "text-center"
+                }
+            }
+            member @"preorden"
+            {
+                @"caption": "P. Re-orden"
+                @"format": "#,0.0000"
+                
+                member @"attributes"
+                {
+                    @"class": "text-center"
+                }
+            }
             member @"existencia"
             {
                 @"caption": "Existencia"
@@ -47,9 +96,8 @@ module "existencias.dk"
                     @"class": "text-end"
                 }
             }
+            member @"_actions" { @"caption": "Acciones" }
         }
-
-        @"show_summary": @true
     }
 
     new navbar_settings
@@ -75,6 +123,12 @@ module "existencias.dk"
             span{ small(class="fw-bold"){$""} $"#<@@(producto,'$unidad')>" }
             span{ small(class="fw-bold"){$""} $"#<@@(producto,'$cdivisa')>" }
             span{ small(class="fw-bold"){$""} $"#<format(@@(producto,'#saldo'),'$ #,0.0000')>" }
+
+            small(class="text-muted"){$"|"}
+
+            span{ small(class="fw-bold"){$"Mínimo: "} $"#<format(@@(producto,'#minimo'),'#,0.0000')>" }
+            span{ small(class="fw-bold"){$"Máximo: "} $"#<format(@@(producto,'#maximo'),'#,0.0000')>" }
+            span{ small(class="fw-bold"){$"P. Re-orden: "} $"#<format(@@(producto,'#preorden'),'#,0.0000')>" }
         }
 
         div(class="table-container my-2")
