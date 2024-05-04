@@ -1,0 +1,118 @@
+#include "dkli.dkh"
+#!
+module "list.dk"
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "uielements.v12.dkl"
+    #include "../config.dk"
+
+    do @context.begin(@crud_context)
+
+    ref @_GET = ifnull(@("&parameters"),record.create())
+    ref data = ifnull(@("&./data"),list.create())
+    ref itemactions = ifnull(@("&./itemactions"),list.create())
+    ref itemreports = ifnull(@("&./itemreports"),list.create())
+
+    // do rise_error(0,to.json(@("&.")))
+
+	@_entities_type = @("$parameters/_entities_type")
+	table_id = "tbl_"+@_entities_type
+
+    function fn_print_buttons()
+    {
+        #$
+        a(href="./_new/" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print"){$"Agregar"}
+        #!
+    }
+    point print_buttons to fn_print_buttons
+
+    new table_definition
+    {
+        @"datatable*": data
+        member @"columns"
+        {
+            member @"dproducto" { @"caption": "Producto" }
+            member @"dalmacen" { @"caption": "Almacen" }
+			member @"minimo"
+            {
+                @"caption": "Mínimo"
+                @"align": "center"
+                @"format": @true
+                @"thousandssep": @true
+                @"decs": 4
+            }
+            member @"maximo"
+            {
+                @"caption": "Máximo"
+                @"align": "center"
+                @"format": @true
+                @"thousandssep": @true
+                @"decs": 4
+            }
+            member @"preorden"
+            {
+                @"caption": "Punto de re-orden"
+                @"align": "center"
+                @"format": @true
+                @"thousandssep": @true
+                @"decs": 4
+            }
+            member @"_actions" 
+            { 
+                @"caption":"Acciones" 
+                @"template":ftext('
+                    <div class="no-print" style="display:flex; gap:8px; justify-content:center; width:100%;">
+                        <a href="./_edt/?iproducto=${DataRow.iproducto}&ialmacen=${DataRow.ialmacen}" style="cursor:pointer; text-decoration:none; padding: 0px 8px; background-color:#F5F5F5; color:#000;">Editar</a>
+                        <button onclick="InduxsoftCrudlModel.Delete(\'_del\',\'./{id}/?iproducto=${DataRow.iproducto}&ialmacen=${DataRow.ialmacen}\')" style="cursor:pointer; border:none; outline:none; padding: 0px 8px; background-color:#F5F5F5; color:#000;">Eliminar</button>
+                    </div>')
+                @"no-print":@true
+            }
+        }
+        @"table_footer": "Mostrando los primeros # registros"
+    }
+
+    new nav_config
+    {
+        @"title": "Máximos, Mínimos, Punto de re-orden"
+        @"buttons*": print_buttons
+        @"urlexit": @INVENTARIO
+        // @"main": "LA11,LA12,LA13"
+        // @"actions*": itemactions
+        // @"reports*": itemreports
+        // @"jscurrentcontext": "getCurrentContext"
+    }
+
+    #$ div(class="container-fluid p-0")
+    {
+        #! do uie.printV12FormBar(nav_config)
+
+        #$ div(id="work_area" class="container-section mt-1 p-2 pt-0")
+        {
+            form(action="./" method="GET" id="form_filter" class="no-print my-1 d-flex py-1")
+            {
+                "filter-text"(
+                    "id"="fil_text"
+                    "text-field"="fil_text"
+                    "placeholder"="Buscar ..."
+                    "form"="#form_filter"
+                    "value"="#<@('$parameters/fil_text')>"
+                    "auto-submit"="true"
+                    "class"="w-100"
+                ){$""}
+            }
+            #! do uie.dbeditable(table_definition,table_id)
+        }
+
+		// #$
+		// script(type="text/javascript")
+		// {$'
+		// 	function getCurrentContext()
+		// 	{
+		// 		const table = document.getElementById("#<table_id>");
+		// 		const id = (table?.DataArray[table.CurrentRowIndex()]?.sys_pk ?? "");
+    	// 		return { item_id:id, context: {} }
+		// 	}
+		// '}
+    }
+}

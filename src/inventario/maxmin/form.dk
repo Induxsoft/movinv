@@ -1,0 +1,88 @@
+#include "dkli.dkh"
+#!
+module "form.dk"
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "uielements.v12.dkl"
+    #include "../config.dk"
+    #include "../_lib/lib2.dk"
+	#include "../_lib/icons.dk"
+
+    do @context.begin(@crud_context)
+
+    ref @_GET = ifnull(@("&parameters"),record.create())
+    ref entity = ifnull(@("&./entity"),record.create())
+    ref dtproducto = ifnull(@("&./dtproducto"),record.create())
+    ref dtalmacen = ifnull(@("&./dtalmacen"),record.create())
+
+	@_entities_type = @("$parameters/_entities_type")
+	@_entity_id = @("$parameters/_entity_id")
+
+	isNew = (@_entity_id == "_new")
+
+    url_action_form = ifstr(isNew, "./", "./?iproducto="+@@(entity,"$iproducto")+"&ialmacen="+@@(entity,"$ialmacen"))
+    exit_url = trim(url_dcode(@("$parameters/exiturl")))
+
+    header_act::
+    {
+        #$
+        button(class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" type="submit" id="btn_submit"){$"#<@ICON_SAVE>"}
+        #!
+    }
+    point general_act to header_act
+
+    new nav_config
+    {
+        @"title": ftext("#<ifstr(isNew,'Agregar','Editar')>")
+        @"buttons*": general_act
+        @"urlexit": ifstr(exit_url=="",@INV_MAXMIN,exit_url)
+        member @"hidden" { @"print": @true }
+    }
+
+    #$ div(class="container")
+    {
+        form(method="POST" action="#<url_action_form>" id="form-maxmin")
+        {
+            #!
+            do uie.printV12FormBar(nav_config)
+            #$
+            
+            div(id="work_area" class="container-section")
+            {
+                div(class="#<ifstr(@('error/message')!='','alert alert-danger','')> overflow-auto"){$"#<@('error/message')>"}
+
+                input(type="hidden" name="exiturl" value="#<url_encode(exit_url)>")
+
+                div(class="row")
+                {
+                    div(class="col-lg-6 col-md-6 col-sm-6")
+                    {
+                        label(class="form-label fw-bold" "for"="ik_cliente"){$"Producto:"}
+                        "input-key"(name="iproducto" id="ik_producto" "data-key"="sys_pk" "data-search"="codigo" "data-text"="descripcion" "data-source"="#<@URL_BUSCAR_PRODUCTO>" "data-value"="#<to.json(dtproducto)>" columns="codigo,descripcion,unidad,divisa" colcaptions="Código,Descripción,Unidad,Divisa" required="true" "#<ifstr(isNew,'','disabled')>"="true"){$""}
+                    }
+                    div(class="col-lg-6 col-md-6 col-sm-6")
+                    {
+                        label(class="form-label fw-bold" "for"="ik_almacen"){$"Almacen:"}
+                        "input-key"(name="ialmacen" id="ik_almacen" "data-key"="sys_pk" "data-search"="codigo" "data-text"="descripcion" "data-source"="#<@URL_BUSCAR_ALMACEN>" "data-value"="#<to.json(dtalmacen)>" columns="codigo,descripcion" colcaptions="Código,Descripción" required="true" "#<ifstr(isNew,'','disabled')>"="true"){$""}
+                    }
+                    div(class="col-lg-4 col-md-4 col-sm-4")
+                    {
+                        label(class="form-label" "for"="txt_minimo"){$"Mínimo:"}
+                        input(class="form-control rounded-0" type="number" name="uf_minimo" value="#<lib.form('uf_minimo','nm',entity)>" id="txt_minimo" min="0" max="9999999999.99999999" step="0.00000001")
+                    }
+                    div(class="col-lg-4 col-md-4 col-sm-4")
+                    {
+                        label(class="form-label" "for"="txt_maximo"){$"Máximo:"}
+                        input(class="form-control rounded-0" type="number" name="uf_maximo" value="#<lib.form('uf_maximo','nm',entity)>" id="txt_maximo" min="0" max="9999999999.99999999" step="0.00000001")
+                    }
+                    div(class="col-lg-4 col-md-4 col-sm-4")
+                    {
+                        label(class="form-label" "for"="txt_reorden"){$"Punto de re-orden:"}
+                        input(class="form-control rounded-0" type="number" name="uf_preorden" value="#<lib.form('uf_preorden','nm',entity)>" id="txt_reorden" min="0" max="9999999999.99999999" step="0.00000001")
+                    }
+                }
+            }
+        }
+    }
+}

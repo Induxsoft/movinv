@@ -1,0 +1,18 @@
+#include "dkli.dkh"
+#!
+module "MaxminController"
+{
+    switch @@(@http_context,"$request/get/_view")
+    {
+        default
+        {
+            point @list to maxmin.list
+            point @read to maxmin.read
+            point @blank to maxmin.blank
+            point @create to maxmin.create
+            point @update to maxmin.update
+            point @delete to maxmin.delete
+            break
+        }
+    }
+}

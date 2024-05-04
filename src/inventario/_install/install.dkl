@@ -18,6 +18,7 @@ program "instalador"
     path_ddm = path.concat(path_install,"ddm")
     path_initial_data = path.concat(path_install,"initial_data")
     path_app_info = path.concat(path_install,"app_info")
+    path_tasks = path.concat(path_install,"tasks")
 
     qname = trim(@@(args,"$db"))
     if qname == "" { qname = trim(@@(args,"$bd")) }
@@ -31,7 +32,8 @@ program "instalador"
     // Archivo de permisos
     sitem_file = path.concat(path_initial_data,"sitem.csv")
 
-    model_name = file.name(dir.name(path_install)) + ".ddm"
+    pack_name = file.name(dir.name(path_install))
+    model_name = pack_name + ".ddm"
     model_file = path.concat(path_ddm, model_name)
 
     // Archivos de datos iniciales (Orden de instalación)
@@ -47,6 +49,8 @@ program "instalador"
     ]')
 	// Lista de permisos iniciales
     ref permissions_to_import = from.json('[]')
+
+    @jobs_group_id = ""
 
     // DECLARACIÓN DE FUNCIONES
     ref lib_csv = _import_library("devkron.serialize.csv.dll")
@@ -161,6 +165,38 @@ program "instalador"
 
         admins_groupid = dbr.security.admins(database)
         do dbr.security.assign(database,admins_groupid,permissions_to_import)
+    }
+
+    if dir.exists(path_tasks)
+    {
+        do print("\nCREANDO GRUPO DE TAREAS E IMPORTANDO PROGRAMAS")
+
+        if @jobs_group_id == ""
+        {
+            sql_pack_prefix = "SELECT SUBSTRING(sct.id,1,2) AS prefix FROM sys_app_catalog AS cat INNER JOIN sys_app_shortcut AS sct ON cat.app_id = sct.appid WHERE cat.pack_id = '#<pack_name>' LIMIT 1;"
+            @jobs_group_id = dbr.str(db,ftext(sql_pack_prefix),@null)
+        }
+
+        new jobsgroup
+        {
+            @"sys_guid": @jobs_group_id
+            @"name": pack_name
+            @"apikey": toupper(uuid())
+        }
+        do batch.registerJobsGroup(db,jobsgroup)
+
+        ref task_files = list.files(path_tasks,"*.dkl")
+        for i = 0; i < list.count(task_files); i+1
+        {
+            task_file = list.str(task_files,i)
+            task_name = file.justname(task_file)
+            meta_file = path.concat(path_tasks,task_name+".json")
+            url_action = path.concat(ftext("/!/batch/taskman/#<@jobs_group_id>/#<task_name>/"), "?exit_url_encode="+url_encode("javascript:window.history.back()"))
+
+            do batch.removeTask(@jobs_group_id,task_name)
+            do batch.addTask(@jobs_group_id,task_name,file.rtext(task_file))
+            if file.exists(meta_file) { do batch.updateTaskMetaData(@jobs_group_id,task_name,from.json(file.rtext(meta_file))) }
+        }
     }
 
     if dbr.is_open(database){ do dbr.close(database) }

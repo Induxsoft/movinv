@@ -1,0 +1,112 @@
+#include "dkli.dkh"
+#!
+program ""
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "dbr.dkh"
+    #include "batch.v12.dkl"
+
+    do @context.begin(@batch_context)
+
+    // PREPARACIÓN DE VARIABLES
+    ref db:@("&database")
+    ref params:@("&params")
+
+    qname = @("$qname")
+    token = @("$job/token")
+    fsrc = @("$params/file_path")
+    fext = file.extension(fsrc)
+
+    // DECLARACIÓN DE FUNCIONES
+    ref lib_csv = _import_library("devkron.serialize.csv.dll")
+    
+    do _map_function(lib_csv,"devkron.serialize.csv.csvHelper","CsvRead","CsvRead","System.String,System.String","*")
+    do _map_function(lib_csv,"devkron.serialize.csv.csvHelper","CsvWrite","CsvWrite","System.String,*System.Object","void")
+
+    reconnect::&db,qn
+    {
+        if isnull(db) || not(dbr.is_open(db)) { ref db = dbr.open(qn) }
+        do dbr.rec(db,"select 1 as success;",@null)
+        exception
+        {
+            do clear_exceptions()
+            ref db = dbr.open(qn)
+        }
+    }
+
+    //* ======================================== [ EJECUCIÓN DEL PROGRAMA ]
+    // VALIDACIONES
+    if not(file.exists(fsrc)) { do rise_error(500,"Fichero fuente inexistente.") }
+    if fext != ".csv" { do rise_error(500,"Se espera un fichero de tipo `csv`.") }
+
+    do reconnect(db,qname)
+
+    ref @batchDB = db
+    ref data = CsvRead(fsrc,"")
+
+    sql_values_data = ""
+
+    for i = 0; i < list.count(data); i+1
+    {
+        ref obj = record.caseinsensitive(list.obj(data,i))
+
+        cAlmacen = trim(@@(obj,"$almacen"))
+        cProducto = trim(@@(obj,"$producto"))
+
+        if cAlmacen == "" || cProducto == ""
+        {
+            log = "No es posible importar el registro:\r\nEs necesario indicar el código del almacen y/o producto [`almacen`,`producto`].\r\nRow: #<i-1>\r\nReg: #<to.json(obj)>"
+            do batch.saveLog(token,ftext(trim(log)))
+        }
+        else
+        {
+            new dbp
+            {
+                @"almacen": cAlmacen
+                @"producto": cProducto
+            }
+
+            iAlmacen = dbr.num(db,"SELECT sys_pk FROM almacen WHERE codigo = @almacen",dbp)
+            iProducto = dbr.num(db,"SELECT sys_pk FROM producto WHERE codigo = @producto",dbp)
+
+            if iAlmacen <= 0 || iProducto <= 0
+            {
+                log = "No es posible importar el registro:\r\nEl código del almacen y/o producto es incorrecto o no existe.\r\nRow: #<i-1>\r\nReg: #<to.json(obj)>"
+                do batch.saveLog(token,ftext(trim(log)))
+            }
+            else
+            {
+                maximo = round(@@(obj,"#maximo"),8)
+                minimo = round(@@(obj,"#minimo"),8)
+                preorden = round(@@(obj,"#preorden"),8)
+
+                sql_values_data = sql_values_data + ftext("(#<iAlmacen>,#<iProducto>,#<maximo>,#<minimo>,#<preorden>),")
+            }
+        }
+    }
+
+    if sql_values_data != ""
+    {
+        sql_values_data = rremove(sql_values_data,1)
+        sql_import_data = ftext("INSERT INTO ut_maxmin (ialmacen,iproducto,uf_maximo,uf_minimo,uf_preorden) VALUES #<sql_values_data> ON DUPLICATE KEY UPDATE uf_maximo = VALUES(uf_maximo),uf_minimo = VALUES(uf_minimo),uf_preorden = VALUES(uf_preorden)")
+
+        do dbr.execute(db,sql_import_data,@null)
+
+        // do file.wtext("___import_maxmin.txt",sql_import_data)
+    }
+
+    if file.exists(fsrc) { do file.delete(fsrc) }
+    
+    // do file.wtext("___batch_context.json",to.json(@batch_context))
+    exception
+    {
+        do errordet(@true)
+        
+        if file.exists(fsrc) { do file.delete(fsrc) }
+        if token != "" { do batch.saveLog(token,last_error()) }
+        if dbr.in_transaction(db) { do dbr.rollback(db) }
+    }
+
+    do @context.end()
+}

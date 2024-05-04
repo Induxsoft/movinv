@@ -1,8 +1,11 @@
 #include "dkli.dkh"
 #!
-module ""
+module "Máximo, Mínimo, Punto de re-orden. :maxmin"
 {
     @table_name = "ut_maxmin"
+
+    @create_fields = "ialmacen,iproducto,uf_maximo,uf_minimo,uf_preorden"
+    @update_fields = "uf_maximo,uf_minimo,uf_preorden"
 
     @list_query = "
     SELECT
@@ -31,12 +34,188 @@ module ""
         alm.descripcion AS dalmacen,
         prod.codigo AS cproducto,
         prod.descripcion AS dproducto,
-        IFNULL(mm.uf_maximo,0) AS maximo,
-        IFNULL(mm.uf_minimo,0) AS minimo,
-        IFNULL(mm.uf_preorden,0) AS preorden
+        IFNULL(mm.uf_maximo,0) AS uf_maximo,
+        IFNULL(mm.uf_minimo,0) AS uf_minimo,
+        IFNULL(mm.uf_preorden,0) AS uf_preorden
     FROM #<@table_name> AS mm
         INNER JOIN almacen AS alm ON mm.ialmacen = alm.sys_pk
         INNER JOIN producto AS prod ON mm.iproducto = prod.sys_pk
     WHERE mm.ialmacen = @ialmacen AND mm.iproducto = @iproducto
     "
+
+    prepareView::&db,&params,&data
+    {
+        namespace "maxmin"
+
+        _entity_id = @@(params,"$_entity_id")
+        _operation = @@(params,"$_operation")
+        
+        isNew = (_entity_id == "_new")
+
+        sql_obtener_producto = "
+        SELECT
+			p.sys_pk,
+			p.codigo,
+			p.descripcion,
+			p.unidad,
+			d.codigo divisa
+		FROM producto p
+			INNER JOIN divisa d ON p.idivisa = d.sys_pk
+        WHERE p.sys_pk = @iproducto
+        "
+        sql_obtener_almacen = "SELECT sys_pk, codigo, descripcion FROM almacen WHERE sys_pk = @ialmacen"
+
+        if field.exist(data,"form")
+        {
+            data<"dtproducto*"> : dbr.rec(db,sql_obtener_producto,@@(data,"&form"))
+            data<"dtalmacen*"> : dbr.rec(db,sql_obtener_almacen,@@(data,"&form"))
+        }
+        else if field.exist(data,"entity")
+        {
+            data<"dtproducto*"> : dbr.rec(db,sql_obtener_producto,@@(data,"&entity"))
+            data<"dtalmacen*"> : dbr.rec(db,sql_obtener_almacen,@@(data,"&entity"))
+        }
+    }
+
+    evaluateFilters::&params
+    {
+        conditions = ""
+
+        if trim(@@(params,"$fil_text")) != "" {
+            conditions = conditions + "
+            AND (
+                alm.codigo LIKE CONCAT('%',@fil_text,'%')
+                alm.descripcion LIKE CONCAT('%',@fil_text,'%')
+                OR prod.codigo LIKE CONCAT('%',@fil_text,'%')
+                OR prod.descripcion LIKE CONCAT('%',@fil_text,'%')
+            )"
+        }
+
+        @list_query = ftext(@list_query)
+    }
+
+    ensure::&db,&params
+    {
+        ref entity = entity.read(db,params)
+        exception{/*ignore*/}
+        
+        if not(isnull(entity)) { return entity }
+        if @@(params,"#iproducto") <= 0 || @@(params,"#ialmacen") <= 0 { do rise_error(500,"Es necesario indicar el producto y almacen [`iproducto`,`ialmacen`].") }
+
+        new maxmin
+        {
+            @"iproducto": @@(params,"#iproducto")
+            @"ialmacen": @@(params,"#ialmacen")
+            @"uf_maximo": 0
+            @"uf_minimo": 0
+            @"uf_preorden": 0
+        }
+        do dbr.insert(db,@table_name,maxmin)
+        
+        return entity.read(db,params)
+    }
+
+    list::&db,&params
+    {
+        do maxmin.evaluateFilters(params)
+
+        new data
+        {
+            @"data*": entity.list(db,params)
+            // @"itemactions*": dbr.apps.itemactions(db,"DET076","action","",0)
+            // @"itemreports*": dbr.apps.itemactions(db,"DET076","report","",0)
+        }
+
+        return data
+    }
+
+    read::&db,&params
+    {
+        new data
+        {
+            @"entity*": maxmin.ensure(db,params)
+        }
+        do maxmin.prepareView(db,params,data)
+
+        return data
+    }
+
+    blank::&db,&params
+    {
+        new data {}
+        do maxmin.prepareView(db,params,data)
+
+        return data
+    }
+
+    create::&db,&params,&data
+    {
+        namespace "maxmin"
+
+        using params
+        {
+            @"ialmacen": @@(data,"#ialmacen")
+            @"iproducto": @@(data,"#iproducto")
+        }
+
+        exit_url = trim(url_dcode(@@(data,"$exiturl")))
+
+        ref create_data = record.copyex(data,@null,@create_fields,",","",":")
+        do dbr.insert(db,@table_name,create_data)
+
+        if exit_url != "" { @url_redir = exit_url }
+
+        return dbr.rec(db,ftext(@read_query),params)
+
+        exception
+        {
+            do errordet(@false)
+            if dbr.in_transaction(db) { do dbr.rollback(db) }
+
+            ref FormData = record.copy(data,"*")
+            code = last_error_code()
+            error = last_error()
+
+            do record.clear(data)
+            data<"form*"> : FormData
+
+            do prepareView(db,params,data)
+            do rise_error(code,error)
+        }
+    }
+
+    update::&db,&params,&data
+    {
+        namespace "maxmin"
+
+        exit_url = trim(url_dcode(@@(data,"$exiturl")))
+
+        ref update_data = record.copyex(data,@null,@update_fields,",","",":")
+        do dbr.update(db,@table_name,update_data,"ialmacen=@ialmacen AND iproducto=@iproducto",params)
+
+        if exit_url != "" { @url_redir = exit_url }
+
+        return dbr.rec(db,ftext(@read_query),params)
+
+        exception
+        {
+            do errordet(@false)
+            if dbr.in_transaction(db) { do dbr.rollback(db) }
+
+            ref FormData = record.copy(data,"*")
+            code = last_error_code()
+            error = last_error()
+
+            do record.clear(data)
+            data<"form*"> : FormData
+
+            do prepareView(db,params,data)
+            do rise_error(code,error)
+        }
+    }
+
+    delete::&db,&params
+    {
+        return dbr.delete(db,@table_name,"ialmacen=@ialmacen AND iproducto=@iproducto",params)
+    }
 }

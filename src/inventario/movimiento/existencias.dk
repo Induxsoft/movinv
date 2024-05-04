@@ -6,6 +6,7 @@ module "existencias.dk"
     #include "serialize.dkh"
     #include "uielements.v12.dkl"
     #include "../config.dk"
+    #include "../_lib/lib2.dk"
 
     do @context.begin(@crud_context)
 
@@ -13,6 +14,7 @@ module "existencias.dk"
     ref existencias = ifnull(@("&./existencias"),list.create())
 
     @_entity_id = @("$parameters/_entity_id")
+    @current_url = lib.curr_url()
 
     function fn_before_cell(&params,&row,&cell)
     {
@@ -21,9 +23,11 @@ module "existencias.dk"
         {
             btn_style = "cursor:pointer; text-decoration:none; padding:0px 8px; background-color:#F5F5F5; color:#000;"
             ver_cardex_link = path.concat(replace(@INV_GET_DOCUMENTO,"@id",@_entity_id), "?almc="+@@(row,"$ialmacen"))
+            edt_maxmin_link = "/!/inventario/maxmin/_edt/?iproducto="+@_entity_id+"&ialmacen="+@@(row,"$ialmacen")+"&exiturl="+url_encode(@current_url)
 
             cell<"text"> : ftext('
                 <a href="#<ver_cardex_link>" style="#<btn_style>">Cardex</a>
+                <a href="#<edt_maxmin_link>" style="#<btn_style>" title="Editar máximo, mínimo, p. Re-orden">MaxMin</a>
             ')
         }
     }

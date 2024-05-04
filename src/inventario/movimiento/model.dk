@@ -9,9 +9,14 @@ module "model"
 	function movinv.obtenerAlmacenes(&db, &params)
 	{
 		sql = "
-		SELECT sys_pk, codigo, descripcion, CONCAT(codigo,' - ',descripcion) AS dalmacen
+		SELECT
+			sys_pk,
+			codigo,
+			descripcion,
+			CONCAT(codigo,' - ',descripcion) AS dalmacen
 		FROM almacen
-		WHERE IF(IFNULL(@s,'')='', true, (codigo LIKE CONCAT('%',@s,'%') OR descripcion LIKE CONCAT('%',@s,'%')));"
+		WHERE NOT IFNULL(sys_deleted,0)
+			AND IF(IFNULL(@s,'')='', true, (codigo LIKE CONCAT('%',@s,'%') OR descripcion LIKE CONCAT('%',@s,'%')));"
 
 		return dbr.list(db, sql, params)
 	}
@@ -44,7 +49,6 @@ module "model"
 			INNER JOIN divisa d ON p.idivisa = d.sys_pk
 			LEFT JOIN existencias AS ex ON ex.fk_producto_iexistencias = p.sys_pk
 		WHERE NOT IFNULL(p.sys_deleted,0)
-			AND p.itipo = 2
 			#<conditions>
 		GROUP BY p.codigo
 		ORDER BY p.codigo
@@ -59,11 +63,19 @@ module "model"
 		if @@(params,"#fil_almacen") > 0 { conditions = conditions + " AND ex.ialmacen = @fil_almacen" }
 		if @@(params,"#fil_claseprod") > 0 { conditions = conditions + " AND p.iclase = @fil_claseprod" }
 		if @@(params,"#fil_linea") > 0 { conditions = conditions + " AND p.ilinea = @fil_linea" }
+		if @@(params,"#tipo") > 0 { conditions = conditions + " AND p.itipo = @tipo" }
 		if trim(@@(params,"$s")) != "" { conditions = conditions + " AND (p.codigo LIKE CONCAT('%',@s,'%') OR p.descripcion LIKE CONCAT('%',@s,'%'))" }
+
+		return dbr.list(db, ftext(sql), params)
+	}
+
+	function movinv.list(&db,&params)
+	{
+		params<"tipo"> : 2 // cInventariable
 
 		new data
 		{
-			@"data*": dbr.list(db, ftext(sql), params)
+			@"data*": movinv.obtenerProductos(db,params)
 			@"list_almacenes*": movinv.obtenerAlmacenes(db,params)
 			@"list_claseproducto*": dbr.list(db,"SELECT id, const FROM cclaseproducto",@null)
 			@"list_lineas*": dbr.list(db,"SELECT sys_pk, codigo, descripcion FROM linea WHERE NOT IFNULL(sys_deleted,0) AND clase = @fil_claseprod",params)
