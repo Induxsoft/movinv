@@ -122,7 +122,7 @@ module "Máximo, Mínimo, Punto de re-orden. :maxmin"
         new data
         {
             @"data*": entity.list(db,params)
-            // @"itemactions*": dbr.apps.itemactions(db,"DET076","action","",0)
+            @"itemactions*": dbr.apps.itemactions(db,"DET076","action","",0)
             // @"itemreports*": dbr.apps.itemactions(db,"DET076","report","",0)
         }
 

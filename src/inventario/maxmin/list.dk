@@ -12,20 +12,12 @@ module "list.dk"
     ref @_GET = ifnull(@("&parameters"),record.create())
     ref data = ifnull(@("&./data"),list.create())
     ref itemactions = ifnull(@("&./itemactions"),list.create())
-    ref itemreports = ifnull(@("&./itemreports"),list.create())
+    // ref itemreports = ifnull(@("&./itemreports"),list.create())
 
     // do rise_error(0,to.json(@("&.")))
 
 	@_entities_type = @("$parameters/_entities_type")
 	table_id = "tbl_"+@_entities_type
-
-    function fn_print_buttons()
-    {
-        #$
-        a(href="./_new/" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print"){$"Agregar"}
-        #!
-    }
-    point print_buttons to fn_print_buttons
 
     new table_definition
     {
@@ -75,10 +67,10 @@ module "list.dk"
     new nav_config
     {
         @"title": "Máximos, Mínimos, Punto de re-orden"
-        @"buttons*": print_buttons
+        @"buttons*": @null
         @"urlexit": @INVENTARIO
-        // @"main": "LA11,LA12,LA13"
-        // @"actions*": itemactions
+        @"main": "GE00,GE21"
+        @"actions*": itemactions
         // @"reports*": itemreports
         // @"jscurrentcontext": "getCurrentContext"
     }
