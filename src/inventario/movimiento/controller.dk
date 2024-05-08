@@ -40,6 +40,11 @@ module "controller"
             point @list to movinv.obtenerProductos
             break
         }
+        case "obtener-lineas"
+        {
+            point @list to movinv.GetLineaByClase
+            break
+        }
         default
         {
             point @create to movinv.agregarMovimiento

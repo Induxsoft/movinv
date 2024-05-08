@@ -1,0 +1,62 @@
+#include "dkli.dkh"
+#!
+module "Reportes de movimiento de inventario. :Report"
+{
+    Existencias::&db,&params
+    {
+        sql_productos = "
+        SELECT
+            p.sys_pk,
+            p.codigo,
+            p.descripcion,
+            p.unidad,
+            SUM(IFNULL(ex.existencia,0)) AS existencia,
+            IF(mm.iproducto IS NULL AND @chk_use_gv = 'on', IFNULL(p.minimo,0), IFNULL(mm.uf_minimo,0)) AS minimo,
+            IF(mm.iproducto IS NULL AND @chk_use_gv = 'on', IFNULL(p.puntoro,0), IFNULL(mm.uf_preorden,0)) AS preorden
+        FROM producto AS p
+            LEFT JOIN ut_maxmin AS mm ON mm.iproducto = p.sys_pk
+            LEFT JOIN existencias AS ex ON ex.fk_producto_iexistencias = p.sys_pk
+        WHERE NOT IFNULL(p.sys_deleted,0)
+            #<conditions>
+        GROUP BY p.codigo
+		ORDER BY p.codigo ASC
+        "
+
+        if not(field.exist(params,"fil_almacen")){ params<"fil_almacen"> : -1 }
+        if not(field.exist(params,"fil_clase")){ params<"fil_clase"> : -1 }
+        if not(field.exist(params,"fil_linea")){ params<"fil_linea"> : -1 }
+        if not(field.exist(params,"fil_marca")){ params<"fil_marca"> : -1 }
+        if not(field.exist(params,"fil_depto")){ params<"fil_depto"> : -1 }
+        // Si no hay valores por almacén, usar los valores globales del producto
+        if not(field.exist(params,"chk_use_gv")){ params<"chk_use_gv"> : @true }
+        // Incluir productos iguales o por debajo del...
+        if not(field.exist(params,"fil_prod_below")){ params<"fil_prod_below"> : "preorden" }
+
+        conditions = ""
+
+        if @@(params,"#fil_almacen") > 0 { conditions = conditions + " AND mm.ialmacen = @fil_almacen AND ex.ialmacen = @fil_almacen" }
+        if @@(params,"#fil_clase") > 0 { conditions = conditions + " AND p.iclase = @fil_clase" }
+        if @@(params,"#fil_linea") > 0 { conditions = conditions + " AND p.ilinea = @fil_linea" }
+        if @@(params,"#fil_marca") > 0 { conditions = conditions + " AND p.imarca = @fil_marca" }
+        if @@(params,"#fil_depto") > 0 { conditions = conditions + " AND p.idepartamento = @fil_depto" }
+
+        // Incluir productos iguales o por debajo del...
+        conditions = conditions + " AND IF(mm.iproducto IS NULL AND @chk_use_gv = 'on',
+            IFNULL(p.existencia,0) <= IF(@fil_prod_below = 'preorden', IFNULL(p.puntoro,0), IFNULL(p.minimo,0)),
+            IFNULL(ex.existencia,0) <= IF(@fil_prod_below = 'preorden', IFNULL(mm.uf_preorden,0), IFNULL(mm.uf_minimo,0))
+        )
+        "
+
+        new data
+        {
+            @"data*": dbr.list(db,ftext(sql_productos),params)
+            @"list_almacenes*": dbr.list(db,"SELECT sys_pk, codigo, descripcion FROM almacen WHERE NOT IFNULL(sys_deleted,0)",@null)
+            @"list_clases*": dbr.list(db,"SELECT id, const FROM cclaseproducto",@null)
+            @"list_lineas*": dbr.list(db,"SELECT sys_pk, codigo, descripcion FROM linea WHERE NOT IFNULL(sys_deleted,0) AND clase = @fil_clase",params)
+            @"list_marcas*": dbr.list(db,"SELECT sys_pk, codigo, descripcion FROM marca WHERE NOT IFNULL(sys_deleted,0)",@null)
+            @"list_deptos*": dbr.list(db,"SELECT sys_pk, codigo, descripcion FROM departamento WHERE NOT IFNULL(sys_deleted,0)",@null)
+        }
+
+        return data
+    }
+}

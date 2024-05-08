@@ -1,0 +1,301 @@
+#include "dkli.dkh"
+#!
+module "Informe de existencias debajo del mínimo o el punto de reorden"
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "dbr.dkh"
+    #include "dbr.vars.dkl"
+    #include "uielements.v12.dkl"
+    #include "../config.dk"
+    #include "../_lib/lib2.dk"
+
+    do @context.begin(@crud_context)
+    ref db:@("&database")
+
+    ref data = ifnull(@("&./data"),list.create())
+
+    rpt_encabezado_1 = dbr.vars.get(db,"FXCA108")
+    rpt_encabezado_2 = dbr.vars.get(db,"FXCA109")
+    rpt_encabezado_3 = dbr.vars.get(db,"FXCA110")
+    rpt_pie = dbr.vars.get(db,"FXCA111")
+
+    new fil_almacen
+    {
+        @"datatable*": ifnull(@("&./list_almacenes"),list.create())
+        @"id": "fil_almacen"
+        new member "attributes"
+        {
+            @"class": "form-select form-select-sm rounded-0"
+            @"name": "fil_almacen"
+            @"required": ""
+        }
+        @"first_value": "-1"
+        @"first_text": "(Todos los almacenes)"
+        @"value_field": "sys_pk"
+        @"text_field": "descripcion"
+        @"selected": @("#parameters/fil_almacen")
+    }
+
+    new fil_clase
+    {
+        @"datatable*": ifnull(@("&./list_clases"),list.create())
+        @"id": "fil_clase"
+        new member "attributes"
+        {
+            @"class": "form-select form-select-sm rounded-0"
+            @"name": "fil_clase"
+        }
+        @"first_value": "-1"
+        @"first_text": "(Todas las clases)"
+        @"value_field": "id"
+        @"text_field": "const"
+        @"selected": @("#parameters/fil_clase")
+    }
+
+    new fil_linea
+    {
+        @"datatable*": ifnull(@("&./list_lineas"),list.create())
+        @"id": "fil_linea"
+        new member "attributes"
+        {
+            @"class": "form-select form-select-sm rounded-0"
+            @"name": "fil_linea"
+        }
+        @"first_value": "-1"
+        @"first_text": "(Todas las lineas)"
+        @"value_field": "sys_pk"
+        @"text_field": "descripcion"
+        @"selected": @("#parameters/fil_linea")
+    }
+
+    new fil_marca
+    {
+        @"datatable*": ifnull(@("&./list_marcas"),list.create())
+        @"id": "fil_marca"
+        new member "attributes"
+        {
+            @"class": "form-select form-select-sm rounded-0"
+            @"name": "fil_marca"
+        }
+        @"first_value": "-1"
+        @"first_text": "(Todas las marcas)"
+        @"value_field": "sys_pk"
+        @"text_field": "descripcion"
+        @"selected": @("#parameters/fil_marca")
+    }
+
+    new fil_depto
+    {
+        @"datatable*": ifnull(@("&./list_deptos"),list.create())
+        @"id": "fil_depto"
+        new member "attributes"
+        {
+            @"class": "form-select form-select-sm rounded-0"
+            @"name": "fil_depto"
+        }
+        @"first_value": "-1"
+        @"first_text": "(Todos los departamentos)"
+        @"value_field": "sys_pk"
+        @"text_field": "descripcion"
+        @"selected": @("#parameters/fil_depto")
+    }
+
+    new fil_prod_below
+    {
+        @"datatable*": from.json('[{"v":"preorden","t":"Punto de re-orden"}, {"v":"minimo","t":"Mínimo"}]')
+        @"id": "fil_prod_below"
+        new member "attributes"
+        {
+            @"class": "form-select form-select-sm rounded-0 w-auto"
+            @"name": "fil_prod_below"
+        }
+        @"value_field": "v"
+        @"text_field": "t"
+        @"selected": @("$parameters/fil_prod_below")
+    }
+
+    new nav_config
+    {
+        @"title": "Existencias"
+        @"urlexit": "javascript:window.history.back()"
+    }
+
+    #$ div(class="container")
+    {
+        #!
+        do uie.printV12FormBar(nav_config)
+        #$
+
+        style
+        {$'
+            tr th { font-size:.9rem; outline:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; -o-text-overflow:ellipsis; }
+            tr td { font-size:.8rem; }
+
+            @media print {
+                body { visibility:hidden; }
+                #section-to-print {
+                    visibility:visible;
+                    position:absolute;
+                    left:0;
+                    top:0;
+                    right:0;
+                }
+            }
+
+            .bg-light-gray { background-color:#DCDCDC !important; }
+            .bg-yellow { background-color:#ffe484 !important; }
+            .fw-500 { font-weight:500 !important; }
+        '}
+
+        form(class="no-print mb-2" method="GET" action="./" id="form-filter")
+        {
+            div(class="d-flex align-items-center gap-1 mb-1")
+            {
+                div(class="d-flex gap-1")
+                {
+                    div{#! do uie.dbSelect(fil_almacen) }#$
+                    div{#! do uie.dbSelect(fil_clase) }#$
+                    div{#! do uie.dbSelect(fil_linea) }#$
+                    div{#! do uie.dbSelect(fil_marca) }#$
+                    div{#! do uie.dbSelect(fil_depto) }#$
+                }
+                div(class="d-flex flex-grow-1 justify-content-end"){ button(class="btn btn-sm btn-primary rounded-0" type="submit" id="btn_filter"){$"Aplicar"} }
+            }
+
+            div(class="d-flex align-items-center gap-1 justify-content-between")
+            {
+                div(class="d-flex gap-1")
+                {
+                    div(class="form-check mb-0")
+                    {
+                        #!
+                        checked = ifstr(parse.bool(@("$parameters/chk_use_gv")), "checked", "")
+                        #$
+                        input(class="form-check-input" type="checkbox" name="chk_use_gv" id="chk_use_gv" "#<checked>"="")
+                        label(class="form-check-label" "for"="chk_use_gv"){$"Si no hay valores por almacén, usar los valores globales del producto"}
+                    }
+                }
+
+                div(class="d-inline-flex align-items-center gap-1")
+                {
+                    label(class="" "for"="fil_prod_below"){$"Incluir productos iguales o por debajo del:"}
+                    ##
+                    do uie.dbSelect(fil_prod_below)
+                    ##
+                }
+            }
+        }
+
+        div(class="bg-light w-100 p-2" style="max-height:83vh; overflow-y:auto;"){
+        div(class="" style="box-shadow: inset 0 -3em 3em rgba(0, 0, 0, 0.1), 0.3em 0.3em 1em rgba(0, 0, 0, 0.3);"){
+            div(class="bg-white p-1" id="section-to-print")
+            {
+                p(class="text-center mb-0"){$"#<rpt_encabezado_1>"}
+                p(class="text-center mb-0"){$"#<rpt_encabezado_2>"}
+                p(class="text-center mb-0"){$"#<rpt_encabezado_3>"}
+
+                div(class="row")
+                {
+                    div(class="col-3")
+                    {
+                        small(class="d-block"){ $"#<cut(@('$http/session/user/name'),25)>" }
+                        small(class="d-block"){ b{$"Impresión: "} $"#<lib.hoy('dd/MMM/yyyy')>" }
+                    }
+                    div(class="col-6")
+                    {
+                        h5(class="text-center"){$"Existencias debajo del mínimo o el punto de re-orden"}
+                    }
+                    div(class="col-3 text-end")
+                    {
+                        $""
+                    }
+                }
+                
+                table(class="table table-sm table-bordered my-2")
+                {
+                    thead
+                    {
+                        tr(class="bg-light-gray")
+                        {
+                            th(class="text-center"){$"Código"}
+                            th(class="text-center"){$"Descripción"}
+                            th(class="text-center"){$"Unidad"}
+                            th(class="text-center"){$"Existencia"}
+                            th(class="text-center"){$"Minimo"}
+                            th(class="text-center"){$"Punto re-orden"}
+                        }
+                    }
+                    tbody
+                    {
+                        #!
+                        for i = 0; i < list.count(data); i+1
+                        {
+                            ref obj = list.obj(data,i)
+                            numfmt = "#,0.00"
+                            
+                            #$
+                            tr
+                            {
+                                td(class=""){$"#<@@(obj,'$codigo')>"}
+                                td(class=""){$"#<@@(obj,'$descripcion')>"}
+                                td(class="text-center"){$"#<@@(obj,'$unidad')>"}
+                                td(class="text-center"){$"#<format(@@(obj,'#existencia'),numfmt)>"}
+                                td(class="text-center"){$"#<format(@@(obj,'#minimo'),numfmt)>"}
+                                td(class="text-center"){$"#<format(@@(obj,'#preorden'),numfmt)>"}
+                            }
+                            #!
+                        }
+                        #$
+                    }
+                }
+
+                p(class="text-center mb-0"){$"#<rpt_pie>"}
+            }
+        }}
+
+        script(type="text/javascript")
+        {$'
+            document.addEventListener("DOMContentLoaded", () => {
+                const fil_clase = document.getElementById("fil_clase");
+                let url_get_linea = "#<@URL_OBTENER_LINEAS_XCLASE>";
+                
+                fil_clase.addEventListener("change", (event) => {
+                    let params = {iclase:event.target.value}
+                    let first_object = {sys_pk: -1, descripcion: "(Todas las lineas)"}
+                    fillSelect("fil_linea","sys_pk","descripcion",url_get_linea,params,first_object);
+                });
+
+                function fillSelect(id, kf, vf, url, params={}, fo={})
+                {
+                    const select = document.getElementById(id);
+
+                    let endpoint = InduxsoftCrudlModel.UrlReplace(url,params);
+                    let selected = select.value ?? "";
+
+                    fetch(endpoint).then(response => response.json())
+                    .then(data => {
+                        if (data.message) {
+                            alert(data.message);
+                            return;
+                        }
+                        
+                        select.innerHTML = "";
+
+                        if (Object.keys(fo).length >= 2) data.unshift(fo);
+
+                        data.forEach(obj => {
+                            const option = document.createElement("option");
+                            option.value = obj[kf];
+                            option.text = obj[vf];
+                            if (obj[kf] === selected) option.selected = true;
+
+                            select.appendChild(option);
+                        });
+                    })
+                    .catch(error => console.error(error));
+                }
+            });
+        '}
+    }
+}

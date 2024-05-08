@@ -37,6 +37,8 @@ module "Controller configs"
 	do crudl.routes.entity("/cardex/","cardex")
 	do crudl.routes.entity("/maxmin/","maxmin")
 
+	do crudl.routes.entity("/reports/","reports")
+
 	@dbmvc_path="crudl/"
 	
 	@auto_crud=@true

@@ -32,6 +32,11 @@ module "model"
 
 		return dbr.list(db, sql, params)
 	}
+	// ============== LINEA
+	function movinv.GetLineaByClase(&db,&params)
+    {
+        return dbr.list(db,"SELECT sys_pk, codigo, descripcion FROM linea WHERE NOT IFNULL(sys_deleted,0) AND clase = @iclase",params)
+    }
 	// =============== PRODUCTOS
 	function movinv.obtenerProductos(&db, &params)
 	{

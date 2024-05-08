@@ -1,3 +1,5 @@
 "id","title"
 "DET031","Movimiento de inventario"
 "DET076","Máximos, Mínimos, Punto de re-orden de productos por almacén"
+"DET077","Bien o producto tangible inventariable"
+"DET078","Existencia de inventario"

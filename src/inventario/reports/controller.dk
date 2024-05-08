@@ -1,0 +1,19 @@
+#include "dkli.dkh"
+#!
+module "ReportController"
+{
+    switch @@(@http_context,"$request/get/_entity_id")
+    {
+        case "existencias"
+        {
+            @form_view = "existencias.dk"
+            point @read to Report.Existencias
+            break
+        }
+        default
+        {
+            // code...
+            break
+        }
+    }
+}

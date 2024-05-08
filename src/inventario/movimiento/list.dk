@@ -130,8 +130,8 @@ module "list.dk"
         @"buttons*": @null
         @"urlexit": "/"
         @"main": ""
-        @"actions*": dbr.apps.itemactions(@('&database'),"DET031","action","",0)
-        @"reports*": dbr.apps.itemactions(@('&database'),"DET031","report","",0)
+        @"actions*": dbr.apps.itemactions(@('&database'),"DET077","action","",0)
+        @"reports*": dbr.apps.itemactions(@('&database'),"DET077","report","",0)
         @"jscurrentcontext": "movinv.getCurrentContext"
     }
 
