@@ -218,7 +218,7 @@ module ":erp.inventario"
             }
 
             if @@(dcardex,"#ilote")<1 && @@(dcardex,"#reqlote") { do rise_error(0,"No se ha indicado el lote requerido") }
-            if @@(dcardex,"#entradas")!=1 && @@(dcardex,"#reqserie") { do rise_error(0,"El movimiento no corresponde con los números de serie indicados") }
+            if @@(dcardex,"#reqserie") && (@@(dcardex,"#entradas") + @@(dcardex,"#salidas")) != 1  { do rise_error(0,"El movimiento no corresponde con los números de serie indicados") }
             if @@(dcardex,"#iserie")<1 && @@(dcardex,"#reqserie") { do rise_error(0,"No se ha indicado el número de serie requerido") }
             
             if @@(dcardex,"#entradas")>0
@@ -357,7 +357,7 @@ module ":erp.inventario"
             }
             case @inventario_mval_iden
             {
-                p<"iserie">:@@(cardex,"#iserie")
+                p<"iserie">:@@(dcardex,"#iserie")
                 ref en_ns=dbr.rec(db,"select cargos from dcardex where entradas=1 and iserie=@iserie and valuado order by sys_pk desc limit 1;",p)
                 if isnull(en_ns){ do rise_error(0,"No se pudo identificar la entrada del número de serie")}
                 
