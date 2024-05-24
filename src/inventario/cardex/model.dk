@@ -6,6 +6,8 @@ module "model"
 
     function cardex.obtenerMovimientosProducto(&db, &params)
     {
+        do dbr.apps.action.grant("GE14")
+
         sql_product = "
         SELECT
             p.codigo AS cproducto,
@@ -65,7 +67,17 @@ module "model"
         }
 
         return response
+
+        exception
+        {
+            do errordet(@false)
+			code = last_error_code()
+			error = last_error()
+            do dbr.apps.action.log()
+            do rise_error(code,error)
+        }
     }
+
     prepare_filter::list
     {
         new record

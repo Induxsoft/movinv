@@ -4,6 +4,8 @@ module "Reportes de movimiento de inventario. :Report"
 {
     Existencias::&db,&params
     {
+        do dbr.apps.action.grant("GE1A")
+
         sql_productos = "
         SELECT
             p.sys_pk,
@@ -58,5 +60,14 @@ module "Reportes de movimiento de inventario. :Report"
         }
 
         return data
+
+        exception
+        {
+            do errordet(@false)
+			code = last_error_code()
+			error = last_error()
+            do dbr.apps.action.log()
+            do rise_error(code,error)
+        }
     }
 }

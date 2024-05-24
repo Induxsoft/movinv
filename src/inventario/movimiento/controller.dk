@@ -47,8 +47,8 @@ module "controller"
         }
         default
         {
-            point @create to movinv.agregarMovimiento
-            point @update to movinv.agregarMovimiento
+            point @create to movinv.agregar
+            point @update to movinv.agregar
             point @list to movinv.list
             break
         }

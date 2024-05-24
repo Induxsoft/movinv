@@ -117,20 +117,31 @@ module "Máximo, Mínimo, Punto de re-orden. :maxmin"
 
     list::&db,&params
     {
-        do maxmin.evaluateFilters(params)
+        do dbr.apps.action.grant("GE20")
 
+        do maxmin.evaluateFilters(params)
         new data
         {
             @"data*": entity.list(db,params)
             @"itemactions*": dbr.apps.itemactions(db,"DET076","action","",0)
             // @"itemreports*": dbr.apps.itemactions(db,"DET076","report","",0)
         }
-
         return data
+
+        exception
+        {
+            do errordet(@false)
+			code = last_error_code()
+			error = last_error()
+            do dbr.apps.action.log()
+            do rise_error(code,error)
+        }
     }
 
     read::&db,&params
     {
+        do dbr.apps.action.grant("GE20")
+
         new data
         {
             @"entity*": maxmin.ensure(db,params)
@@ -138,19 +149,41 @@ module "Máximo, Mínimo, Punto de re-orden. :maxmin"
         do maxmin.prepareView(db,params,data)
 
         return data
+
+        exception
+        {
+            do errordet(@false)
+			code = last_error_code()
+			error = last_error()
+            do dbr.apps.action.log()
+            do rise_error(code,error)
+        }
     }
 
     blank::&db,&params
     {
+        do dbr.apps.action.grant("GE20")
+
         new data {}
         do maxmin.prepareView(db,params,data)
 
         return data
+
+        exception
+        {
+            do errordet(@false)
+			code = last_error_code()
+			error = last_error()
+            do dbr.apps.action.log()
+            do rise_error(code,error)
+        }
     }
 
     create::&db,&params,&data
     {
         namespace "maxmin"
+
+        @use_transaction = @false
 
         using params
         {
@@ -158,14 +191,21 @@ module "Máximo, Mínimo, Punto de re-orden. :maxmin"
             @"iproducto": @@(data,"#iproducto")
         }
 
+        ref create_data = record.copyex(data,@null,@create_fields,",","",":")
         exit_url = trim(url_dcode(@@(data,"$exiturl")))
 
-        ref create_data = record.copyex(data,@null,@create_fields,",","",":")
+        do dbr.apps.action.pre("GE21")
+        do dbr.begin(db)
+        
         do dbr.insert(db,@table_name,create_data)
+        ref res = dbr.rec(db,ftext(@read_query),params)
+        
+        do dbr.apps.action.pos(res)
+        do dbr.commit(db)
+        do dbr.apps.action.ext(res)
 
         if exit_url != "" { @url_redir = exit_url }
-
-        return dbr.rec(db,ftext(@read_query),params)
+        return res
 
         exception
         {
@@ -180,6 +220,7 @@ module "Máximo, Mínimo, Punto de re-orden. :maxmin"
             data<"form*"> : FormData
 
             do prepareView(db,params,data)
+            do dbr.apps.action.log()
             do rise_error(code,error)
         }
     }
@@ -188,14 +229,23 @@ module "Máximo, Mínimo, Punto de re-orden. :maxmin"
     {
         namespace "maxmin"
 
-        exit_url = trim(url_dcode(@@(data,"$exiturl")))
+        @use_transaction = @false
 
         ref update_data = record.copyex(data,@null,@update_fields,",","",":")
+        exit_url = trim(url_dcode(@@(data,"$exiturl")))
+
+        do dbr.apps.action.pre("GE22")
+        do dbr.begin(db)
+        
         do dbr.update(db,@table_name,update_data,"ialmacen=@ialmacen AND iproducto=@iproducto",params)
+        ref res = dbr.rec(db,ftext(@read_query),params)
+
+        do dbr.apps.action.pos(res)
+        do dbr.commit(db)
+        do dbr.apps.action.ext(res)
 
         if exit_url != "" { @url_redir = exit_url }
-
-        return dbr.rec(db,ftext(@read_query),params)
+        return res
 
         exception
         {
@@ -210,12 +260,34 @@ module "Máximo, Mínimo, Punto de re-orden. :maxmin"
             data<"form*"> : FormData
 
             do prepareView(db,params,data)
+            do dbr.apps.action.log()
             do rise_error(code,error)
         }
     }
 
     delete::&db,&params
     {
-        return dbr.delete(db,@table_name,"ialmacen=@ialmacen AND iproducto=@iproducto",params)
+        @use_transaction = @false
+
+        do dbr.apps.action.pre("GE23")
+        do dbr.begin(db)
+
+        do dbr.delete(db,@table_name,"ialmacen=@ialmacen AND iproducto=@iproducto",params)
+
+        do dbr.apps.action.pos(@null)
+        do dbr.commit(db)
+        do dbr.apps.action.ext(@null)
+
+		return @null
+
+        exception
+        {
+            do errordet(@false)
+            if dbr.in_transaction(db){ do dbr.rollback(db) }
+			code = last_error_code()
+			error = last_error()
+            do dbr.apps.action.log()
+            do rise_error(code,error)
+        }
     }
 }

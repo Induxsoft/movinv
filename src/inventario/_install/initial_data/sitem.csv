@@ -1,0 +1,17 @@
+﻿itemid,description,itemparent
+inventario,Inventarios,\0
+inventario.maxmin,"Máximos, mínimos y punto de reorden",inventario
+GE00,"Importar máximos, mínimos de productos por almacén",inventario.maxmin
+inventario.movimiento,Inventario,inventario
+GE10,Inventarios,inventario.movimiento
+GE11,Agregar entrada de productos,inventario.movimiento
+GE12,Agregar salida de productos,inventario.movimiento
+GE13,Agregar traspaso de productos,inventario.movimiento
+GE14,Ver cardex del producto,inventario.movimiento
+GE15,Ver existencias del producto,inventario.movimiento
+GE1A,Informe de exitencias debajo del mínimo o el punto de reorden,inventario.movimiento
+inventario.maxmin,"Máximos, mínimos y punto de reorden",inventario
+GE20,"Listar máximos, mínimos de productos por almacén",inventario.maxmin
+GE21,"Crear máximos, mínimos de productos por almacén",inventario.maxmin
+GE22,"Editar máximos, mínimos de productos por almacén",inventario.maxmin
+GE23,"Eliminar máximos, mínimos de productos por almacén",inventario.maxmin

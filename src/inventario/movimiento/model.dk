@@ -76,6 +76,8 @@ module "model"
 
 	function movinv.list(&db,&params)
 	{
+		do dbr.apps.action.grant("GE10")
+
 		params<"tipo"> : 2 // cInventariable
 
 		new data
@@ -87,6 +89,15 @@ module "model"
 		}
 
 		return data
+
+		exception
+        {
+            do errordet(@false)
+			code = last_error_code()
+			error = last_error()
+            do dbr.apps.action.log()
+            do rise_error(code,error)
+        }
 	}
 
 	// =============== MOVIMIENTOS
@@ -189,6 +200,40 @@ module "model"
 			do rise_error(last_error_code(),last_error())
 		}
 	}
+
+	movinv.agregar::&db,&params,&data
+	{
+		@use_transaction = @false
+
+		new action
+		{
+			@"entrada": "GE11"
+			@"salida": "GE12"
+			@"traspaso": "GE13"
+		}
+
+        do dbr.apps.action.pre(@@(action,@@(data,"$tipo_movimiento")))
+        do dbr.begin(db)
+
+        ref result = movinv.agregarMovimiento(db,params,data)
+
+        do dbr.apps.action.pos(result)
+        do dbr.commit(db)
+        do dbr.apps.action.ext(result)
+
+		return result
+
+        exception
+        {
+            do errordet(@false)
+            if dbr.in_transaction(db){ do dbr.rollback(db) }
+			code = last_error_code()
+			error = last_error()
+            do dbr.apps.action.log()
+            do rise_error(code,error)
+        }
+	}
+
 	function movinv.genDetalle(&product, almacen, entrada)
 	{
 		entradas = 0
@@ -221,6 +266,8 @@ module "model"
 
 	function movinv.existencias(&db,&params)
 	{
+		do dbr.apps.action.grant("GE15")
+
 		sql_producto = "
 		SELECT
 			CONCAT('[',p.codigo,']',' ',p.descripcion) AS tproducto,
@@ -260,6 +307,15 @@ module "model"
 		}
 
 		return data
+
+		exception
+        {
+            do errordet(@false)
+			code = last_error_code()
+			error = last_error()
+            do dbr.apps.action.log()
+            do rise_error(code,error)
+        }
 	}
 
 	@table_name = "cardex"
