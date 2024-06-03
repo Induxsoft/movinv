@@ -75,7 +75,7 @@ program
                         {
                             label{$"Almacen origen:"}
                             "input-key"(
-                                id="ik_salida_almacen"
+                                id="ik_almacen_origen"
                                 name="ialmacen"
                                 "data-key"="sys_pk"
                                 "data-search"="codigo"
@@ -94,7 +94,7 @@ program
                         {
                             label{$"Almacen destino:"}
                             "input-key"(
-                                id="ik_salida_almacen"
+                                id="ik_almacen_destino"
                                 name="ialmacen2"
                                 "data-key"="sys_pk"
                                 "data-search"="codigo"
@@ -180,6 +180,7 @@ program
         script(src="#<@JS_MOVINV>"){$""}
         script{$'
             movinv.tableId = "et_traspaso_productos";
+            movinv.movimiento = "traspaso";
             movinv.url_inventario = "#<@INVENTARIO>";
         '}
     }

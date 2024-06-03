@@ -162,6 +162,7 @@ program
         script(src="#<@JS_MOVINV>"){$""}
         script{$'
             movinv.tableId = "et_entrada_productos";
+            movinv.movimiento = "entrada";
             movinv.url_inventario = "#<@INVENTARIO>";
         '}
     }

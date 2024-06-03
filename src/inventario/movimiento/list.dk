@@ -141,6 +141,26 @@ module "list.dk"
 
         #$ div(id="work_area" class="container-section mt-1 p-2 pt-0")
         {
+            div(class="show-on-print"){
+            div(class="row")
+            {
+                div(class="col-3 text-start")
+                {
+                    small(class="d-block"){ $"#<cut(@('$http/session/user/name'),25)>" }
+                    small(class="d-block"){ b{$"Impresión: "} $"#<date_str(now(),'dd/MMM/yyyy')>" }
+                }
+                div(class="col-6 text-center")
+                {
+                    h4(class=""){$"Informe general del inventario"}
+                }
+                div(class="col-3 text-end")
+                {
+                    small(class="d-block" id="lbl_almacen"){$""}
+                    small(class="d-block" id="lbl_clase"){$""}
+                    small(class="d-block" id="lbl_linea"){$""}
+                }
+            }}
+
             p{$"#<@('$error/message')>"}
             form(action="./" method="GET" id="form_filter" class="no-print mb-1")
             {
@@ -176,8 +196,25 @@ module "list.dk"
         }
 
         script(src="#<@JS_MOVINV>"){$""}
-        script{$'
-            movinv.tableId = "tbl_productos";
+        script(type="text/javascript")
+        {$'
+            document.addEventListener("DOMContentLoaded", () => {
+                const sel_almacen = document.getElementById("fil_almacen");
+                const sel_clase = document.getElementById("fil_claseprod");
+                const sel_linea = document.getElementById("fil_linea");
+                const lbl_almacen = document.getElementById("lbl_almacen");
+                const lbl_clase = document.getElementById("lbl_clase");
+                const lbl_linea = document.getElementById("lbl_linea");
+
+                const opt_almacen = sel_almacen.options[sel_almacen.selectedIndex];
+                lbl_almacen.textContent = opt_almacen.textContent;
+                const opt_clase = sel_clase.options[sel_clase.selectedIndex];
+                lbl_clase.textContent = opt_clase.textContent;
+                const opt_linea = sel_linea.options[sel_linea.selectedIndex];
+                lbl_linea.textContent = opt_linea.textContent;
+
+                movinv.tableId = "tbl_productos";
+            });
         '}
     }
 }

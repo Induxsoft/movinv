@@ -119,27 +119,48 @@ module "existencias.dk"
 
         div(class="#<ifstr(@('error/message')!='','alert alert-danger','')> overflow-auto"){$"#<@('error/message')>"}
 
-        div(class="d-flex justify-content-end flex-wrap gap-3 mb-1")
+        div(class="bg-white p-1" id="section-to-print")
         {
-            span(class="flex-grow-1 fw-bold"){$"#<@@(producto,'$tproducto')>"}
+            div(class="show-on-print"){
+            div(class="row")
+            {
+                div(class="col-3 text-start")
+                {
+                    small(class="d-block"){ $"#<cut(@('$http/session/user/name'),25)>" }
+                    small(class="d-block"){ b{$"Impresión: "} $"#<date_str(now(),'dd/MMM/yyyy')>" }
+                }
+                div(class="col-6 text-center")
+                {
+                    h4(class=""){$"Informe de existencias por almacén del producto"}
+                }
+                div(class="col-3 text-end")
+                {
+                    $""
+                }
+            }}
 
-            span{ small(class="fw-bold"){$"Existencia y saldo: "} $"#<format(@@(producto,'#existencia'),'#,0.0000')>" }
-            span{ small(class="fw-bold"){$""} $"#<@@(producto,'$unidad')>" }
-            span{ small(class="fw-bold"){$""} $"#<@@(producto,'$cdivisa')>" }
-            span{ small(class="fw-bold"){$""} $"#<format(@@(producto,'#saldo'),'$ #,0.0000')>" }
+            div(class="d-flex justify-content-end flex-wrap gap-3 mb-1")
+            {
+                span(class="flex-grow-1 fw-bold"){$"#<@@(producto,'$tproducto')>"}
 
-            small(class="text-muted"){$"|"}
+                span{ small(class="fw-bold"){$"Existencia y saldo: "} $"#<format(@@(producto,'#existencia'),'#,0.0000')>" }
+                span{ small(class="fw-bold"){$""} $"#<@@(producto,'$unidad')>" }
+                span{ small(class="fw-bold"){$""} $"#<@@(producto,'$cdivisa')>" }
+                span{ small(class="fw-bold"){$""} $"#<format(@@(producto,'#saldo'),'$ #,0.0000')>" }
 
-            span{ small(class="fw-bold"){$"Mínimo: "} $"#<format(@@(producto,'#minimo'),'#,0.0000')>" }
-            span{ small(class="fw-bold"){$"Máximo: "} $"#<format(@@(producto,'#maximo'),'#,0.0000')>" }
-            span{ small(class="fw-bold"){$"P. Re-orden: "} $"#<format(@@(producto,'#preorden'),'#,0.0000')>" }
-        }
+                small(class="text-muted"){$"|"}
 
-        div(class="table-container my-2")
-        {
-            #!
-            do uie.dbTable(table_definition)
-            #$
+                span{ small(class="fw-bold"){$"Mínimo: "} $"#<format(@@(producto,'#minimo'),'#,0.0000')>" }
+                span{ small(class="fw-bold"){$"Máximo: "} $"#<format(@@(producto,'#maximo'),'#,0.0000')>" }
+                span{ small(class="fw-bold"){$"P. Re-orden: "} $"#<format(@@(producto,'#preorden'),'#,0.0000')>" }
+            }
+
+            div(class="table-container my-2")
+            {
+                #!
+                do uie.dbTable(table_definition)
+                #$
+            }
         }
     }
     #!

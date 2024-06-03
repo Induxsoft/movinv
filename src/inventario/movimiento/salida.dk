@@ -156,6 +156,7 @@ program
         script(src="#<@JS_MOVINV>"){$""}
         script{$'
             movinv.tableId = "et_salida_productos";
+            movinv.movimiento = "salida";
             movinv.url_inventario = "#<@INVENTARIO>";
         '}
     }

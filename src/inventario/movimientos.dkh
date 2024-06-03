@@ -417,7 +417,7 @@ module ":erp.inventario"
             do dbr.insert(db,"existencias",exist)
         }
 
-        affected= dbr.execute(db,"update producto set existencia=existencia+@cantidad, saldo=saldo+@importe where sys_pk=@producto;",p)
+        affected= dbr.execute(db,"update producto set existencia=IFNULL(existencia,0)+@cantidad, saldo=IFNULL(saldo,0)+@importe where sys_pk=@producto;",p)
 
         if not(affected)
         {
