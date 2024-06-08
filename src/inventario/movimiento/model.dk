@@ -66,7 +66,9 @@ module "model"
 			d.codigo divisa,
 			IFNULL(p.costoultimo,0) costoultimo,
 			SUM(IFNULL(ex.saldo,0)) saldo,
-			SUM(IFNULL(ex.existencia,0)) existencia
+			SUM(IFNULL(ex.existencia,0)) existencia,
+			p.reqlote,
+			p.reqserie
 			#<selects>
 		FROM producto p
 			INNER JOIN divisa d ON p.idivisa = d.sys_pk
@@ -199,12 +201,14 @@ module "model"
 					case "entrada"
 					{
 						ref dcardex = movinv.genDetalle(producto, almacen1, @true)
+						do movinv.setSerieLote(db,producto,dcardex,@true)
 						do list.add(detalle, dcardex)
 						break
 					}
 					case "salida"
 					{
 						ref dcardex = movinv.genDetalle(producto, almacen1, @false)
+						do movinv.setSerieLote(db,producto,dcardex,@false)
 						do list.add(detalle, dcardex)
 						valuar = @true
 						break
@@ -212,8 +216,11 @@ module "model"
 					case "traspaso"
 					{
 						ref dcardex1 = movinv.genDetalle(producto, almacen1, @false)
+						do movinv.setSerieLote(db,producto,dcardex1,@false)
 						do list.add(detalle, dcardex1)
+
 						ref dcardex2 = movinv.genDetalle(producto, almacen2, @true)
+						do movinv.setSerieLote(db,producto,dcardex2,@true)
 						do list.add(detalle, dcardex2)
 						break
 					}
@@ -231,7 +238,7 @@ module "model"
 					@"keyfield": "sys_pk"
 					@"table": "dcardex"
 					@"select_query": "SELECT NOW();"
-					@"fields": "abonos,auditado,cargos,contabilizado,cpromedio,entradas,resto,salidas,tipocambio,valuado,ialmacen,iproducto"
+					@"fields": "abonos,auditado,cargos,contabilizado,cpromedio,entradas,resto,salidas,tipocambio,valuado,ialmacen,iproducto,ilote,iserie"
 				}
 			}
 		}
@@ -314,6 +321,75 @@ module "model"
 		}
 
 		return detail
+	}
+
+	function movinv.setSerieLote(&db,&producto,&dcardex,entrada)
+	{
+		ref prod = record.copy(producto,"sys_pk,reqlote,reqserie,lote,fcad,serie")
+		
+		if parse.bool(@@(prod,"$reqlote"))
+		{
+			lote = trim(field.dstr(prod,"lote",""))
+			fcad = trim(field.dstr(prod,"fcad",""))
+
+			if lote == "" { do rise_error(500,"No se ha indicado un número de lote para "+@@(producto,"$descripcion")) }
+			ref dlote = dbr.rec(db,"SELECT sys_pk, numero FROM lote WHERE numero=@lote AND iproducto=@sys_pk LIMIT 1",prod)
+			if not(entrada) && isnull(dlote) { do rise_error(500,"El número de lote indicado para "+@@(producto,"$descripcion")+" no existe, indique uno diferente.") }
+
+			if isnull(dlote)
+			{
+				new data
+				{
+					@"fentrada*": now()
+					@"fcaducidad*": @null
+					@"numero": lote
+					@"iproducto": field.num(prod,"sys_pk")
+				}
+				if fcad != "" { data<"fcaducidad*"> : str2dt(fcad) }
+				ref dlote:record.copy(dbr.save(db,"lote",data),"sys_pk,numero")
+			}
+
+			dcardex<"ilote"> : field.num(dlote,"sys_pk")
+
+			ref dclxa = dbr.rec(db,"SELECT sys_pk FROM clotexalmacen WHERE fk_lote_exisxalmacen=@ilote AND ialmacen=@ialmacen LIMIT 1;",dcardex)
+			if isnull(dclxa)
+			{
+				new data2
+				{
+					@"cantidad": 0
+					@"ialmacen": field.num(dcardex,"ialmacen")
+					@"fk_lote_exisxalmacen": field.num(dcardex,"ilote")
+				}
+				ref dclxa:record.copy(dbr.save(db,"clotexalmacen",data2),"sys_pk")
+			}
+			// dclxa<"entradas"> : field.num(dcardex,"entradas")
+			// dclxa<"salidas"> : field.num(dcardex,"salidas")
+			// do dbr.execute(db,"UPDATE clotexalmacen SET sys_timestamp = NOW(), cantidad = IFNULL(cantidad,0) + (@entradas - @salidas) WHERE sys_pk = @sys_pk",dclxa)
+		}
+		if parse.bool(@@(prod,"$reqserie"))
+		{
+			serie = trim(field.dstr(prod,"serie",""))
+
+			if serie == "" { do rise_error(500,"No se ha indicado un número de serie para "+@@(producto,"$descripcion")) }
+			ref dserie = dbr.rec(db,"SELECT sys_pk, numero, status FROM serie WHERE numero=@serie AND iproducto=@sys_pk LIMIT 1",prod)
+			if not(entrada) && isnull(dserie) { do rise_error(500,"El número de serie indicado para "+@@(producto,"$descripcion")+" no existe, indique uno diferente.") }
+
+			if isnull(dserie)
+			{
+				new data
+				{
+					@"fentrada*": now()
+					@"status": 1 //cDisponible
+					@"numero": serie
+					@"iproducto": field.num(prod,"sys_pk")
+					@"ialmacen": field.num(dcardex,"ialmacen")
+				}
+				if field.dnum(dcardex,"ilote",0) > 0 { data<"ilote"> : field.num(dcardex,"ilote") }
+				ref dserie:record.copy(dbr.save(db,"serie",data),"sys_pk,numero")
+			}
+
+			dcardex<"iserie"> : field.num(dserie,"sys_pk")
+		}
 	}
 
 	function movinv.existencias(&db,&params)

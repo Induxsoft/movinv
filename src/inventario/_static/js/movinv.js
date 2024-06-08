@@ -1,6 +1,6 @@
 var movinv = 
 {
-    tableId: "", table:null, tEvents:{}, tData:[],
+    tableId: "", table:null, tEvents:{}, tData:[], tColdef:null,
     movimiento:"", url_buscar_producto:"",
 
     init()
@@ -80,17 +80,59 @@ var movinv =
         }
 
         this.setTableEvents();
+        this.toggleColumns();
     },
     setTableEvents()
     {
         if (!this.table) return;
+        if (this.tColdef === null) this.tColdef = JSON.parse(JSON.stringify(this.table.Columns));
 
         this.tEvents = this.table.EdiTable.Const.Events;
         this.tData = this.table.DataArray;
 
+        this.table.Events[this.tEvents.EnterCell] = (e) => { this.tEnterCell(e); }
         // this.table.Events[this.tEvents.StartEdition] = (e) => { this.tStartEdition(e); }
         this.table.Events[this.tEvents.BeforeUpdateCell] = (e) => { this.tBeforeUpdateCell(e); }
         this.table.Events[this.tEvents.ConfirmEdition] = (e) => { this.tConfirmEdition(e); }
+    },
+    toggleColumns()
+    {
+        if (!this.table) return;
+
+        let col_lote = false;
+        let col_fcad = false;
+        let col_serie = false;
+
+        const array = this.table?.DataArray ?? [];
+        for (let i = 0; i < array.length; i++) {
+            const obj = array[i];
+
+            if (col_lote && col_serie) break;
+            
+            if (!col_lote && obj.reqlote) {
+                col_lote = true;
+                col_fcad = true;
+            }
+            if (!col_serie && obj.reqserie) {
+                col_serie = true;
+            }
+        }
+
+        this.table.hideColumn("lote",!col_lote);
+        this.table.hideColumn("fcad",!col_fcad);
+        this.table.hideColumn("serie",!col_serie);
+    },
+    tEnterCell(e)
+    {
+        let coldef = e.sender.GetColumnDefOfTd(e.td);
+        let curr_row = this.table.RowIndexOfTd(e.td);
+        let curr_col = this.table.ColIndexOfTd(e.td);
+        let producto = this.table.DataArray[curr_row];
+
+        this.table.Columns[curr_col].type = this.tColdef[curr_col].type;
+        if (Object.keys(producto ?? {}).length < 8) return;
+
+        this.disableCells(curr_col,coldef.field,producto);
     },
     tStartEdition(e) {
         let currRow = e.sender.RowIndexOfTd(e.td);
@@ -119,27 +161,32 @@ var movinv =
 
         if (Object.entries(item ?? {}).length === 0) return;
 
-        switch (this.tableId) {
-            case "et_entrada_productos":
-                if (field == "cantidad") {
-                    item["nueva_existencia"] = Math.add(item.existencia,Number(e.text.trim()));
-                    this.table.UpdateRow(currRow);
-                }
-                break;
-            case "et_salida_productos":
-                if (field == "cantidad") {
-                    item["nueva_existencia"] = Math.sub(item.existencia,Number(e.text.trim()));
-                    this.table.UpdateRow(currRow);
-                }
-                break;
-            case "et_traspaso_productos":
-                if (field === "cantidad")
-                {
-                    item["nueva_existencia_origen"] = Math.sub(Number(item.exist_origen),Number(e.text.trim()));
-                    item["nueva_existencia_destino"] = Math.add(Number(item.exist_destino),Number(e.text.trim()));
-                    this.table.UpdateRow(currRow);
-                }
-                break;
+        if (field === "cantidad")
+        {
+            cantidad = Number(e.text.trim());
+
+            if (item.reqserie && cantidad > 1) {
+                alert("La cantidad para este producto con serie requerida debe ser 1, para agregar más series del mismo producto insertelo en una nueva fila");
+                cantidad = 1;
+            }
+
+            e.text = cantidad;
+            item["cantidad"] = cantidad;
+            
+            switch (this.movimiento) {
+                case "entrada":
+                    item["nueva_existencia"] = Math.add(item.existencia,cantidad);
+                    break;
+                case "salida":
+                    item["nueva_existencia"] = Math.sub(item.existencia,cantidad);
+                    break;
+                case "traspaso":
+                    item["nueva_existencia_origen"] = Math.sub(Number(item.exist_origen),cantidad);
+                    item["nueva_existencia_destino"] = Math.add(Number(item.exist_destino),cantidad);
+                    break;
+            }
+
+            this.table.UpdateRow(currRow);
         }
     },
     filterDataArray(edt) {
@@ -153,6 +200,38 @@ var movinv =
     eliminarFila()
     {
         this.table.DeleteCurrentRow();
+        this.toggleColumns();
+    },
+    disableCells(icol,field,data)
+    {
+        // Deshabilitar edición a las celdas de lote, caducidad y serie si el producto no lo requiere.
+        if (!["lote","fcad","serie"].includes(field)) return;
+
+        if ((field === "lote" || field === "fcad") && !data.reqlote) this.table.Columns[icol].type = "NoEditable";
+        else if (field === "serie" && !data.reqserie) this.table.Columns[icol].type = "NoEditable";
+        else this.table.Columns[icol].type = this.tColdef[icol].type;
+    },
+    validateLoteSerie(detalle)
+    {
+        let Ok = true;
+
+        for (let i = 0; i < detalle.length; i++) {
+            const row = detalle[i];
+            
+            if (Boolean(row.reqlote) && (row.lote??"").trim() === "") {
+                alert(`No es posible continuar, el producto ${row.codigo} - ${row.descripcion} requiere un número de lote.`);
+                Ok = false;
+                break;
+            }
+
+            if (Boolean(row.reqserie) && (row.serie??"").trim() === "") {
+                alert(`No es posible continuar, el producto ${row.codigo} - ${row.descripcion} requiere un número de serie.`);
+                Ok = false;
+                break;
+            }
+        }
+
+        return Ok;
     },
     guardarEntrada(event)
     {
@@ -169,16 +248,20 @@ var movinv =
             return;
         }
 
-        let productsDone = true;
-        products.forEach((p,i) =>{
-            if (productsDone && Number(p.cantidad) <= 0) {
+        /* let productsDone = true;
+        for (let i = 0; i < products.length; i++) {
+            const prod = products[i];
+            if (Number(prod.cantidad) <= 0) {
                 alert(`Debe establecer una cantidad mayor a 0 para el producto ${p.descripcion} `);
-                this.table.NavTo(i,6);
+                let index_cantidad = (this.tColdef??[]).findIndex(column => column.field === "cantidad") || 6;
+                this.table.NavTo(i,index_cantidad);
                 productsDone = false;
+                break;
             }
-        });
+        }
+        if (!productsDone) return; */
 
-        if (!productsDone) return;
+        if (!this.validateLoteSerie(products)) return;
 
         data['_productos'] = products;
         let url = movinv.url_inventario + "_new/";
@@ -212,6 +295,7 @@ var movinv =
 
         this.table.DataArray[row] = data;
         this.table.UpdateRow(row);
+        this.toggleColumns();
     },
     actualizarExistenciaProductos(almacen,almacen_id="")
     {

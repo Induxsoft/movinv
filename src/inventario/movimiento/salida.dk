@@ -126,24 +126,16 @@ program
                                     "edit-th"(type="NoEditable" field="existencia"){$"Existencia"}
                                     "edit-th"(type="Number" field="cantidad"){$"Cantidad"}
                                     "edit-th"(type="NoEditable" field="nueva_existencia"){$"Nva. Exist."}
+                                    "edit-th"(type="Text" field="lote"){$"Lote"}
+                                    "edit-th"(type="Date" field="fcad"){$"Caducidad"}
+                                    "edit-th"(type="Text" field="serie"){$"Serie"}
                                 }
                             }
                         }
                     }
+
                     // Mostrar solo productos inventariables (tipo=2)
-                    "input-key"(
-                        id="ikProducto"
-                        "data-key"="sys_pk"
-                        "data-search"="codigo"
-                        "data-text"="descripcion"
-                        "data-source"="#<@URL_BUSCAR_PRODUCTO + '&tipo=2'>"
-                        columns="codigo,descripcion"
-                        colcaptions="Código,Descripción"
-                        "box-title-text"="Seleccione un producto"
-                        "box-placeholder-text"="Buscar producto"
-                        "box-nodata-text"="No se encontraron productos"
-                        "control-styles"="#container{ display: none !important; }"
-                    ){$""}
+                    "input-key"(id="ikProducto" "data-key"="sys_pk" "data-search"="codigo" "data-text"="descripcion" "data-source"="#<@URL_BUSCAR_PRODUCTO + '&tipo=2'>" columns="codigo,descripcion" colcaptions="Código,Descripción" "box-title-text"="Seleccione un producto" "box-placeholder-text"="Buscar producto" "box-nodata-text"="No se encontraron productos" "control-styles"="#container{ display: none !important; }"){$""}
                 }
             }
             div(class="status_bar" class="container-section")
