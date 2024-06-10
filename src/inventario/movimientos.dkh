@@ -395,11 +395,7 @@ module ":erp.inventario"
             @"importe":importe
         }
 
-        affected=dbr.execute(db,"update existencias 
-                                        set sys_timestamp=now(),
-                                        existencia=existencia+@cantidad,
-                                        saldo=saldo+@importe
-                                        where ialmacen=@almacen and fk_producto_iexistencias=@producto",p)
+        affected=dbr.execute(db,"update existencias set sys_timestamp=now(), existencia=IFNULL(existencia,0)+@cantidad, saldo=IFNULL(saldo,0)+@importe where ialmacen=@almacen and fk_producto_iexistencias=@producto",p)
         if not(affected)                                        
         {
             new exist
@@ -438,13 +434,9 @@ module ":erp.inventario"
                 //@"importe":importe
             }
 
-            affected=dbr.execute(db,"update clotexalmacen 
-                                            set sys_timestamp=now(),
-                                            cantidad=cantidad+@cantidad
-                                            where ialmacen=@almacen and fk_lote_exisxalmacen=@lote",p)
+            affected=dbr.execute(db,"update clotexalmacen set sys_timestamp=now(), cantidad=IFNULL(cantidad,0)+@cantidad where ialmacen=@almacen and fk_lote_exisxalmacen=@lote",p)
 
             if not(affected) { do rise_error(0,"No se pudo afectar la existencia de lotes por almacén")}
         }
     }
-    
 }

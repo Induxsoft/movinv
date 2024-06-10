@@ -13,6 +13,8 @@ module "config.dk"
     @URL_BUSCAR_CATEGORIA = "/!/inventario/movimiento/?_view=categoria&s=@search"
     @URL_BUSCAR_PRODUCTO = "/!/inventario/movimiento/?_view=producto&s=@search"
     @URL_OBTENER_LINEAS_XCLASE = "/!/inventario/movimiento/?_view=obtener-lineas&iclase=@iclase"
+    @URL_OBTENER_LOTES_DE_PRODUCTO = "/!/inventario/movimiento/?_view=obtener-lotes-de-producto&iproducto=@iproducto&ialmacen=@ialmacen"
+    @URL_OBTENER_SERIES_DE_PRODUCTO = "/!/inventario/movimiento/?_view=obtener-series-de-producto&iproducto=@iproducto&ialmacen=@ialmacen"
 
     @MENU = "/!/inventario/"
 

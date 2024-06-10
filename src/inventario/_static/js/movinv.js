@@ -1,7 +1,7 @@
 var movinv = 
 {
     tableId: "", table:null, tEvents:{}, tData:[], tColdef:null,
-    movimiento:"", url_buscar_producto:"",
+    movimiento:"", url_buscar_producto:"", url_lotes_series_producto:"",
 
     init()
     {
@@ -10,73 +10,91 @@ var movinv =
         const ik_salida_almacen = document.getElementById("ik_salida_almacen");
         const ik_almacen_origen = document.getElementById("ik_almacen_origen");
         const ik_almacen_destino = document.getElementById("ik_almacen_destino");
-        const ikProducto = document.querySelector('#ikProducto');
-        const btn_search_prod = document.querySelector('#btn_search_prod');
+        const ik_producto = document.querySelector('#ikProducto');
+        const ik_lot_prod = document.getElementById("ik_lot_prod");
+        const ik_ser_prod = document.getElementById("ik_ser_prod");
+        const btn_add_lote = document.getElementById("btn_add_lote");
+        const btn_add_serie = document.getElementById("btn_add_serie");
         
         if (formEntrada) formEntrada.addEventListener('submit', e => this.guardarEntrada(e));
-        if (btn_search_prod) btn_search_prod.addEventListener('click', e => { this.buscarProducto(); });
+        
         if (this.tableId.trim() != '') 
         {
             this.table = document.querySelector('#'+this.tableId);
-            if (ikProducto)
+            
+            if (ik_producto)
             {
-                this.url_buscar_producto = ikProducto.getAttribute("data-source");
+                this.url_buscar_producto = ik_producto.getAttribute("data-source");
 
-                this.table.setInputKey("codigo",ikProducto);
-                this.table.setInputKey("descripcion",ikProducto);
+                this.table.setInputKey("codigo",ik_producto);
+                this.table.setInputKey("descripcion",ik_producto);
 
-                ikProducto.onBeforeSearch = (url) => {
-                    let almacen = {};
+                ik_producto.onBeforeSearch = (url) => {
+                    let almacen1 = {};
                     let almacen2 = {};
 
-                    if (this.movimiento === "entrada") almacen = ik_entrada_almacen.getValue() ?? {};
-                    if (this.movimiento === "salida") almacen = ik_salida_almacen.getValue() ?? {};
+                    if (this.movimiento === "entrada") almacen1 = ik_entrada_almacen.getValue() ?? {};
+                    if (this.movimiento === "salida") almacen1 = ik_salida_almacen.getValue() ?? {};
                     if (this.movimiento === "traspaso")
                     {
                         url = InduxsoftCrudlModel.UrlAddParameter(url,"_mov","traspaso");
 
-                        almacen = ik_almacen_origen.getValue() ?? {};
+                        almacen1 = ik_almacen_origen.getValue() ?? {};
                         almacen2 = ik_almacen_destino.getValue() ?? {};
                     }
 
-                    url = InduxsoftCrudlModel.UrlAddParameter(url,"fil_almacen",Number(almacen?.sys_pk ?? 0));
+                    url = InduxsoftCrudlModel.UrlAddParameter(url,"ialmacen1",Number(almacen1?.sys_pk ?? 0));
                     url = InduxsoftCrudlModel.UrlAddParameter(url,"ialmacen2",Number(almacen2?.sys_pk ?? 0));
 
                     return url;
                 }
-                ikProducto.addEventListener('change', data => {
+                ik_producto.addEventListener('change', data => {
                     this.agregarFilaProducto(data);
                 });
             }
 
-            if (ik_entrada_almacen) ik_entrada_almacen.change_event = (data) => this.actualizarExistenciaProductos(data);
-            if (ik_salida_almacen) ik_salida_almacen.change_event = (data) => this.actualizarExistenciaProductos(data);
-            if (ik_almacen_origen) ik_almacen_origen.change_event = (data) =>
+            if (ik_lot_prod)
             {
-                let ialmacen1 = (ik_almacen_origen.getValue() ?? {})?.sys_pk ?? 0;
-                let ialmacen2 = (ik_almacen_destino.getValue() ?? {})?.sys_pk ?? 0;
-
-                if (ialmacen1 === ialmacen2) {
-                    alert("El Almacen de origen no puede ser el mismo que el Almacen destino.");
-                    ik_almacen_origen.clear();
-                    return;
-                }
-
-                this.actualizarExistenciaProductos(data,"ik_almacen_origen");
+                // this.table.setInputKey("lote",ik_lot_prod);
+                btn_add_lote.addEventListener("click", () => this.launchIkLoteSerie(ik_lot_prod));
+                ik_lot_prod.change_event = (data) => this.addLoteToProduct(data);
             }
-            if (ik_almacen_destino) ik_almacen_destino.change_event = (data) =>
+
+            if (ik_ser_prod)
             {
-                let ialmacen1 = (ik_almacen_origen.getValue() ?? {})?.sys_pk ?? 0;
-                let ialmacen2 = (ik_almacen_destino.getValue() ?? {})?.sys_pk ?? 0;
-
-                if (ialmacen1 === ialmacen2) {
-                    alert("El Almacen destino no puede ser el mismo que el Almacen de origen.");
-                    ik_almacen_destino.clear();
-                    return;
-                }
-
-                this.actualizarExistenciaProductos(data,"ik_almacen_destino");
+                // this.table.setInputKey("serie",ik_ser_prod);
+                btn_add_serie.addEventListener("click", () => this.launchIkLoteSerie(ik_ser_prod));
+                ik_ser_prod.change_event = (data) => this.addSerieToProduct(data);
             }
+        }
+
+        if (ik_entrada_almacen) ik_entrada_almacen.change_event = (data) => this.actualizarExistenciaProductos(data);
+        if (ik_salida_almacen) ik_salida_almacen.change_event = (data) => this.actualizarExistenciaProductos(data);
+        if (ik_almacen_origen) ik_almacen_origen.change_event = (data) =>
+        {
+            let ialmacen1 = (ik_almacen_origen.getValue() ?? {})?.sys_pk ?? 0;
+            let ialmacen2 = (ik_almacen_destino.getValue() ?? {})?.sys_pk ?? 0;
+
+            if (ialmacen1 === ialmacen2) {
+                alert("El Almacen de origen no puede ser el mismo que el Almacen destino.");
+                ik_almacen_origen.clear();
+                return;
+            }
+
+            this.actualizarExistenciaProductos(data,"ik_almacen_origen");
+        }
+        if (ik_almacen_destino) ik_almacen_destino.change_event = (data) =>
+        {
+            let ialmacen1 = (ik_almacen_origen.getValue() ?? {})?.sys_pk ?? 0;
+            let ialmacen2 = (ik_almacen_destino.getValue() ?? {})?.sys_pk ?? 0;
+
+            if (ialmacen1 === ialmacen2) {
+                alert("El Almacen destino no puede ser el mismo que el Almacen de origen.");
+                ik_almacen_destino.clear();
+                return;
+            }
+
+            this.actualizarExistenciaProductos(data,"ik_almacen_destino");
         }
 
         this.setTableEvents();
@@ -95,9 +113,65 @@ var movinv =
         this.table.Events[this.tEvents.BeforeUpdateCell] = (e) => { this.tBeforeUpdateCell(e); }
         this.table.Events[this.tEvents.ConfirmEdition] = (e) => { this.tConfirmEdition(e); }
     },
+    launchIkLoteSerie(ik)
+    {
+        let curr_row = this.table.CurrentRowIndex();
+        let producto = (this.table?.DataArray??[])[curr_row] ?? {};
+        let ik_almacen_id = "";
+        let ialmacen = 0;
+
+        if (this.url_lotes_series_producto.trim() === "") this.url_lotes_series_producto = ik.getAttribute("data-source");
+        if (this.movimiento === "entrada") ik_almacen_id = "ik_entrada_almacen";
+        if (this.movimiento === "salida") ik_almacen_id = "ik_salida_almacen";
+        if (this.movimiento === "traspaso") ik_almacen_id = "ik_almacen_origen";
+
+        if (curr_row < 0) return;
+        if (Object.keys(producto) < 8) return;
+
+        const ik_almacen = document.getElementById(ik_almacen_id);
+        if (ik_almacen) ialmacen = Number((ik_almacen.getValue()??{})?.sys_pk??0);
+
+        if (ialmacen <= 0) {
+            alert("No se ha seleccionado un almacén, seleccione uno e intente nuevamente.");
+            return;
+        }
+        if (ik.id === "ik_lot_prod" && !producto.reqlote) {
+            alert("El producto seleccionado no requiere lote");
+            return;
+        }
+        if (ik.id === "ik_ser_prod" && !producto.reqserie) {
+            alert("El producto seleccionado no requiere serie");
+            return;
+        }
+
+        let endpoint = this.url_lotes_series_producto;
+        endpoint = endpoint.replace("@iproducto",producto.sys_pk);
+        endpoint = endpoint.replace("@ialmacen",ialmacen);
+
+        ik.setAttribute("data-source",endpoint);
+        ik.searchText("%",false);
+    },
+    addLoteToProduct(data)
+    {
+        let curr_row = this.table.CurrentRowIndex();
+        let producto = (this.table?.DataArray??[])[curr_row] ?? {};
+        producto["lote"] = data?.numero ?? "";
+        producto["fcad"] = data?.fcaducidad ?? "";
+        this.table.UpdateRow(curr_row);
+    },
+    addSerieToProduct(data)
+    {
+        let curr_row = this.table.CurrentRowIndex();
+        let producto = (this.table?.DataArray??[])[curr_row] ?? {};
+        producto["serie"] = data?.numero ?? "";
+        this.table.UpdateRow(curr_row);
+    },
     toggleColumns()
     {
         if (!this.table) return;
+
+        const btn_add_lote = document.getElementById("btn_add_lote");
+        const btn_add_serie = document.getElementById("btn_add_serie");
 
         let col_lote = false;
         let col_fcad = false;
@@ -121,6 +195,9 @@ var movinv =
         this.table.hideColumn("lote",!col_lote);
         this.table.hideColumn("fcad",!col_fcad);
         this.table.hideColumn("serie",!col_serie);
+
+        if (btn_add_lote) btn_add_lote.classList.toggle("d-none",!col_lote);
+        if (btn_add_serie) btn_add_serie.classList.toggle("d-none",!col_serie);
     },
     tEnterCell(e)
     {
@@ -163,7 +240,7 @@ var movinv =
 
         if (field === "cantidad")
         {
-            cantidad = Number(e.text.trim());
+            let cantidad = Number(e.text.trim());
 
             if (item.reqserie && cantidad > 1) {
                 alert("La cantidad para este producto con serie requerida debe ser 1, para agregar más series del mismo producto insertelo en una nueva fila");

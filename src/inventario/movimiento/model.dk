@@ -37,6 +37,46 @@ module "model"
     {
         return dbr.list(db,"SELECT sys_pk, codigo, descripcion FROM linea WHERE NOT IFNULL(sys_deleted,0) AND clase = @iclase",params)
     }
+	// =============== LOTES DE PRODUCTO
+	function movinv.obtenerLotesDeProducto(&db,&params)
+	{
+		sql = "
+		SELECT
+			lot.sys_pk AS ilote,
+			lxa.ialmacen,
+			lot.numero,
+			lxa.cantidad,
+			IFNULL(DATE_FORMAT(lot.fcaducidad,'%Y-%m-%d'),'') AS fcaducidad,
+			alm.descripcion AS `almacen`
+		FROM lote AS lot
+			INNER JOIN clotexalmacen AS lxa ON lot.sys_pk = lxa.fk_lote_exisxalmacen
+			INNER JOIN almacen AS alm ON lxa.ialmacen = alm.sys_pk
+		WHERE NOT IFNULL(lot.sys_deleted,0)
+			AND lxa.cantidad > 0
+			AND lot.iproducto = @iproducto
+			AND lxa.ialmacen = @ialmacen
+		"
+		return dbr.list(db,sql,params)
+	}
+	// =============== SERIES DE PRODUCTO
+	function movinv.obtenerSeriesDeProducto(&db,&params)
+	{
+		sql = "
+		SELECT
+			ser.sys_pk AS iserie,
+			ser.numero,
+			stt.const AS cstatus,
+			IFNULL(lot.numero,'') AS num_lote
+		FROM serie AS ser
+			LEFT JOIN lote AS lot ON ser.ilote = lot.sys_pk
+			INNER JOIN cstatusseries AS stt ON ser.status = stt.id
+		WHERE NOT IFNULL(ser.sys_deleted,0)
+			AND ser.status IN (1,4)
+			AND ser.iproducto = @iproducto
+			AND ser.ialmacen = @ialmacen
+		"
+		return dbr.list(db,sql,params)
+	}
 	// =============== PRODUCTOS
 	function movinv.obtenerExistencias(&db,&params)
 	{
@@ -72,7 +112,7 @@ module "model"
 			#<selects>
 		FROM producto p
 			INNER JOIN divisa d ON p.idivisa = d.sys_pk
-			LEFT JOIN existencias AS ex ON ex.fk_producto_iexistencias = p.sys_pk
+			LEFT JOIN existencias AS ex ON ex.fk_producto_iexistencias = p.sys_pk AND IF(IFNULL(@ialmacen1,0)>0,ex.ialmacen = @ialmacen1,TRUE)
 			#<joins>
 		WHERE NOT IFNULL(p.sys_deleted,0)
 			#<conditions>
@@ -98,14 +138,14 @@ module "model"
 		{
 			selects = ""
 
-			if @@(params,"#fil_almacen") > 0
+			if @@(params,"#ialmacen1") > 0
 			{
 				selects = ",
 				(
 					SELECT SUM(IFNULL(ex1.existencia, 0))
 					FROM existencias ex1
 					WHERE ex1.fk_producto_iexistencias = p.sys_pk
-					AND ex1.ialmacen = @fil_almacen
+					AND ex1.ialmacen = @ialmacen1
 				) AS exist_origen
 				"
 			}
@@ -371,7 +411,8 @@ module "model"
 			serie = trim(field.dstr(prod,"serie",""))
 
 			if serie == "" { do rise_error(500,"No se ha indicado un número de serie para "+@@(producto,"$descripcion")) }
-			ref dserie = dbr.rec(db,"SELECT sys_pk, numero, status FROM serie WHERE numero=@serie AND iproducto=@sys_pk LIMIT 1",prod)
+			ref dserie = dbr.rec(db,"SELECT sys_pk, numero, status, IF(iproducto=@sys_pk,TRUE,FALSE) AS used FROM serie WHERE numero=@serie AND iproducto=@sys_pk LIMIT 1",prod)
+			if entrada && not(isnull(dserie)) && @@(dserie,"#used") { do rise_error(500,"El número de serie "+@@(dserie,"$numero")+" para "+@@(producto,"$descripcion")+" ya está asignado, indique una nueva serie para este producto") }
 			if not(entrada) && isnull(dserie) { do rise_error(500,"El número de serie indicado para "+@@(producto,"$descripcion")+" no existe, indique uno diferente.") }
 
 			if isnull(dserie)

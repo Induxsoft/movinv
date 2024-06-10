@@ -45,6 +45,16 @@ module "controller"
             point @list to movinv.GetLineaByClase
             break
         }
+        case "obtener-lotes-de-producto"
+        {
+            point @list to movinv.obtenerLotesDeProducto
+            break
+        }
+        case "obtener-series-de-producto"
+        {
+            point @list to movinv.obtenerSeriesDeProducto
+            break
+        }
         default
         {
             point @create to movinv.agregar
