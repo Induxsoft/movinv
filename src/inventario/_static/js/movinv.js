@@ -120,13 +120,13 @@ var movinv =
         let ik_almacen_id = "";
         let ialmacen = 0;
 
-        if (this.url_lotes_series_producto.trim() === "") this.url_lotes_series_producto = ik.getAttribute("data-source");
+        if (curr_row < 0) return;
+        if (Object.keys(producto) < 8) return;
+
+        this.url_lotes_series_producto = ik.getAttribute("data-source");
         if (this.movimiento === "entrada") ik_almacen_id = "ik_entrada_almacen";
         if (this.movimiento === "salida") ik_almacen_id = "ik_salida_almacen";
         if (this.movimiento === "traspaso") ik_almacen_id = "ik_almacen_origen";
-
-        if (curr_row < 0) return;
-        if (Object.keys(producto) < 8) return;
 
         const ik_almacen = document.getElementById(ik_almacen_id);
         if (ik_almacen) ialmacen = Number((ik_almacen.getValue()??{})?.sys_pk??0);
