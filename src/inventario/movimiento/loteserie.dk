@@ -1,0 +1,94 @@
+#include "dkli.dkh"
+#!
+module "loteserie.dk"
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "uielements.v12.dkl"
+    #include "../config.dk"
+    #include "../_lib/lib2.dk"
+
+    do @context.begin(@crud_context)
+
+    ref producto = ifnull(@("&./producto"),record.create())
+    ref data = ifnull(@("&./data"),list.create())
+
+    @_entity_id = @("$parameters/_entity_id")
+
+    new table_definition
+    {
+        @"datatable*": data
+        member @"columns"
+        {
+            member @"numero" { @"caption": "Número" }
+            member @"dalmacen" { @"caption": "Almacén" }
+            member @"cantidad"
+            {
+                @"caption": "Cantidad"
+                @"align": "end"
+                @"format": @true
+                @"thousandssep": @true
+                @"decs": 1
+            }
+            member @"cstatus"
+            {
+                @"caption": "Estado"
+                @"align": "center"
+            }
+            member @"fentrada"
+            {
+                @"caption": "F. Entrada"
+                @"align": "center"
+            }
+            member @"fcaducidad"
+            {
+                @"caption": "F. Caducidad"
+                @"align": "center"
+            }
+            member @"fventa"
+            {
+                @"caption": "F. Venta"
+                @"align": "center"
+            }
+        }
+        @"leyend": "Mostrando los primeros # registros"
+    }
+
+    if @@(producto,"#reqlote")
+    {
+        do field.remove(table_definition,"columns/cstatus")
+        do field.remove(table_definition,"columns/fventa")
+    }
+    else if @@(producto,"reqserie")
+    {
+        do field.remove(table_definition,"columns/cantidad")
+        do field.remove(table_definition,"columns/fcaducidad")
+    }
+
+    new navbar_settings
+    {
+        @"title": "Lote/Serie"
+        @"urlexit": @INVENTARIO
+    }
+
+    #$ div(class="container")
+    {
+        #!
+        do uie.printV12FormBar(navbar_settings)
+        #$
+
+        div(class="bg-white p-1" id="section-to-print")
+        {
+            div(class="d-flex justify-content-end flex-wrap gap-3 mb-1")
+            {
+                span(class="flex-grow-1 fw-bold"){$"#<@@(producto,'$tproducto')>"}
+            }
+
+            #!
+            do uie.dbeditable(table_definition,"table_lote_serie")
+            #$
+        }
+    } #!
+
+    do @context.end()
+}

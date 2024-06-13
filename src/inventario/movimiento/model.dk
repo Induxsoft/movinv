@@ -413,14 +413,18 @@ module "model"
 			if serie == "" { do rise_error(500,"No se ha indicado un número de serie para "+@@(producto,"$descripcion")) }
 			ref dserie = dbr.rec(db,"SELECT sys_pk, numero, status, IF(iproducto=@sys_pk,TRUE,FALSE) AS used FROM serie WHERE numero=@serie AND iproducto=@sys_pk LIMIT 1",prod)
 			if entrada && not(isnull(dserie)) && @@(dserie,"#used") { do rise_error(500,"El número de serie "+@@(dserie,"$numero")+" para "+@@(producto,"$descripcion")+" ya está asignado, indique una nueva serie para este producto") }
-			if not(entrada) && isnull(dserie) { do rise_error(500,"El número de serie indicado para "+@@(producto,"$descripcion")+" no existe, indique uno diferente.") }
+			if not(entrada)
+			{
+				if isnull(dserie) { do rise_error(500,"El número de serie indicado para "+@@(producto,"$descripcion")+" no existe, indique uno diferente.") }
+				if @@(dserie,"#status") != @stt_serie_disponible && @@(dserie,"#status") != @stt_serie_devuelto_por_cliente { do rise_error(500,"El número de serie indicado para "+@@(producto,"$descripcion")+" no se encuentra disponible, indique uno diferente") }
+			}
 
 			if isnull(dserie)
 			{
 				new data
 				{
 					@"fentrada*": now()
-					@"status": 1 //cDisponible
+					@"status": @stt_serie_disponible
 					@"numero": serie
 					@"iproducto": field.num(prod,"sys_pk")
 					@"ialmacen": field.num(dcardex,"ialmacen")
@@ -430,6 +434,9 @@ module "model"
 			}
 
 			dcardex<"iserie"> : field.num(dserie,"sys_pk")
+
+			// Establecer salida de la serie
+			if not(entrada) { do dbr.update(db,ftext("UPDATE serie SET status=#<@stt_serie_no_disponible> WHERE sys_pk=@sys_pk"),dserie) }
 		}
 	}
 
@@ -474,6 +481,69 @@ module "model"
 			@"producto*": dbr.rec(db,sql_producto,params)
 			@"existencias*": dbr.list(db,sql_existencias,params)
 		}
+
+		return data
+
+		exception
+        {
+            do errordet(@false)
+			code = last_error_code()
+			error = last_error()
+            do dbr.apps.action.log()
+            do rise_error(code,error)
+        }
+	}
+
+	function movinv.loteserie(&db,&params)
+	{
+		do dbr.apps.action.grant("GE16")
+
+		sql_producto = "
+		SELECT
+			CONCAT('[',p.codigo,']',' ',p.descripcion) AS tproducto,
+			p.reqlote,
+			p.reqserie,
+			p.unidad,
+			dvs.codigo AS cdivisa
+		FROM producto AS p
+			INNER JOIN divisa AS dvs ON p.idivisa = dvs.sys_pk
+		WHERE p.sys_pk = @_entity_id
+		"
+
+		sql_lotes = "
+		SELECT
+			lot.numero,
+			alm.descripcion AS dalmacen,
+			lxa.cantidad,
+			IFNULL(DATE_FORMAT(lot.fentrada,'%Y-%m-%d'),'') AS fentrada,
+			IFNULL(DATE_FORMAT(lot.fcaducidad,'%Y-%m-%d'),'') AS fcaducidad
+		FROM lote AS lot
+			INNER JOIN clotexalmacen AS lxa ON lxa.fk_lote_exisxalmacen = lot.sys_pk
+			INNER JOIN almacen AS alm ON lxa.ialmacen = alm.sys_pk
+		WHERE lot.iproducto = @_entity_id
+		"
+
+		sql_series = "
+		SELECT
+			ser.numero,
+			alm.descripcion AS dalmacen,
+			sts.const AS cstatus,
+			IFNULL(DATE_FORMAT(ser.fentrada,'%Y-%m-%d'),'') AS fentrada,
+			IFNULL(DATE_FORMAT(ser.fventa,'%Y-%m-%d'),'') AS fventa
+		FROM serie AS ser
+			INNER JOIN almacen AS alm ON ser.ialmacen = alm.sys_pk
+			INNER JOIN cstatusseries AS sts ON ser.status = sts.id
+		WHERE ser.iproducto = @_entity_id
+		"
+
+		ref producto = dbr.rec(db,sql_producto,params)
+		new data
+		{
+			@"producto*": producto
+		}
+
+		if @@(producto,"#reqlote") { data<"data*"> : dbr.list(db,sql_lotes,params) }
+		else if @@(producto,"#reqserie") { data<"data*"> : dbr.list(db,sql_series,params) }
 
 		return data
 

@@ -2,6 +2,14 @@
 #!
 module "config.dk"
 {
+    // cstatusseries
+    @stt_serie_disponible = 1
+    @stt_serie_vendido = 2
+    @stt_serie_devuelto_a_proveedor = 3
+    @stt_serie_devuelto_por_cliente = 4
+    @stt_serie_ensamblado = 5
+    @stt_serie_no_disponible = 6
+    
     // _STATIC RESOURCES
     @CSS_MAIN = "/$/inventario/css/main.css"
     @JS_MAIN = "/$/inventario/js/main.js"
@@ -24,6 +32,7 @@ module "config.dk"
     @INV_ADD_TRASPASO = "/!/inventario/movimiento/_new/traspaso/"
     @INV_GET_DOCUMENTO = "/!/inventario/cardex/@id/"
     @INV_GET_EXISTENCIAS = "/!/inventario/movimiento/@id/existencias/"
+    @INV_GET_LOTE_SERIE = "/!/inventario/movimiento/@id/lote-serie/"
 
     @INV_MAXMIN = "/!/inventario/maxmin/"
     @INV_NEW_MAXMIN = "/!/inventario/maxmin/_new/"

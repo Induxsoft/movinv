@@ -25,6 +25,12 @@ module "controller"
             point @read to movinv.existencias
             break
         }
+        case "lote-serie"
+        {
+            @form_view = "loteserie.dk"
+            point @read to movinv.loteserie
+            break
+        }
         case "almacen"
         {
             point @list to movinv.obtenerAlmacenes

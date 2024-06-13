@@ -299,6 +299,8 @@ module ":erp.inventario"
 
     obt_capas::&db,pk,m_costeo,producto,almacen,salidas
     {
+        namespace "erp.inventario"
+        
         new p
         {
             @"producto":producto
@@ -308,9 +310,17 @@ module ":erp.inventario"
             @"pk":pk
         }
 
-        sql="select d.sys_pk, ifnull(d.resto,0) resto,round(cargos/entradas,@decs) costo from dcardex d inner join cardex c on d.fk_cardex_movimientos=c.sys_pk
-            where ialmacen=@almacen and iproducto=@producto and ifnull(resto,0)>0 and entradas>0 and ifnull(c.aplicado,0)
-            order by c.fecha"+ifstr(m_costeo==@inventario_mval_ueps," desc","")+", c.sys_pk"+ifstr(m_costeo==@inventario_mval_ueps," desc","")
+        sql="
+        select d.sys_pk, ifnull(d.resto,0) resto, round(d.cargos/d.entradas,@decs) costo
+        from dcardex d
+            inner join cardex c on d.fk_cardex_movimientos=c.sys_pk
+        where d.ialmacen=@almacen
+            and d.iproducto=@producto
+            and ifnull(d.resto,0)>0
+            and ifnull(d.entradas,0)>0
+            and ifnull(c.aplicado,0)
+        order by c.fecha"+ifstr(m_costeo==@inventario_mval_ueps," desc","")+",
+            c.sys_pk"+ifstr(m_costeo==@inventario_mval_ueps," desc","")
         
         ref l=dbr.list(db,sql,p)
         xasignar=salidas
@@ -320,15 +330,15 @@ module ":erp.inventario"
             ref rw=@item(l,i)
             if @@(rw,"#resto")<xasignar
             {
-                if not( dbr.execute(db,"update dcardex set resto=0 where sys_pk=@sys_pk and resto>0",rw) ){do rise_error(0,"No se pudo establecer la disminución de la entrada (resto) por la capa")}
+                if not(dbr.execute(db,"update dcardex set resto=0 where sys_pk=@sys_pk and resto>0",rw)){ do rise_error(0,"No se pudo establecer la disminución de la entrada (resto) por la capa") }
                 do dbr.insert(db,"dcapa",prepara_capa(pk,@@(rw,"#sys_pk"),@@(rw,"#resto"),@@(rw,"#costo") ))                
                 costo_total=costo_total+@@(rw,"#resto") * @@(rw,"#costo")
                 xasignar=xasignar-@@(rw,"#resto")
             }
             else
             {
-                p<"xasignar">:xasignar
-                if not( dbr.execute(db,"update dcardex set resto=resto-@xasignar where sys_pk=@sys_pk and resto>0",rw) ){do rise_error(0,"No se pudo establecer la disminución de la entrada (resto) por la capa")}
+                rw<"xasignar">:xasignar
+                if not(dbr.execute(db,"update dcardex set resto=ifnull(resto,0)-@xasignar where sys_pk=@sys_pk and resto>0",rw)) {do rise_error(0,"No se pudo establecer la disminución de la entrada (resto) por la capa")}
                 do dbr.insert(db,"dcapa",prepara_capa(pk,@@(rw,"#sys_pk"),xasignar,@@(rw,"#costo") ))                
                 costo_total=costo_total+xasignar * @@(rw,"#costo")
                 xasignar=0
