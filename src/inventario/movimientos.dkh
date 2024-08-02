@@ -450,14 +450,14 @@ module ":erp.inventario"
         ref r=dbr.rec(db,"select codigo, descripcion from producto where sys_pk=@producto",p)
         if not(isnull(r))
         {
-            s= s +" " + r.codigo + r.descripcion
+            s= s +" " + r.codigo + " "+ r.descripcion
         }
         if almacen>0
         {
             ref r=dbr.rec(db,"select codigo, descripcion from almacen where sys_pk=@almacen",p)
             if not(isnull(r))
             {
-                s= s +" ("+str(almacen)+") " + r.codigo + r.descripcion
+                s= s +" ("+str(almacen)+") " + r.codigo +" "+ r.descripcion
             }   
         }
 
