@@ -277,7 +277,7 @@ module ":erp.inventario"
         sql="select sum(ifnull(cargos,0)-ifnull(abonos,0)) saldo, sum(ifnull(entradas,0)-ifnull(salidas,0)) exis from dcardex where (ifnull(valuado,0) or entradas>0) and iproducto=@producto"
         ref r=dbr.rec(db,sql,p)
         if isnull(r){ return 0 }
-        if not(@@(r,"#exis")) { do rise_error(0,"No hay existencias para calcular el costo promedio. Producto ("+str(producto)+")")}
+        if not(@@(r,"#exis")) { do rise_error(0,"No hay existencias para calcular el costo promedio. "+info_producto(db,producto,0))}
         return round( @@(r,"#saldo")/@@(r,"#exis") , @inventario_divisa_decs )
     }
 
@@ -405,7 +405,9 @@ module ":erp.inventario"
             @"importe":importe
         }
 
-        affected=dbr.execute(db,"update existencias set sys_timestamp=now(), existencia=IFNULL(existencia,0)+@cantidad, saldo=IFNULL(saldo,0)+@importe where ialmacen=@almacen and fk_producto_iexistencias=@producto",p)
+        affected=dbr.execute(db,"update existencias set sys_timestamp=now(), 
+                                    existencia=IFNULL(existencia,0)+@cantidad, saldo=IFNULL(saldo,0)+@importe 
+                                    where ialmacen=@almacen and fk_producto_iexistencias=@producto",p)
         if not(affected)                                        
         {
             new exist
@@ -423,13 +425,43 @@ module ":erp.inventario"
             do dbr.insert(db,"existencias",exist)
         }
 
+        if dbr.num(db,"select existencia 
+                                from existencias 
+                                where ialmacen=@almacen and fk_producto_iexistencias=@producto",p)<0 { do rise_error(0,"Existencia debajo de cero. "+info_producto(db,producto,almacen)) }
+
         affected= dbr.execute(db,"update producto set existencia=IFNULL(existencia,0)+@cantidad, saldo=IFNULL(saldo,0)+@importe where sys_pk=@producto;",p)
 
         if not(affected)
         {
             do rise_error(0,"No se pudo afectar la existencia o saldo global del producto")
         }
+
+        if dbr.num(db,"select existencia 
+                                from producto 
+                                where sys_pk=@producto",p)<0 { do rise_error(0,"Existencia global debajo de cero. "+info_producto(db,producto,0)) }
         
+    }
+
+    info_producto::&db, producto,almacen
+    {
+        producto,almacen >> p
+
+        s="("+str(producto)+")"
+        ref r=dbr.rec(db,"select codigo, descripcion from producto where sys_pk=@producto",p)
+        if not(isnull(r))
+        {
+            s= s +" " + r.codigo + r.descripcion
+        }
+        if almacen>0
+        {
+            ref r=dbr.rec(db,"select codigo, descripcion from almacen where sys_pk=@almacen",p)
+            if not(isnull(r))
+            {
+                s= s +" ("+str(almacen)+") " + r.codigo + r.descripcion
+            }   
+        }
+
+        return s
     }
 
     module ":erp.inventario.lotes"
