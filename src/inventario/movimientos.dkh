@@ -277,7 +277,7 @@ module ":erp.inventario"
         sql="select sum(ifnull(cargos,0)-ifnull(abonos,0)) saldo, sum(ifnull(entradas,0)-ifnull(salidas,0)) exis from dcardex where (ifnull(valuado,0) or entradas>0) and iproducto=@producto"
         ref r=dbr.rec(db,sql,p)
         if isnull(r){ return 0 }
-        if not(@@(r,"#exis")) { do rise_error(0,"No hay existencias para calcular el costo promedio")}
+        if not(@@(r,"#exis")) { do rise_error(0,"No hay existencias para calcular el costo promedio. Producto ("+str(producto)+")")}
         return round( @@(r,"#saldo")/@@(r,"#exis") , @inventario_divisa_decs )
     }
 
