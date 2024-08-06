@@ -157,9 +157,9 @@ program
                     // Mostrar solo productos inventariables (tipo=2)
                     "input-key"(id="ikProducto" "data-key"="sys_pk" "data-search"="codigo" "data-text"="descripcion" "data-source"="#<@URL_BUSCAR_PRODUCTO + '&tipo=2'>" columns="codigo,descripcion" colcaptions="Código,Descripción" "box-title-text"="Seleccione un producto" "box-placeholder-text"="Buscar producto" "box-nodata-text"="No se encontraron productos" "control-styles"="#container{ display: none !important; }"){$""}
 
-                    "input-key"(id="ik_lot_prod" "data-key"="sys_pk" "data-search"="numero" "data-text"="fcaducidad" "data-source"="#<@URL_OBTENER_LOTES_DE_PRODUCTO>" columns="numero,cantidad,fcaducidad" colcaptions="Número,Cantidad,F.Caducidad" "control-styles"="#container{display:none !important;}"){$""}
+                    "input-key"(id="ik_lot_prod" "data-key"="ilote" "data-search"="numero" "data-text"="fcaducidad" "data-source"="#<@URL_OBTENER_LOTES_DE_PRODUCTO>" columns="numero,cantidad,fcaducidad" colcaptions="Número,Cantidad,F.Caducidad" "control-styles"="#container{display:none !important;}"){$""}
 
-                    "input-key"(id="ik_ser_prod" "data-key"="sys_pk" "data-search"="numero" "data-text"="cstatus" "data-source"="#<@URL_OBTENER_SERIES_DE_PRODUCTO>" columns="numero,cstatus,num_lote" colcaptions="Número,Estado,No.Lote" "control-styles"="#container{display:none !important;}"){$""}
+                    "input-key"(id="ik_ser_prod" "data-key"="iserie" "data-search"="numero" "data-text"="cstatus" "data-source"="#<@URL_OBTENER_SERIES_DE_PRODUCTO>" columns="numero,cstatus,num_lote" colcaptions="Número,Estado,No.Lote" "control-styles"="#container{display:none !important;}"){$""}
                 }
             }
             div(class="status_bar" class="container-section")

@@ -436,7 +436,7 @@ module "model"
 			dcardex<"iserie"> : field.num(dserie,"sys_pk")
 
 			// Establecer salida de la serie
-			if not(entrada) { do dbr.update(db,ftext("UPDATE serie SET status=#<@stt_serie_no_disponible> WHERE sys_pk=@sys_pk"),dserie) }
+			if not(entrada) { do dbr.execute(db,ftext("UPDATE serie SET status=#<@stt_serie_no_disponible> WHERE sys_pk=@sys_pk"),dserie) }
 		}
 	}
 
