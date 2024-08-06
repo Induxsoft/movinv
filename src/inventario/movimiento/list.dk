@@ -139,30 +139,10 @@ module "list.dk"
 
     #$ div(class="container-fluid p-0")
     {
-        #! do uie.printV12FormBar(nav_config)
-
-        #$ div(id="work_area" class="container-section mt-1 p-2 pt-0")
+        #$ div(id="top_area")
         {
-            div(class="show-on-print"){
-            div(class="row")
-            {
-                div(class="col-3 text-start")
-                {
-                    small(class="d-block"){ $"#<cut(@('$http/session/user/name'),25)>" }
-                    small(class="d-block"){ b{$"Impresión: "} $"#<date_str(now(),'dd/MMM/yyyy')>" }
-                }
-                div(class="col-6 text-center")
-                {
-                    h4(class=""){$"Informe general del inventario"}
-                }
-                div(class="col-3 text-end")
-                {
-                    small(class="d-block" id="lbl_almacen"){$""}
-                    small(class="d-block" id="lbl_clase"){$""}
-                    small(class="d-block" id="lbl_linea"){$""}
-                }
-            }}
-
+            #! do uie.printV12FormBar(nav_config)
+            #$
             p{$"#<@('$error/message')>"}
             form(action="./" method="GET" id="form_filter" class="no-print mb-1")
             {
@@ -189,6 +169,31 @@ module "list.dk"
                 }
                 
             }
+        }
+
+        #$ div(id="work_area" class="container-section mt-1 p-2 pt-0")
+        {
+            div(class="show-on-print"){
+            div(class="row")
+            {
+                div(class="col-3 text-start")
+                {
+                    small(class="d-block"){ $"#<cut(@('$http/session/user/name'),25)>" }
+                    small(class="d-block"){ b{$"Impresión: "} $"#<date_str(now(),'dd/MMM/yyyy')>" }
+                }
+                div(class="col-6 text-center")
+                {
+                    h4(class=""){$"Informe general del inventario"}
+                }
+                div(class="col-3 text-end")
+                {
+                    small(class="d-block" id="lbl_almacen"){$""}
+                    small(class="d-block" id="lbl_clase"){$""}
+                    small(class="d-block" id="lbl_linea"){$""}
+                }
+            }}
+
+            
             #! do uie.dbeditable(table_definition,"tbl_productos")
             #$
         }
