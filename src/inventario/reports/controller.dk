@@ -10,10 +10,81 @@ module "ReportController"
             point @read to Report.Existencias
             break
         }
+        case "movimientos"
+        {
+            @form_view = "movimientos.dk"
+            point @read to Report.Movimientos
+            break
+        }
+        case "caducidades"
+        {
+            @form_view = "caducidades.dk"
+            point @read to Report.Caducidades
+            break
+        }
+        case "series"
+        {
+            @form_view = "series.dk"
+            point @read to Report.Series
+            break
+        }
+        case "existencias-fecha"
+        {
+            @form_view = "existencias-fecha.dk"
+            point @read to Report.ExistenciasFecha
+            break
+        }
+        case "existencias-lotes"
+        {
+            @form_view = "existencias-lotes.dk"
+            point @read to Report.ExistenciasLotes
+            break
+        }
+        case "niveles-existencias"
+        {
+            @form_view = "niveles-existencias.dk"
+            point @read to Report.NivelesExistencia
+            break
+        }
+        case "historial-traspasos"
+        {
+            @form_view = "historial-traspasos.dk"
+            point @read to Report.HistorialTraspasos
+            break
+        }
+        case "historial-series"
+        {
+            @form_view = "historial-series.dk"
+            point @read to Report.HistorialSeries
+            break
+        }
+        case "diario-almacen"
+        {
+            @form_view = "diario-almacen.dk"
+            point @read to Report.DiarioAlmacen
+            break
+        }
+        case "diario-productos"
+        {
+            @form_view = "diario-productos.dk"
+            point @read to Report.DiarioProductos
+            break
+        }
+        case "dtraspasos-almacen"
+        {
+            @form_view = "dtraspasos-almacen.dk"
+            point @read to Report.DTraspasosAlmacen
+            break
+        }
+        case "valor-inventario"
+        {
+            @form_view = "valor-inventario.dk"
+            point @read to Report.ValorInventario
+            break
+        }
         default
         {
-            // code...
-            break
+            point @read to Report.NotImplemented
         }
     }
 }

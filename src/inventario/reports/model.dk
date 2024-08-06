@@ -2,9 +2,131 @@
 #!
 module "Reportes de movimiento de inventario. :Report"
 {
-    Existencias::&db,&params
+    function prepareView(&db,&params,&data)
     {
-        do dbr.apps.action.grant("GE1A")
+        sql_almcns = "SELECT sys_pk, codigo, descripcion FROM almacen WHERE NOT IFNULL(sys_deleted,0)"
+        sql_clases = "SELECT id, const FROM cclaseproducto"
+        sql_lineas = "SELECT sys_pk, codigo, descripcion FROM linea WHERE NOT IFNULL(sys_deleted,0) AND clase = @fil_clase"
+        sql_marcas = "SELECT sys_pk, codigo, descripcion FROM marca WHERE NOT IFNULL(sys_deleted,0)"
+        sql_deptos = "SELECT sys_pk, codigo, descripcion FROM departamento WHERE NOT IFNULL(sys_deleted,0)"
+        sql_catmov = "SELECT sys_pk, codigo, descripcion FROM categoria WHERE NOT IFNULL(sys_deleted,0)"
+
+        switch @@(@http_context,"$request/get/_entity_id")
+        {
+            case "existencias"
+            {
+                using data
+                {
+                    @"list_almcns*": dbr.list(db,sql_almcns,@null)
+                    @"list_clases*": dbr.list(db,sql_clases,@null)
+                    @"list_lineas*": dbr.list(db,sql_lineas,params)
+                    @"list_marcas*": dbr.list(db,sql_marcas,@null)
+                    @"list_deptos*": dbr.list(db,sql_deptos,@null)
+                }
+                break
+            }
+            case "movimientos"
+            {
+                break
+            }
+            case "caducidades"
+            {
+                using data
+                {
+                    @"list_almcns*": dbr.list(db,sql_almcns,@null)
+                    @"list_clases*": dbr.list(db,sql_clases,@null)
+                    @"list_lineas*": dbr.list(db,sql_lineas,params)
+                    @"list_marcas*": dbr.list(db,sql_marcas,@null)
+                    @"list_deptos*": dbr.list(db,sql_deptos,@null)
+                }
+                break
+            }
+            case "series"
+            {
+                break
+            }
+            case "existencias-fecha"
+            {
+                using data
+                {
+                    @"list_almcns*": dbr.list(db,sql_almcns,@null)
+                    @"list_clases*": dbr.list(db,sql_clases,@null)
+                    @"list_lineas*": dbr.list(db,sql_lineas,params)
+                    @"list_marcas*": dbr.list(db,sql_marcas,@null)
+                    @"list_deptos*": dbr.list(db,sql_deptos,@null)
+                }
+                break
+            }
+            case "existencias-lotes"
+            {
+                break
+            }
+            case "niveles-existencia"
+            {
+                break
+            }
+            case "historial-traspasos"
+            {
+                using data
+                {
+                    @"list_almcns*": dbr.list(db,sql_almcns,@null)
+                }
+                break
+            }
+            case "dtraspasos-almacen"
+            {
+                using data
+                {
+                    @"list_almcns*": dbr.list(db,sql_almcns,@null)
+                }
+                break
+            }
+            case "historial-series"
+            {
+                break
+            }
+            case "diario-almacen"
+            {
+                using data
+                {
+                    @"list_almcns*": dbr.list(db,sql_almcns,@null)
+                    @"list_catmov*": dbr.list(db,sql_catmov,@null)
+                }
+                break
+            }
+            case "diario-productos"
+            {
+                using data
+                {
+                    @"list_almcns*": dbr.list(db,sql_almcns,@null)
+                    @"list_clases*": dbr.list(db,sql_clases,@null)
+                    @"list_lineas*": dbr.list(db,sql_lineas,params)
+                    @"list_marcas*": dbr.list(db,sql_marcas,@null)
+                    @"list_deptos*": dbr.list(db,sql_deptos,@null)
+                }
+                break
+            }
+            case "valor-inventario"
+            {
+                break
+            }
+        }
+
+        using data
+        {
+            member @"titles"
+            {
+                @"title": dbr.vars.getd(db,"FXCA108","")
+                @"subtitle": dbr.vars.getd(db,"FXCA109","")
+                @"subtitle_2": dbr.vars.getd(db,"FXCA110","")
+                @"footer": dbr.vars.getd(db,"FXCA111","")
+            }
+        }
+    }
+
+    function Existencias(&db,&params)
+    {
+        do dbr.apps.action.grant("GE3D")
 
         sql_productos = "
         SELECT
@@ -52,22 +174,190 @@ module "Reportes de movimiento de inventario. :Report"
         new data
         {
             @"data*": dbr.list(db,ftext(sql_productos),params)
-            @"list_almacenes*": dbr.list(db,"SELECT sys_pk, codigo, descripcion FROM almacen WHERE NOT IFNULL(sys_deleted,0)",@null)
-            @"list_clases*": dbr.list(db,"SELECT id, const FROM cclaseproducto",@null)
-            @"list_lineas*": dbr.list(db,"SELECT sys_pk, codigo, descripcion FROM linea WHERE NOT IFNULL(sys_deleted,0) AND clase = @fil_clase",params)
-            @"list_marcas*": dbr.list(db,"SELECT sys_pk, codigo, descripcion FROM marca WHERE NOT IFNULL(sys_deleted,0)",@null)
-            @"list_deptos*": dbr.list(db,"SELECT sys_pk, codigo, descripcion FROM departamento WHERE NOT IFNULL(sys_deleted,0)",@null)
         }
-
+        do Report.prepareView(db,params,data)
         return data
 
-        exception
+        exception{ do catch() }
+    }
+
+    function Movimientos(&db,&params)
+    {
+        do dbr.apps.action.grant("GE32")
+
+        new data
         {
-            do errordet(@false)
-			code = last_error_code()
-			error = last_error()
-            do dbr.apps.action.log()
-            do rise_error(code,error)
+            @"data*": list.create()
         }
+        do Report.prepareView(db,params,data)
+        return data
+
+        exception{ do catch() }
+    }
+
+    function Caducidades(&db,&params)
+    {
+        do dbr.apps.action.grant("GE39")
+
+        new data
+        {
+            @"data*": list.create()
+        }
+        do Report.prepareView(db,params,data)
+        return data
+
+        exception{ do catch() }
+    }
+
+    function Series(&db,&params)
+    {
+        do dbr.apps.action.grant("GE3A")
+
+        new data
+        {
+            @"data*": list.create()
+        }
+        do Report.prepareView(db,params,data)
+        return data
+
+        exception{ do catch() }
+    }
+
+    function ExistenciasFecha(&db,&params)
+    {
+        do dbr.apps.action.grant("GE37")
+
+        new data
+        {
+            @"data*": list.create()
+        }
+        do Report.prepareView(db,params,data)
+        return data
+
+        exception{ do catch() }
+    }
+
+    function ExistenciasLotes(&db,&params)
+    {
+        do dbr.apps.action.grant("GE38")
+
+        new data
+        {
+            @"data*": list.create()
+        }
+        do Report.prepareView(db,params,data)
+        return data
+
+        exception{ do catch() }
+    }
+
+    function NivelesExistencia(&db,&params)
+    {
+        do dbr.apps.action.grant("GE34")
+
+        new data
+        {
+            @"data*": list.create()
+        }
+        do Report.prepareView(db,params,data)
+        return data
+
+        exception{ do catch() }
+    }
+
+    function HistorialTraspasos(&db,&params)
+    {
+        do dbr.apps.action.grant("GE35")
+
+        new data
+        {
+            @"data*": list.create()
+        }
+        do Report.prepareView(db,params,data)
+        return data
+
+        exception{ do catch() }
+    }
+
+    function HistorialSeries(&db,&params)
+    {
+        do dbr.apps.action.grant("GE3B")
+
+        new data
+        {
+            @"data*": list.create()
+        }
+        do Report.prepareView(db,params,data)
+        return data
+
+        exception{ do catch() }
+    }
+
+    function DiarioAlmacen(&db,&params)
+    {
+        do dbr.apps.action.grant("GE31")
+
+        new data
+        {
+            @"data*": list.create()
+        }
+        do Report.prepareView(db,params,data)
+        return data
+
+        exception{ do catch() }
+    }
+
+    function DiarioProductos(&db,&params)
+    {
+        do dbr.apps.action.grant("GE33")
+
+        new data
+        {
+            @"data*": list.create()
+        }
+        do Report.prepareView(db,params,data)
+        return data
+
+        exception{ do catch() }
+    }
+
+    function DTraspasosAlmacen(&db,&params)
+    {
+        do dbr.apps.action.grant("GE36")
+
+        new data
+        {
+            @"data*": list.create()
+        }
+        do Report.prepareView(db,params,data)
+        return data
+
+        exception{ do catch() }
+    }
+
+    function ValorInventario(&db,&params)
+    {
+        do dbr.apps.action.grant("GE3C")
+
+        new data
+        {
+            @"data*": list.create()
+        }
+        do Report.prepareView(db,params,data)
+        return data
+
+        exception{ do catch() }
+    }
+
+    NotImplemented::&db,&params { do rise_error(404,"Reporte no implementado") }
+
+    catch::
+    {
+        do errordet(@false)
+        code = last_error_code()
+        error = last_error()
+
+        if isset("@@_action_context"){ do dbr.apps.action.log() }
+        do rise_error(code,error)
     }
 }

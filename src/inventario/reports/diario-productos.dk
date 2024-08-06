@@ -1,6 +1,6 @@
 #include "dkli.dkh"
 #!
-module "Informe de existencias debajo del mínimo o el punto de reorden"
+module "Diario de productos"
 {
     #include "functions.dkh"
     #include "serialize.dkh"
@@ -92,23 +92,9 @@ module "Informe de existencias debajo del mínimo o el punto de reorden"
         @"selected": @("#parameters/fil_depto")
     }
 
-    new fil_prod_below
-    {
-        @"datatable*": from.json('[{"v":"preorden","t":"Punto de re-orden"}, {"v":"minimo","t":"Mínimo"}]')
-        @"id": "fil_prod_below"
-        new member "attributes"
-        {
-            @"class": "form-select form-select-sm rounded-0 w-auto"
-            @"name": "fil_prod_below"
-        }
-        @"value_field": "v"
-        @"text_field": "t"
-        @"selected": @("$parameters/fil_prod_below")
-    }
-
     new nav_config
     {
-        @"title": "Existencias"
+        @"title": "Diario de productos"
         @"urlexit": "javascript:window.history.back()"
     }
 
@@ -120,14 +106,13 @@ module "Informe de existencias debajo del mínimo o el punto de reorden"
             #!
             do uie.printV12FormBar(nav_config)
             #$
-
             style
             {$'
                 tr th { font-size:.9rem; outline:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; -o-text-overflow:ellipsis; }
                 tr td { font-size:.8rem; }
             '}
 
-            form(class="no-print mb-2" method="GET" action="./" id="form-filter")
+            form(class="" action="./" method="GET" id="form-filter")
             {
                 div(class="d-flex align-items-center gap-1 mb-1")
                 {
@@ -138,35 +123,16 @@ module "Informe de existencias debajo del mínimo o el punto de reorden"
                         div{#! do uie.dbSelect(fil_linea) }#$
                         div{#! do uie.dbSelect(fil_marca) }#$
                         div{#! do uie.dbSelect(fil_depto) }#$
+                        div(class="d-inline-flex gap-1")
+                        {
+                            input(class="form-control form-control-sm rounded-0" type="date" name="fil_fi" id="fil_fi" title="Fecha inicial")
+                            input(class="form-control form-control-sm rounded-0" type="date" name="fil_ff" id="fil_ff" title="Fecha final")
+                        }
                     }
                     div(class="d-flex flex-grow-1 justify-content-end"){ button(class="btn btn-sm btn-primary rounded-0" type="submit" id="btn_filter"){$"Aplicar"} }
                 }
-
-                div(class="d-flex align-items-center gap-1 justify-content-between")
-                {
-                    div(class="d-flex gap-1")
-                    {
-                        div(class="form-check mb-0")
-                        {
-                            #!
-                            checked = ifstr(parse.bool(@("$parameters/chk_use_gv")), "checked", "")
-                            #$
-                            input(class="form-check-input" type="checkbox" name="chk_use_gv" id="chk_use_gv" "#<checked>"="")
-                            label(class="form-check-label" "for"="chk_use_gv"){$"Si no hay valores por almacén, usar los valores globales del producto"}
-                        }
-                    }
-
-                    div(class="d-inline-flex align-items-center gap-1")
-                    {
-                        label(class="" "for"="fil_prod_below"){$"Incluir productos iguales o por debajo del:"}
-                        ##
-                        do uie.dbSelect(fil_prod_below)
-                        ##
-                    }
-                }
             }
         }
-        
 
         div(class="bg-light w-100 p-2" style="max-height:80vh; overflow-y:auto;") {
         div(class="" style="box-shadow: inset 0 -3em 3em rgba(0, 0, 0, 0.1), 0.3em 0.3em 1em rgba(0, 0, 0, 0.3);")
@@ -186,7 +152,7 @@ module "Informe de existencias debajo del mínimo o el punto de reorden"
                     }
                     div(class="col-6")
                     {
-                        h5(class="text-center"){$"Existencias debajo del mínimo o el punto de re-orden"}
+                        h5(class="text-center"){$"Diario de productos"}
                     }
                     div(class="col-3 text-end")
                     {
@@ -200,12 +166,14 @@ module "Informe de existencias debajo del mínimo o el punto de reorden"
                     {
                         tr(class="bg-light-gray")
                         {
-                            th(class="text-center"){$"Código"}
+                            th(class="text-center"){$"Fecha"}
+                            th(class="text-center"){$"No. Interno"}
+                            th(class="text-center"){$"Referencia"}
+                            th(class="text-center"){$"Categoría"}
                             th(class="text-center"){$"Descripción"}
-                            th(class="text-center"){$"Unidad"}
-                            th(class="text-center"){$"Existencia"}
-                            th(class="text-center"){$"Minimo"}
-                            th(class="text-center"){$"Punto re-orden"}
+                            th(class="text-center"){$"Cargos"}
+                            th(class="text-center"){$"Abonos"}
+                            th(class="text-center"){$"Almacén"}
                         }
                     }
                     tbody
@@ -214,17 +182,19 @@ module "Informe de existencias debajo del mínimo o el punto de reorden"
                         for i = 0; i < list.count(data); i+1
                         {
                             ref obj = list.obj(data,i)
-                            numfmt = "#,0.00"
+                            numfmt = "$ #,0.00"
                             
                             #$
                             tr
                             {
-                                td(class=""){$"#<@@(obj,'$codigo')>"}
+                                td(class="text-center"){$"#<@@(obj,'$fecha')>"}
+                                td(class=""){$"#<@@(obj,'$no_interno')>"}
+                                td(class=""){$"#<@@(obj,'$referencia')>"}
+                                td(class=""){$"#<@@(obj,'$categoria')>"}
                                 td(class=""){$"#<@@(obj,'$descripcion')>"}
-                                td(class="text-center"){$"#<@@(obj,'$unidad')>"}
-                                td(class="text-center"){$"#<format(@@(obj,'#existencia'),numfmt)>"}
-                                td(class="text-center"){$"#<format(@@(obj,'#minimo'),numfmt)>"}
-                                td(class="text-center"){$"#<format(@@(obj,'#preorden'),numfmt)>"}
+                                td(class="text-end"){$"#<format(@@(obj,'#cargos'),numfmt)>"}
+                                td(class="text-end"){$"#<format(@@(obj,'#abonos'),numfmt)>"}
+                                td(class=""){$"#<@@(obj,'$almacen')>"}
                             }
                             #!
                         }
@@ -280,4 +250,7 @@ module "Informe de existencias debajo del mínimo o el punto de reorden"
             });
         '}
     }
+    #!
+
+    do @context.end()
 }

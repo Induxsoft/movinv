@@ -1,3 +1,4 @@
 "pack_id","app_id","app_title","created","app_info"
 "inventario","inventario.movimiento","Inventario",2023-12-05T23:59:59,"Administración de Inventario, productos y movimientos"
 "inventario","inventario.maxmin","Máximos,Mínimos","2024-05-04T23:59:59","Administración de Máximos, Mínimos, Punto de re-orden de productos por almacen"
+"inventario","inventario.reports","Informes de inventario","2024-08-06T23:59:59","Informes de inventario"

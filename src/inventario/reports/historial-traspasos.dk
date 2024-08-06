@@ -1,0 +1,163 @@
+#include "dkli.dkh"
+#!
+module "Historial de traspasos"
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "uielements.v12.dkl"
+    #include "inventario/config.dk"
+
+    do @context.begin(@crud_context)
+
+    ref data = ifnull(@("&./data"),list.create())
+    ref titles = ifnull(@("&./titles"),record.create())
+
+    new fil_src_almacen
+    {
+        @"datatable*": ifnull(@("&./list_almcns"),list.create())
+        @"id": "fil_src_almacen"
+        new member "attributes"
+        {
+            @"class": "form-select form-select-sm rounded-0"
+            @"name": "fil_src_almacen"
+        }
+        @"first_value": "-1"
+        @"first_text": "(Todos los almacenes)"
+        @"value_field": "sys_pk"
+        @"text_field": "descripcion"
+        @"selected": @("#parameters/fil_src_almacen")
+    }
+
+    new fil_tgt_almacen
+    {
+        @"datatable*": ifnull(@("&./list_almcns"),list.create())
+        @"id": "fil_tgt_almacen"
+        new member "attributes"
+        {
+            @"class": "form-select form-select-sm rounded-0"
+            @"name": "fil_tgt_almacen"
+        }
+        @"first_value": "-1"
+        @"first_text": "(Todos los almacenes)"
+        @"value_field": "sys_pk"
+        @"text_field": "descripcion"
+        @"selected": @("#parameters/fil_tgt_almacen")
+    }
+
+    new nav_config
+    {
+        @"title": "Historial de traspasos"
+        @"urlexit": "javascript:window.history.back()"
+    }
+
+    #$
+    div(class="container v12-list-view" id="view")
+    {
+        section(class="bg-white" id="top_area")
+        {
+            #!
+            do uie.printV12FormBar(nav_config)
+            #$
+            style
+            {$'
+                tr th { font-size:.9rem; outline:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; -o-text-overflow:ellipsis; }
+                tr td { font-size:.8rem; }
+            '}
+
+            form(class="" action="./" method="GET" id="form-filter")
+            {
+                div(class="d-flex align-items-center gap-1 mb-1")
+                {
+                    div(class="d-flex gap-1")
+                    {
+                        div{#! do uie.dbSelect(fil_src_almacen) }#$
+                        div{#! do uie.dbSelect(fil_tgt_almacen) }#$
+                        div(class="d-inline-flex gap-1")
+                        {
+                            input(class="form-control form-control-sm rounded-0" type="date" name="fil_fi" id="fil_fi" title="Fecha inicial")
+                            input(class="form-control form-control-sm rounded-0" type="date" name="fil_ff" id="fil_ff" title="Fecha final")
+                        }
+                    }
+                    div(class="d-flex flex-grow-1 justify-content-end"){ button(class="btn btn-sm btn-primary rounded-0" type="submit" id="btn_filter"){$"Aplicar"} }
+                }
+            }
+        }
+
+        div(class="bg-light w-100 p-2" style="max-height:80vh; overflow-y:auto;") {
+        div(class="" style="box-shadow: inset 0 -3em 3em rgba(0, 0, 0, 0.1), 0.3em 0.3em 1em rgba(0, 0, 0, 0.3);")
+        {
+            section(class="bg-white p-1" id="work_area")
+            {
+                p(class="text-center mb-0"){$"#<@@(titles,'$title')>"}
+                p(class="text-center mb-0"){$"#<@@(titles,'$subtitle')>"}
+                p(class="text-center mb-0"){$"#<@@(titles,'$subtitle_2')>"}
+
+                div(class="row")
+                {
+                    div(class="col-3")
+                    {
+                        small(class="d-block"){ $"#<cut(@('$http/session/user/name'),25)>" }
+                        small(class="d-block"){ b{$"Impresión: "} $"#<date_str(now(),'dd/MMM/yyyy')>" }
+                    }
+                    div(class="col-6")
+                    {
+                        h5(class="text-center"){$"Historial de traspasos"}
+                    }
+                    div(class="col-3 text-end")
+                    {
+                        $""
+                    }
+                }
+                
+                table(class="table table-sm table-bordered my-2")
+                {
+                    thead
+                    {
+                        tr(class="bg-light-gray")
+                        {
+                            th(class="text-center"){$"Fecha"}
+                            th(class="text-center"){$"No. Interno"}
+                            th(class="text-center"){$"Referencia"}
+                            th(class="text-center"){$"Categoría"}
+                            th(class="text-center"){$"Descripción"}
+                            th(class="text-center"){$"Cargos"}
+                            th(class="text-center"){$"Abonos"}
+                            th(class="text-center"){$"Almacén"}
+                        }
+                    }
+                    tbody
+                    {
+                        #!
+                        for i = 0; i < list.count(data); i+1
+                        {
+                            ref obj = list.obj(data,i)
+                            numfmt = "$ #,0.00"
+                            
+                            #$
+                            tr
+                            {
+                                td(class="text-center"){$"#<@@(obj,'$fecha')>"}
+                                td(class=""){$"#<@@(obj,'$no_interno')>"}
+                                td(class=""){$"#<@@(obj,'$referencia')>"}
+                                td(class=""){$"#<@@(obj,'$categoria')>"}
+                                td(class=""){$"#<@@(obj,'$descripcion')>"}
+                                td(class="text-end"){$"#<format(@@(obj,'#cargos'),numfmt)>"}
+                                td(class="text-end"){$"#<format(@@(obj,'#abonos'),numfmt)>"}
+                                td(class=""){$"#<@@(obj,'$almacen')>"}
+                            }
+                            #!
+                        }
+                        #$
+                    }
+                }
+
+                p(class="text-center mb-0"){$"#<@@(titles,'$footer')>"}
+            }
+        }}
+
+        // script(type="text/javascript"){$''}
+    }
+    #!
+
+    do @context.end()
+}

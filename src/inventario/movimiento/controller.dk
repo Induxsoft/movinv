@@ -46,6 +46,16 @@ module "controller"
             point @list to movinv.obtenerProductos
             break
         }
+        case "buscar-cardex"
+        {
+            point @list to movinv.buscarCardex
+            break
+        }
+        case "buscar-seriesp"
+        {
+            point @list to movinv.buscarSeriesP
+            break
+        }
         case "obtener-lineas"
         {
             point @list to movinv.GetLineaByClase

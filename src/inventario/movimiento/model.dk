@@ -2,7 +2,7 @@
 #!
 module "model"
 {
-	#include "../config.dk"
+	// #include "../config.dk"
 	#include "../movimientos.dkh"
 
 	// =============== ALMACEN
@@ -32,6 +32,41 @@ module "model"
 
 		return dbr.list(db, sql, params)
 	}
+
+	function movinv.buscarCardex(&db,&params)
+	{
+		sql_search = "
+		SELECT sys_pk, referencia, descripcion, IFNULL(DATE_FORMAT(fecha,'%Y-%m-%d'),'') fecha,
+			CONCAT(IFNULL(DATE_FORMAT(fecha,'%Y-%m-%d'),''),' / ',descripcion) ddescripcion
+		FROM cardex
+		WHERE descripcion LIKE CONCAT('%',@s,'%') OR referencia = @s
+		"
+
+		if trim(@@(params,"$s")) == "" { return list.create() }
+		return dbr.list(db,sql_search,params)
+	}
+
+	function movinv.buscarSeriesP(&db,&params)
+	{
+		sql_search = "
+		SELECT s.sys_pk, s.numero,
+			IFNULL(DATE_FORMAT(s.fentrada,'%Y-%m-%d'),'') fentrada,
+			e.const estado,
+			IFNULL(DATE_FORMAT(s.fventa,'%Y-%m-%d'),'') fventa,
+			CONCAT(
+				IFNULL(DATE_FORMAT(s.fentrada,'%Y-%m-%d'),''), ' / ',
+				e.const, ' / ',
+				IFNULL(DATE_FORMAT(s.fventa,'%Y-%m-%d'),'')
+			) descripcion
+		FROM serie s
+			INNER JOIN cstatusseries e ON s.`status` = e.id
+		WHERE s.numero LIKE CONCAT('%',@s,'%')
+		"
+
+		if trim(@@(params,"$s")) == "" { return list.create() }
+		return dbr.list(db,sql_search,params)
+	}
+
 	// ============== LINEA
 	function movinv.GetLineaByClase(&db,&params)
     {
@@ -241,26 +276,29 @@ module "model"
 					case "entrada"
 					{
 						ref dcardex = movinv.genDetalle(producto, almacen1, @true)
-						do movinv.setSerieLote(db,producto,dcardex,@true)
+						do movinv.setSerieLote(db,producto,dcardex,@mEntrada)
 						do list.add(detalle, dcardex)
 						break
 					}
 					case "salida"
 					{
 						ref dcardex = movinv.genDetalle(producto, almacen1, @false)
-						do movinv.setSerieLote(db,producto,dcardex,@false)
+						do movinv.setSerieLote(db,producto,dcardex,@mSalida)
 						do list.add(detalle, dcardex)
 						valuar = @true
 						break
 					}
 					case "traspaso"
 					{
+						// Salida
+						@mover_serie = @true
 						ref dcardex1 = movinv.genDetalle(producto, almacen1, @false)
-						do movinv.setSerieLote(db,producto,dcardex1,@false)
+						do movinv.setSerieLote(db,producto,dcardex1,@mTraspaso)
 						do list.add(detalle, dcardex1)
-
+						// Entrada
+						@mover_serie = @false
 						ref dcardex2 = movinv.genDetalle(producto, almacen2, @true)
-						do movinv.setSerieLote(db,producto,dcardex2,@true)
+						do movinv.setSerieLote(db,producto,dcardex2,@mTraspaso)
 						do list.add(detalle, dcardex2)
 						break
 					}
@@ -363,7 +401,7 @@ module "model"
 		return detail
 	}
 
-	function movinv.setSerieLote(&db,&producto,&dcardex,entrada)
+	function movinv.setSerieLote(&db,&producto,&dcardex,mov)
 	{
 		ref prod = record.copy(producto,"sys_pk,reqlote,reqserie,lote,fcad,serie")
 		
@@ -374,9 +412,10 @@ module "model"
 
 			if lote == "" { do rise_error(500,"No se ha indicado un número de lote para "+@@(producto,"$descripcion")) }
 			ref dlote = dbr.rec(db,"SELECT sys_pk, numero FROM lote WHERE numero=@lote AND iproducto=@sys_pk LIMIT 1",prod)
-			if not(entrada) && isnull(dlote) { do rise_error(500,"El número de lote indicado para "+@@(producto,"$descripcion")+" no existe, indique uno diferente.") }
 
-			if isnull(dlote)
+			if mov!=@mEntrada && isnull(dlote) { do rise_error(500,"El número de lote indicado para "+@@(producto,"$descripcion")+" no existe, indique uno diferente.") }
+
+			if mov==@mEntrada && isnull(dlote)
 			{
 				new data
 				{
@@ -392,7 +431,7 @@ module "model"
 			dcardex<"ilote"> : field.num(dlote,"sys_pk")
 
 			ref dclxa = dbr.rec(db,"SELECT sys_pk FROM clotexalmacen WHERE fk_lote_exisxalmacen=@ilote AND ialmacen=@ialmacen LIMIT 1;",dcardex)
-			if isnull(dclxa)
+			if mov==@mEntrada && isnull(dclxa)
 			{
 				new data2
 				{
@@ -412,14 +451,14 @@ module "model"
 
 			if serie == "" { do rise_error(500,"No se ha indicado un número de serie para "+@@(producto,"$descripcion")) }
 			ref dserie = dbr.rec(db,"SELECT sys_pk, numero, status, IF(iproducto=@sys_pk,TRUE,FALSE) AS used FROM serie WHERE numero=@serie AND iproducto=@sys_pk LIMIT 1",prod)
-			if entrada && not(isnull(dserie)) && @@(dserie,"#used") { do rise_error(500,"El número de serie "+@@(dserie,"$numero")+" para "+@@(producto,"$descripcion")+" ya está asignado, indique una nueva serie para este producto") }
-			if not(entrada)
-			{
-				if isnull(dserie) { do rise_error(500,"El número de serie indicado para "+@@(producto,"$descripcion")+" no existe, indique uno diferente.") }
-				if @@(dserie,"#status") != @stt_serie_disponible && @@(dserie,"#status") != @stt_serie_devuelto_por_cliente { do rise_error(500,"El número de serie indicado para "+@@(producto,"$descripcion")+" no se encuentra disponible, indique uno diferente") }
-			}
+			
+			if mov!=@mEntrada && isnull(dserie) { do rise_error(500,"El número de serie indicado para "+@@(producto,"$descripcion")+" no existe, indique uno diferente.") }
+			if mov==@mEntrada && not(isnull(dserie)) && @@(dserie,"#used")
+			{ do rise_error(500,"El número de serie "+@@(dserie,"$numero")+" para "+@@(producto,"$descripcion")+" ya está asignado, indique una nueva serie para este producto") }
+			if mov==@mSalida && @@(dserie,"#status") != @stt_serie_disponible && @@(dserie,"#status") != @stt_serie_devuelto_por_cliente
+			{ do rise_error(500,"El número de serie indicado para "+@@(producto,"$descripcion")+" no se encuentra disponible, indique uno diferente") }
 
-			if isnull(dserie)
+			if mov==@mEntrada && isnull(dserie)
 			{
 				new data
 				{
@@ -432,11 +471,20 @@ module "model"
 				if field.dnum(dcardex,"ilote",0) > 0 { data<"ilote"> : field.num(dcardex,"ilote") }
 				ref dserie:record.copy(dbr.save(db,"serie",data),"sys_pk,numero")
 			}
+			else if mov==@mTraspaso && not(isnull(dserie))
+			{
+				if not(isset("@mover_serie")) { @mover_serie = @false }
+				if @mover_serie
+				{
+					dserie<"ialmacen"> : field.num(dcardex,"ialmacen")
+					do dbr.execute(db,"UPDATE serie SET ialmacen=@ialmacen WHERE sys_pk=@sys_pk",dserie)
+				}
+			}
 
 			dcardex<"iserie"> : field.num(dserie,"sys_pk")
 
 			// Establecer salida de la serie
-			if not(entrada) { do dbr.execute(db,ftext("UPDATE serie SET status=#<@stt_serie_no_disponible> WHERE sys_pk=@sys_pk"),dserie) }
+			if mov==@mSalida { do dbr.execute(db,ftext("UPDATE serie SET status=#<@stt_serie_no_disponible> WHERE sys_pk=@sys_pk"),dserie) }
 		}
 	}
 
