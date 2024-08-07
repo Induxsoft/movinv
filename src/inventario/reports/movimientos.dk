@@ -91,7 +91,7 @@ module "Movimiento"
                         }
                         div(class="col-6")
                         {
-                            h5(class="text-center"){$"Movimiento"}
+                            h5(class="text-center"){$"Movimiento de inventario"}
                         }
                         div(class="col-3 text-end")
                         {
@@ -143,14 +143,14 @@ module "Movimiento"
                     }
                     p{$"#<@('$./master/descripcion')>. #<@('$./master/sys_user')>"}
                 }
-                section(id="details")
+                section(id="detail")
                 {
                     #!
                     point bce to before_cell
                     point bre to before_rowgroup
                     new tdetails
                     {
-                        @"datatable*":@("&./details")
+                        @"datatable*":@("&./detail")
                         @"group_by":"almacen_divisa"
                         @"before_cell*":bce
                         @"before_row*":bre
@@ -202,10 +202,10 @@ module "Movimiento"
                                     class:="text-end"
                                 }
                             }
-                            member @"divisa"
+                            /*member @"divisa"
                             {
                                 caption:="Divisa"
-                            }
+                            }*/
 
                         }
                         show_summary_group:=@true

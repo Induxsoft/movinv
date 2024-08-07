@@ -200,6 +200,9 @@ module "Reportes de movimiento de inventario. :Report"
 
         if @@(params,"#sys_pk")>0
         {
+            params.m_decs:=val(dbr.vars.get(db,"FXCA001")) //Decimales de precisión en dinero
+            params.v_decs:=val(dbr.vars.get(db,"FXCA002")) //Decimales de precisión en volúmenes
+            
             data.master := ref dbr.rec(db,"select 
                                 c.sys_pk,
                                 IFNULL(DATE_FORMAT(c.fecha,'%Y-%m-%d'),'') fecha_doc, 
@@ -213,16 +216,16 @@ module "Reportes de movimiento de inventario. :Report"
                                 ifnull(c.valuado,0) valuado
                                 from cardex c inner join categoria t on c.icategoria=t.sys_pk
                                 where c.sys_pk=@sys_pk;",params)
-            data.details:= ref dbr.list(db,"select p.codigo cod_prod, 
+            data.detail:= ref dbr.list(db,"select p.codigo cod_prod, 
                                 p.descripcion producto, 
                                 p.unidad unidad, 
-                                ifnull(d.entradas,0) entradas, 
-                                ifnull(d.cargos,0) cargos, 
-                                ifnull(d.salidas,0) salidas, 
-                                ifnull(d.abonos,0) abonos, 
+                                round(ifnull(d.entradas,0),@v_decs) entradas, 
+                                round(ifnull(d.cargos,0),@m_decs) cargos, 
+                                round(ifnull(d.salidas,0),@v_decs) salidas, 
+                                round(ifnull(d.abonos,0),@m_decs) abonos, 
                                 m.codigo divisa, 
-                                ifnull(d.tipocambio,1) tc,
-                                (ifnull(d.cargos,0) * ifnull(d.tipocambio,1))  - (ifnull(d.abonos,1) *  ifnull(d.tipocambio,1)) importe,
+                                round(ifnull(d.tipocambio,1),@m_decs) tc,
+                                round((ifnull(d.cargos,0) * ifnull(d.tipocambio,1))  - (ifnull(d.abonos,1) *  ifnull(d.tipocambio,1)),@m_decs) importe,
                                 a.codigo cod_almacen, 
                                 a.descripcion almacen,
                                 concat(a.codigo,' - ',a.descripcion, ' (',m.codigo,')') almacen_divisa
