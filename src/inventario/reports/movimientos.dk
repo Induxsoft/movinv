@@ -6,10 +6,12 @@ module "Movimiento"
     #include "serialize.dkh"
     #include "uielements.v12.dkl"
     #include "inventario/config.dk"
+    #include "dbr.dkh"
+    #include "dbr.vars.dkl"
+    #include "dbr.localize.dkl"
 
     do @context.begin(@crud_context)
 
-    ref data = ifnull(@("&./data"),list.create())
     ref titles = ifnull(@("&./titles"),record.create())
 
     ik_sm_style = "
@@ -27,6 +29,28 @@ module "Movimiento"
         @"urlexit": "javascript:window.history.back()"
     }
 
+    before_rowgroup::&params,&row
+    {
+        if (field.exist(row,"divisa"))
+        {
+            params<"columns/cargos/format">: dbr.localize.money_format(@crud_context.database,row.divisa)
+            params<"columns/abonos/format">: dbr.localize.money_format(@crud_context.database,row.divisa)
+        }
+    }
+
+    before_cell::&params,&row,&cell
+    {
+        if @@(cell,"$cell_type")=="header_group"
+        {
+            using cell
+            {
+                member @"attributes"
+                {
+                    colspan:=8
+                }
+            }
+        }
+    }
     #$
     div(class="container v12-list-view" id="view")
     {
@@ -43,83 +67,174 @@ module "Movimiento"
 
             form(class="" action="./" method="GET" id="form-filter")
             {
-                "input-key"(name="fil_movinv" id="ik_movinv" "data-key"="sys_pk" "data-search"="referencia" "data-text"="ddescripcion" "data-source"="#<@URL_BUSCAR_MOVIMIENTO>" columns="referencia,fecha,descripcion" colcaptions="Referencia,Fecha,Descripción" "control-styles"="#<ik_sm_style>"){$""}
+                "input-key"(name="sys_pk" id="ik_movinv" "data-value"="#<to.json(@('&./master'))>" "data-key"="sys_pk" "data-search"="referencia" "data-text"="descripcion" "data-source"="#<@URL_BUSCAR_MOVIMIENTO>" columns="referencia,fecha,descripcion" colcaptions="Referencia,Fecha,Descripción" "control-styles"="#<ik_sm_style>"){$""}
             }
         }
 
-        div(class="bg-light w-100 p-2" style="max-height:80vh; overflow-y:auto;") {
+        div(class="bg-light w-100 p-2" id="work_area") {
         div(class="" style="box-shadow: inset 0 -3em 3em rgba(0, 0, 0, 0.1), 0.3em 0.3em 1em rgba(0, 0, 0, 0.3);")
         {
-            section(class="bg-white p-1" id="work_area")
+            section(class="bg-white p-1")
             {
-                p(class="text-center mb-0"){$"#<@@(titles,'$title')>"}
-                p(class="text-center mb-0"){$"#<@@(titles,'$subtitle')>"}
-                p(class="text-center mb-0"){$"#<@@(titles,'$subtitle_2')>"}
+                section(id="report_header")
+                {
+                    p(class="text-center mb-0"){$"#<@@(titles,'$title')>"}
+                    p(class="text-center mb-0"){$"#<@@(titles,'$subtitle')>"}
+                    p(class="text-center mb-0"){$"#<@@(titles,'$subtitle_2')>"}
 
-                div(class="row")
-                {
-                    div(class="col-3")
+                    div(class="row")
                     {
-                        small(class="d-block"){ $"#<cut(@('$http/session/user/name'),25)>" }
-                        small(class="d-block"){ b{$"Impresión: "} $"#<date_str(now(),'dd/MMM/yyyy')>" }
-                    }
-                    div(class="col-6")
-                    {
-                        h5(class="text-center"){$"Movimiento"}
-                    }
-                    div(class="col-3 text-end")
-                    {
-                        $""
-                    }
-                }
-                
-                table(class="table table-sm table-bordered my-2")
-                {
-                    thead
-                    {
-                        tr(class="bg-light-gray")
+                        div(class="col-3")
                         {
-                            th(class="text-center"){$"Fecha"}
-                            th(class="text-center"){$"No. Interno"}
-                            th(class="text-center"){$"Referencia"}
-                            th(class="text-center"){$"Categoría"}
-                            th(class="text-center"){$"Descripción"}
-                            th(class="text-center"){$"Cargos"}
-                            th(class="text-center"){$"Abonos"}
-                            th(class="text-center"){$"Almacén"}
+                            small(class="d-block"){ $"#<cut(@('$http/session/user/name'),25)>" }
+                            small(class="d-block"){ b{$"Impresión: "} $"#<date_str(now(),'dd/MMM/yyyy')>" }
+                        }
+                        div(class="col-6")
+                        {
+                            h5(class="text-center"){$"Movimiento"}
+                        }
+                        div(class="col-3 text-end")
+                        {
+                            $""
                         }
                     }
-                    tbody
+                }
+                section(id="master")
+                {
+                    table(class="table table-sm table-bordered my-2")
                     {
-                        #!
-                        for i = 0; i < list.count(data); i+1
+                        thead
                         {
-                            ref obj = list.obj(data,i)
-                            numfmt = "$ #,0.00"
-                            
-                            #$
+                            tr(class="bg-light-gray")
+                            {
+                                th(class="text-center"){$"# Mov."}
+                                th(class="text-center"){$"Fecha doc."}
+                                th(class="text-center"){$"Creación"}
+                                th(class="text-center"){$"Ult. Act."}
+                                th(class="text-center"){$"Status"}
+                                th(class="text-center"){$"Referencia"}
+                            }
+                        }
+                        tbody
+                        {
                             tr
                             {
-                                td(class="text-center"){$"#<@@(obj,'$fecha')>"}
-                                td(class=""){$"#<@@(obj,'$no_interno')>"}
-                                td(class=""){$"#<@@(obj,'$referencia')>"}
-                                td(class=""){$"#<@@(obj,'$categoria')>"}
-                                td(class=""){$"#<@@(obj,'$descripcion')>"}
-                                td(class="text-end"){$"#<format(@@(obj,'#cargos'),numfmt)>"}
-                                td(class="text-end"){$"#<format(@@(obj,'#abonos'),numfmt)>"}
-                                td(class=""){$"#<@@(obj,'$almacen')>"}
+                                td{$"#<@('$./master/sys_pk')>"}
+                                td{$"#<@('$./master/fecha_doc')>"}
+                                td{$"#<@('$./master/fecha_creacion')>"}
+                                td{$"#<@('$./master/fecha_mod')>"}
+                                td{$"#<ifstr(@('#./master/aplicado'),'Aplicado','Pendiente')>"}
+                                td{$"#<@('$./master/referencia')>"}
+
                             }
-                            #!
                         }
-                        #$
                     }
+                    table(class="table table-sm table-bordered my-2")
+                    {
+                        tbody
+                        {
+                            tr
+                            {
+                                td(class="bg-light-gray"){$"Categoría:"}
+                                td{"#<@('$./master/cod_categoria')>"}
+                                td{$"#<@('$./master/categoria')>"}
+                            }
+                        }
+                    }
+                    p{$"#<@('$./master/descripcion')>. #<@('$./master/sys_user')>"}
                 }
+                section(id="details")
+                {
+                    #!
+                    point bce to before_cell
+                    point bre to before_rowgroup
+                    new tdetails
+                    {
+                        @"datatable*":@("&./details")
+                        @"group_by":"almacen_divisa"
+                        @"before_cell*":bce
+                        @"before_row*":bre
+                        member @"columns"
+                        {
+                            member @"cod_prod"
+                            {
+                                caption:="Código"
+                            }
+                            member @"producto"
+                            {
+                                caption:="Descripción"
+                            }
+                            member @"unidad"
+                            {
+                                caption:="Unidad"
+                            }
+                            member @"entradas"
+                            {
+                                caption:="Entradas"
+                                member @"attributes"
+                                {
+                                    class:="text-center"
+                                }
+                            }
+                            member @"cargos"
+                            {
+                                caption:="Cargos"
+                                summary:="sum"
+                                member @"attributes"
+                                {
+                                    class:="text-end"
+                                }
+                            }
+                            member @"salidas"
+                            {                               
+                                caption:="Salidas"
+                                member @"attributes"
+                                {
+                                    class:="text-center"
+                                }
+                            }
+                            member @"abonos"
+                            {
+                                caption:="Abonos"
+                                summary:="sum"
+                                member @"attributes"
+                                {
+                                    class:="text-end"
+                                }
+                            }
+                            member @"divisa"
+                            {
+                                caption:="Divisa"
+                            }
+
+                        }
+                        show_summary_group:=@true
+                        show_summary:=@false
+                        
+                        member @"attributes"
+                        {
+                            class:="table table-sm table-bordered my-2"
+                        }
+                    }
+                    do uie.dbTable(tdetails)
+                    #$
+                }
+                
 
                 p(class="text-center mb-0"){$"#<@@(titles,'$footer')>"}
             }
         }}
 
-        // script(type="text/javascript"){$''}
+        script(type="text/javascript")
+        {$'
+            document.addEventListener("DOMContentLoaded", () => 
+            {
+                document.getElementById("ik_movinv").addEventListener("change",(e)=>{
+                document.getElementById("form-filter").submit();
+                });
+            });
+            
+        '}
     }
     #!
 

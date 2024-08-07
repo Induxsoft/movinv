@@ -112,6 +112,11 @@ module "Reportes de movimiento de inventario. :Report"
             }
         }
 
+        do prepareDefaultReportData(db,data)
+    }
+
+    prepareDefaultReportData::&db,&data
+    {
         using data
         {
             member @"titles"
@@ -187,9 +192,48 @@ module "Reportes de movimiento de inventario. :Report"
 
         new data
         {
-            @"data*": list.create()
+            @"master*": record.create()
+            @"detail*":list.create()
         }
-        do Report.prepareView(db,params,data)
+
+        do prepareDefaultReportData(db,data)
+
+        if @@(params,"#sys_pk")>0
+        {
+            data.master := ref dbr.rec(db,"select 
+                                c.sys_pk,
+                                IFNULL(DATE_FORMAT(c.fecha,'%Y-%m-%d'),'') fecha_doc, 
+                                date_format(c.sys_dtcreated,'%Y-%m-%dT%k:%i:%S') fecha_creacion, 
+                                date_format(c.sys_timestamp,'%Y-%m-%dT%k:%i:%S') fecha_mod, 
+                                c.referencia, c.descripcion, 
+                                c.sys_user, 
+                                t.codigo cod_categoria,
+                                t.descripcion categoria, 
+                                ifnull(c.aplicado,0) aplicado, 
+                                ifnull(c.valuado,0) valuado
+                                from cardex c inner join categoria t on c.icategoria=t.sys_pk
+                                where c.sys_pk=@sys_pk;",params)
+            data.details:= ref dbr.list(db,"select p.codigo cod_prod, 
+                                p.descripcion producto, 
+                                p.unidad unidad, 
+                                ifnull(d.entradas,0) entradas, 
+                                ifnull(d.cargos,0) cargos, 
+                                ifnull(d.salidas,0) salidas, 
+                                ifnull(d.abonos,0) abonos, 
+                                m.codigo divisa, 
+                                ifnull(d.tipocambio,1) tc,
+                                (ifnull(d.cargos,0) * ifnull(d.tipocambio,1))  - (ifnull(d.abonos,1) *  ifnull(d.tipocambio,1)) importe,
+                                a.codigo cod_almacen, 
+                                a.descripcion almacen,
+                                concat(a.codigo,' - ',a.descripcion, ' (',m.codigo,')') almacen_divisa
+                            from dcardex d inner join producto p on d.iproducto=p.sys_pk 
+                                inner join almacen a on d.ialmacen=a.sys_pk
+                                inner join divisa m on p.idivisa=m.sys_pk
+                            where d.fk_cardex_movimientos=@sys_pk
+                                order by a.descripcion, m.codigo, p.descripcion;
+            ",params)
+        }
+        //do Report.prepareView(db,params,data)
         return data
 
         exception{ do catch() }
