@@ -6,16 +6,40 @@ module "Valor del inventario"
     #include "serialize.dkh"
     #include "uielements.v12.dkl"
     #include "inventario/config.dk"
+    #include "dbr.dkh"
+    #include "dbr.vars.dkl"
+    #include "dbr.localize.dkl"
 
     do @context.begin(@crud_context)
 
-    ref data = ifnull(@("&./data"),list.create())
     ref titles = ifnull(@("&./titles"),record.create())
 
     new nav_config
     {
         @"title": "Valor del inventario"
         @"urlexit": "javascript:window.history.back()"
+    }
+
+    before_rowgroup::&params,&row
+    {
+        if (field.exist(row,"cod_divisa"))
+        {
+            params<"columns/valor/format">: dbr.localize.money_format(@crud_context.database,row.cod_divisa)
+        }
+    }
+
+    before_cell::&params,&row,&cell
+    {
+        if @@(cell,"$cell_type")=="header_group"
+        {
+            using cell
+            {
+                member @"attributes"
+                {
+                    colspan:=3
+                }
+            }
+        }
     }
 
     #$
@@ -32,10 +56,12 @@ module "Valor del inventario"
                 tr td { font-size:.8rem; }
             '}
 
-            form(class="" action="./" method="GET" id="form-filter")
-            {
-                $"Filtros aqui..."
-            }
+            
+            //form(class="" action="./" method="GET" id="form-filter")
+            //{
+            //    $"Filtros aqui..."
+            //}
+            
         }
 
         div(class="bg-light w-100 p-2" style="max-height:80vh; overflow-y:auto;") {
@@ -64,47 +90,100 @@ module "Valor del inventario"
                     }
                 }
                 
-                table(class="table table-sm table-bordered my-2")
-                {
-                    thead
+                
+                #!
+                    
+                    point bce to before_cell
+                    point bre to before_rowgroup
+                    
+                    new tsummary
                     {
-                        tr(class="bg-light-gray")
+                        @"datatable*":@("&./summary")
+                        @"group_by":"divisa"
+                        @"before_cell*":bce
+                        @"before_row*":bre
+
+                        member @"columns"
                         {
-                            th(class="text-center"){$"Fecha"}
-                            th(class="text-center"){$"No. Interno"}
-                            th(class="text-center"){$"Referencia"}
-                            th(class="text-center"){$"Categoría"}
-                            th(class="text-center"){$"Descripción"}
-                            th(class="text-center"){$"Cargos"}
-                            th(class="text-center"){$"Abonos"}
-                            th(class="text-center"){$"Almacén"}
-                        }
-                    }
-                    tbody
-                    {
-                        #!
-                        for i = 0; i < list.count(data); i+1
-                        {
-                            ref obj = list.obj(data,i)
-                            numfmt = "$ #,0.00"
-                            
-                            #$
-                            tr
+                            member @"cod_almacen"
                             {
-                                td(class="text-center"){$"#<@@(obj,'$fecha')>"}
-                                td(class=""){$"#<@@(obj,'$no_interno')>"}
-                                td(class=""){$"#<@@(obj,'$referencia')>"}
-                                td(class=""){$"#<@@(obj,'$categoria')>"}
-                                td(class=""){$"#<@@(obj,'$descripcion')>"}
-                                td(class="text-end"){$"#<format(@@(obj,'#cargos'),numfmt)>"}
-                                td(class="text-end"){$"#<format(@@(obj,'#abonos'),numfmt)>"}
-                                td(class=""){$"#<@@(obj,'$almacen')>"}
+                                caption:="Código"
                             }
-                            #!
+                            member @"almacen"
+                            {
+                                caption:="Almacén"
+                            }
+                            
+                            member @"valor"
+                            {
+                                caption:="Valor"
+                                summary:="sum"
+                                member @"attributes"
+                                {
+                                    class:="text-end"
+                                }
+                            }
+                            member @"cod_divisa"
+                            {
+                                caption:="Divisa"
+                            }
                         }
-                        #$
+                        show_summary_group:=@true
+                        show_summary:=@false
+                        
+                        member @"attributes"
+                        {
+                            class:="table table-sm table-bordered my-2"
+                        }
                     }
-                }
+
+                    new tdetails
+                    {
+                        @"datatable*":@("&./detail")
+                        @"group_by":"agrupacion"
+                        @"before_cell*":bce
+                        @"before_row*":bre
+                        member @"columns"
+                        {
+                            member @"cod_linea"
+                            {
+                                caption:="Código"
+                            }
+                            member @"linea"
+                            {
+                                caption:="Línea"
+                            }
+                            
+                            member @"valor"
+                            {
+                                caption:="Valor"
+                                summary:="sum"
+                                member @"attributes"
+                                {
+                                    class:="text-end"
+                                }
+                            }
+                            
+                        }
+                        
+                        show_summary_group:=@true
+                        show_summary:=@false
+                        
+                        member @"attributes"
+                        {
+                            class:="table table-sm table-bordered my-2"
+                        }
+                    }
+
+                    #$
+                    h6(class="text-center"){$"Resumen por almacén"}
+                    #!
+                    do uie.dbTable(tsummary)
+                    #$
+                    h6(class="text-center"){$"Detalle por línea"}
+                    #!
+                    do uie.dbTable(tdetails)
+                #$
 
                 p(class="text-center mb-0"){$"#<@@(titles,'$footer')>"}
             }

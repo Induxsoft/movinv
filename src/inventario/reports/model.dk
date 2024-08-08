@@ -236,7 +236,7 @@ module "Reportes de movimiento de inventario. :Report"
                                 order by a.descripcion, m.codigo, p.descripcion;
             ",params)
         }
-        //do Report.prepareView(db,params,data)
+        
         return data
 
         exception{ do catch() }
@@ -385,12 +385,50 @@ module "Reportes de movimiento de inventario. :Report"
     function ValorInventario(&db,&params)
     {
         do dbr.apps.action.grant("GE3C")
+        params.m_decs:=val(dbr.vars.get(db,"FXCA001")) //Decimales de precisión en dinero
+        new data {}
+            data.detail:= ref dbr.list(db,"select 
+                                    concat(a.codigo,' ',a.descripcion, ' [', d.codigo,'] ',cp.const) agrupacion,
+                                    a.codigo cod_almacen,
+                                    a.descripcion descripcion,
+                                    cp.id id_clase,
+                                    cp.const clase,
+                                    d.codigo cod_divisa,
+                                    d.descripcion divisa,
+                                    l.codigo cod_linea,
+                                    l.descripcion linea,
+                                    round(sum(ifnull(e.saldo,0)),@m_decs) valor 
+                                from existencias e inner join almacen a on e.ialmacen=a.sys_pk
+                                    inner join producto p on e.fk_producto_iexistencias=p.sys_pk 
+                                    inner join divisa d on p.idivisa=d.sys_pk
+                                    inner join linea l on p.ilinea=l.sys_pk 
+                                    inner join cclaseproducto cp on l.clase=cp.id
+                                group by a.codigo,
+                                    a.descripcion,
+                                    cp.id,
+                                    cp.const,
+                                    d.codigo,
+                                    d.descripcion,
+                                    l.codigo,
+                                    l.descripcion
+                                order by a.descripcion, cp.const, d.descripcion, l.descripcion;", params)
+            data.summary:= ref dbr.list(db,"select 
+                                    a.codigo cod_almacen,
+                                    a.descripcion almacen,
+                                    d.codigo cod_divisa,
+                                    d.descripcion divisa,
+                                    round(sum(ifnull(e.saldo,0)),@m_decs) valor 
+                                from existencias e inner join almacen a on e.ialmacen=a.sys_pk
+                                    inner join producto p on e.fk_producto_iexistencias=p.sys_pk 
+                                    inner join divisa d on p.idivisa=d.sys_pk
+                                group by a.codigo,
+                                    a.descripcion,
+                                    d.codigo,
+                                    d.descripcion
+                                order by d.descripcion, a.descripcion;", params)
+        
 
-        new data
-        {
-            @"data*": list.create()
-        }
-        do Report.prepareView(db,params,data)
+        do prepareDefaultReportData(db,data)
         return data
 
         exception{ do catch() }
