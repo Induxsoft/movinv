@@ -6,12 +6,17 @@ module "Diario de almacén"
     #include "serialize.dkh"
     #include "uielements.v12.dkl"
     #include "inventario/config.dk"
+    #include "dbr.dkh"
+    #include "dbr.vars.dkl"
+    #include "dbr.localize.dkl"
 
+
+    
     do @context.begin(@crud_context)
 
     ref data = ifnull(@("&./data"),list.create())
     ref titles = ifnull(@("&./titles"),record.create())
-
+    
     new fil_almacen
     {
         @"datatable*": ifnull(@("&./list_almcns"),list.create())
@@ -19,13 +24,13 @@ module "Diario de almacén"
         new member "attributes"
         {
             @"class": "form-select form-select-sm rounded-0"
-            @"name": "fil_almacen"
+            @"name": "almacen"
         }
         @"first_value": "-1"
         @"first_text": "(Todos los almacenes)"
         @"value_field": "sys_pk"
         @"text_field": "descripcion"
-        @"selected": @("#parameters/fil_almacen")
+        @"selected": @("#parameters/almacen")
     }
 
     new fil_categoria
@@ -35,13 +40,36 @@ module "Diario de almacén"
         new member "attributes"
         {
             @"class": "form-select form-select-sm rounded-0"
-            @"name": "fil_categoria"
+            @"name": "categoria"
         }
         @"first_value": "-1"
         @"first_text": "(Todas las categorias)"
         @"value_field": "sys_pk"
         @"text_field": "descripcion"
-        @"selected": @("#parameters/fil_categoria")
+        @"selected": @("#parameters/categoria")
+    }
+
+    before_rowgroup::&params,&row
+    {
+        if (field.exist(row,"cod_divisa"))
+        {
+            params<"columns/cargos/format">: dbr.localize.money_format(@crud_context.database,row.cod_divisa)
+            params<"columns/abonos/format">: dbr.localize.money_format(@crud_context.database,row.cod_divisa)
+        }
+    }
+
+    before_cell::&params,&row,&cell
+    {
+        if @@(cell,"$cell_type")=="header_group"
+        {
+            using cell
+            {
+                member @"attributes"
+                {
+                    colspan:=8
+                }
+            }
+        }
     }
 
     new nav_config
@@ -63,7 +91,7 @@ module "Diario de almacén"
                 tr th { font-size:.9rem; outline:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; -o-text-overflow:ellipsis; }
                 tr td { font-size:.8rem; }
             '}
-
+            
             form(class="" action="./" method="GET" id="form-filter")
             {
                 div(class="d-flex align-items-center gap-2 flex-wrap w-100 py-1")
@@ -74,90 +102,118 @@ module "Diario de almacén"
                         div{ #! do uie.dbSelect(fil_categoria) } #$
                         div(class="d-inline-flex gap-1")
                         {
-                            input(class="form-control form-control-sm rounded-0" type="date" name="fil_fi" id="fil_fi" title="Fecha inicial")
-                            input(class="form-control form-control-sm rounded-0" type="date" name="fil_ff" id="fil_ff" title="Fecha final")
+                            input(class="form-control form-control-sm rounded-0" type="date" name="fecha_inicial" id="fil_fi" title="Fecha inicial" value="#<@('$parameters/fecha_inicial')>")
+                            input(class="form-control form-control-sm rounded-0" type="date" name="fecha_final" id="fil_ff" title="Fecha final" value="#<@('$parameters/fecha_final')>")
                         }
                     }
                     div(class="d-flex flex-grow-1 justify-content-end"){ button(class="btn btn-sm btn-primary rounded-0" type="submit" id="btn_filter"){$"Aplicar"} }
                 }
                 
-                input(class="form-control form-control-sm rounded-0" type="text" name="fil_text" value="#<@('$parameters/fil_text')>" placeholder="Buscar..." id="fil_text")
+                input(class="form-control form-control-sm rounded-0" type="text" name="text" value="#<@('$parameters/text')>" placeholder="Filtrar por..." id="fil_text")
             }
         }
 
-        div(class="bg-light w-100 p-2" style="max-height:80vh; overflow-y:auto;") {
-        div(class="" style="box-shadow: inset 0 -3em 3em rgba(0, 0, 0, 0.1), 0.3em 0.3em 1em rgba(0, 0, 0, 0.3);")
+        div(class="bg-light w-100 p-2" style="max-height:80vh; overflow-y:auto;") 
         {
-            section(class="bg-white p-1" id="work_area")
+            div(class="" style="box-shadow: inset 0 -3em 3em rgba(0, 0, 0, 0.1), 0.3em 0.3em 1em rgba(0, 0, 0, 0.3);")
             {
-                p(class="text-center mb-0"){$"#<@@(titles,'$title')>"}
-                p(class="text-center mb-0"){$"#<@@(titles,'$subtitle')>"}
-                p(class="text-center mb-0"){$"#<@@(titles,'$subtitle_2')>"}
+                section(class="bg-white p-1" id="work_area")
+                {
+                    p(class="text-center mb-0"){$"#<@@(titles,'$title')>"}
+                    p(class="text-center mb-0"){$"#<@@(titles,'$subtitle')>"}
+                    p(class="text-center mb-0"){$"#<@@(titles,'$subtitle_2')>"}
 
-                div(class="row")
-                {
-                    div(class="col-3")
+                    div(class="row")
                     {
-                        small(class="d-block"){ $"#<cut(@('$http/session/user/name'),25)>" }
-                        small(class="d-block"){ b{$"Impresión: "} $"#<date_str(now(),'dd/MMM/yyyy')>" }
-                    }
-                    div(class="col-6")
-                    {
-                        h5(class="text-center"){$"Diario de almacén"}
-                    }
-                    div(class="col-3 text-end")
-                    {
-                        $""
-                    }
-                }
-                
-                table(class="table table-sm table-bordered my-2")
-                {
-                    thead
-                    {
-                        tr(class="bg-light-gray")
+                        div(class="col-3")
                         {
-                            th(class="text-center"){$"Fecha"}
-                            th(class="text-center"){$"No. Interno"}
-                            th(class="text-center"){$"Referencia"}
-                            th(class="text-center"){$"Categoría"}
-                            th(class="text-center"){$"Descripción"}
-                            th(class="text-center"){$"Cargos"}
-                            th(class="text-center"){$"Abonos"}
-                            th(class="text-center"){$"Almacén"}
+                            small(class="d-block"){ $"#<cut(@('$http/session/user/name'),25)>" }
+                            small(class="d-block"){ b{$"Impresión: "} $"#<date_str(now(),'dd/MMM/yyyy')>" }
+                        }
+                        div(class="col-6")
+                        {
+                            h5(class="text-center"){$"Diario de almacén"}
+                        }
+                        div(class="col-3 text-end")
+                        {
+                            $""
                         }
                     }
-                    tbody
+                    
+                    #!
+                    point bce to before_cell
+                    point bre to before_rowgroup
+                    //do rise_error(0,to.json(@("&./detail")))
+                    new tdetail
+                {
+                    @"datatable*":@("&./detail")
+                    @"group_by":"agrupacion"
+                    @"before_cell*":bce
+                    @"before_row*":bre
+
+                    member @"columns"
                     {
-                        #!
-                        for i = 0; i < list.count(data); i+1
+                        member @"sys_pk"
                         {
-                            ref obj = list.obj(data,i)
-                            numfmt = "$ #,0.00"
-                            
-                            #$
-                            tr
+                            caption:="# Mov."
+                        }
+                        member @"actualizacion"
+                        {
+                            caption:="F. operación"
+                        }
+                        member @"cod_categoria"
+                        {
+                            caption:="C. Cat."
+                        }
+                        member @"categoria"
+                        {
+                            caption:="Categoría"
+                        }
+                        member @"referencia"
+                        {
+                            caption:="Referencia"
+                        }
+                        member @"descripcion"
+                        {
+                            caption:="Descripción"
+                        }
+                        member @"cargos"
+                        {
+                            caption:="Cargos"
+                            summary:="sum"
+                            member @"attributes"
                             {
-                                td(class="text-center"){$"#<@@(obj,'$fecha')>"}
-                                td(class=""){$"#<@@(obj,'$no_interno')>"}
-                                td(class=""){$"#<@@(obj,'$referencia')>"}
-                                td(class=""){$"#<@@(obj,'$categoria')>"}
-                                td(class=""){$"#<@@(obj,'$descripcion')>"}
-                                td(class="text-end"){$"#<format(@@(obj,'#cargos'),numfmt)>"}
-                                td(class="text-end"){$"#<format(@@(obj,'#abonos'),numfmt)>"}
-                                td(class=""){$"#<@@(obj,'$almacen')>"}
+                                class:="text-end"
                             }
-                            #!
                         }
-                        #$
+                        member @"abonos"
+                        {
+                            caption:="Abonos"
+                            summary:="sum"
+                            member @"attributes"
+                            {
+                                class:="text-end"
+                            }
+                        }
+                        
+                    }
+                    show_summary_group:=@true
+                    show_summary:=@false
+                    
+                    member @"attributes"
+                    {
+                        class:="table table-sm table-bordered my-2"
                     }
                 }
 
-                p(class="text-center mb-0"){$"#<@@(titles,'$footer')>"}
-            }
-        }}
+                do uie.dbTable(tdetail)
+                    #$
 
+                    p(class="text-center mb-0"){$"#<@@(titles,'$footer')>"}
+                }
+            }
         // script(type="text/javascript"){$''}
+        }
     }
     #!
 
