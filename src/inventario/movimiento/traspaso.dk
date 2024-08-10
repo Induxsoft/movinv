@@ -37,19 +37,19 @@ program
 
                 div(class="mb-3")
                 {
-                    div(class="row")
+                    div(class="row align-items-center")
                     {
-                        div(class="col-4")
+                        div(class="col-2")
                         {
                             label{$"Fecha:"}
                             input(type="date" name="fecha" class="induxsoft-form-control" value="#<date_str(now(),'yyyy-MM-dd')>")
                         }
-                        div(class="col-4")
+                        div(class="col-3")
                         {
                             label{$"Referencia:"}
                             input(type="text" name="referencia" class="induxsoft-form-control" required="true")
                         }
-                        div(class="col-4")
+                        div(class="col-5")
                         {
                             label{$"Categoría:"}
                             "input-key"(
@@ -68,12 +68,21 @@ program
                                 "control-styles"=""
                             ){$""}
                         }
+                        div(class="col-2")
+                        {
+                            label("for"="mov_2p"){$"Aplicación:"}
+                            select(name="mov_2p" class="form-select induxsoft-form-control me-1" id ="mov_2p")
+                            {
+                                option(value="0"){$"Completa"}
+                                option(value="1"){$"En dos pasos"}
+                            }
+                        }
                     }
                     div(class="row")
                     {
                         div(class="col-6")
                         {
-                            label{$"Almacen origen:"}
+                            label{$"Almacén de origen:"}
                             "input-key"(
                                 id="ik_almacen_origen"
                                 name="ialmacen"
@@ -92,7 +101,7 @@ program
                         }
                         div(class="col-6")
                         {
-                            label{$"Almacen destino:"}
+                            label{$"Almacén de destino:"}
                             "input-key"(
                                 id="ik_almacen_destino"
                                 name="ialmacen2"
@@ -167,6 +176,8 @@ program
                 $""
             }
         }
+
+        div(id="_custom_area"){ script{$"#<@@(@crud_context,'script')>"} }
 
         script(src="#<@JS_MAIN>"){$""}
         script(src="#<@JS_MOVINV>"){$""}

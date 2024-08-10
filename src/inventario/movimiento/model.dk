@@ -292,14 +292,18 @@ module "model"
 					{
 						// Salida
 						@mover_serie = @true
+						valuar = @true
 						ref dcardex1 = movinv.genDetalle(producto, almacen1, @false)
 						do movinv.setSerieLote(db,producto,dcardex1,@mTraspaso)
 						do list.add(detalle, dcardex1)
 						// Entrada
-						@mover_serie = @false
-						ref dcardex2 = movinv.genDetalle(producto, almacen2, @true)
-						do movinv.setSerieLote(db,producto,dcardex2,@mTraspaso)
-						do list.add(detalle, dcardex2)
+						if not(@@(data,"#mov_2p")) //No efectuar la entrada si se ha marcado como operación en dos pasos
+						{
+							@mover_serie = @false
+							ref dcardex2 = movinv.genDetalle(producto, almacen2, @true)
+							do movinv.setSerieLote(db,producto,dcardex2,@mTraspaso)
+							do list.add(detalle, dcardex2)
+						}
 						break
 					}
 				}
@@ -324,8 +328,28 @@ module "model"
 		// @use_transaction = @false
 		
 		// do dbr.begin(db)
+		es_orden_transferencia=@false
+		if field.exist(data,"mov_2p") 
+		{ 
+			es_orden_transferencia=@@(data,"#mov_2p")
+			do field.remove(data,"mov_2p") 
+		}
+
 		ref res = record.caseinsensitive(entity.create(db, params, data))
 		do erp.inventario.aplicar_mov(db,@@(res,"#sys_pk"),valuar)
+
+		if es_orden_transferencia
+		{
+			new orden
+			{
+				ref_salida:=@@(res,"#sys_pk")
+				ref_origen:=almacen1
+				ref_destino:=almacen2
+				completada:=@false
+				cancelada:=@false
+			}
+			do dbr.save(db,"inv_orden_traspaso",orden)
+		}
 		// do dbr.commit(db)
 		
 		return res

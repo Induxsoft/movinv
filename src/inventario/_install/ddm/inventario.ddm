@@ -52,6 +52,32 @@ model "movinv"
         @"iserie" ref:"serie"
         @"fk_cardex_movimientos" ref:"cardex" required
     }
+
+    // Órdenes de traspado en dos pasos
+    entity "inv_orden_traspaso" : "TableModel"
+    {
+        @"ref_salida" ref: "cardex" required unique
+        @"ref_origen" ref: "almacen" required
+        @"ref_destino" ref: "almacen" required
+        @"completada" bool
+        @"cancelada" bool
+    }
+
+    entity "inv_orden_tr_faltante" : "TableModel"
+    {
+        @"ref_orden" ref:"inv_orden_traspaso" required
+        @"ref_dcardex" ref: "dcardex" required
+        @"faltante" decimal(18,8) required
+        @"costo" decimal(18,8) required
+        @"nota" memo
+
+        index "inv_orden_tr_faltante" unique
+        {
+            field "ref_orden"
+            field "ref_dcardex"
+        }
+    }
+
     // Contiene identificadores de grupos de productos de características similares o iguales
     entity "lote" : "TableModel"
     {
