@@ -19,6 +19,13 @@ module "controller"
             @form_view = "traspaso.dk"
             break
         }
+        case "recepcion"
+        {
+            @list_view = "recepcion.dk"
+            @form_view = "recepcion.dk"
+
+            point @list to movinv.recepcion.search
+        }
         case "existencias"
         {
             @form_view = "existencias.dk"

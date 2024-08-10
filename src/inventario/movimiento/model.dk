@@ -629,6 +629,31 @@ module "model"
         }
 	}
 
+	function movinv.recepcion.search(&db,&params)
+	{
+		@url_redir = "/!/inventario/movimiento/?_view=recepcion"
+		
+		if trim(@@(params,"$s")) == "" { return list.create() }
+
+		sql_search = "
+		SELECT
+			c.referencia,
+			c.descripcion,
+			a1.descripcion origen,
+			a2.descripcion destino,
+			c.sys_pk mov_num,
+			ot.sys_pk orden_num
+		FROM inv_orden_traspaso ot
+			INNER JOIN cardex c ON ot.ref_salida=c.sys_pk
+			inner join almacen a1 on ot.ref_origen=a1.sys_pk
+			inner join almacen a2 on ot.ref_destino=a2.sys_pk
+		WHERE IFNULL(ot.completada,0)=0
+			AND IFNULL(ot.cancelada,0)=0
+			AND (c.referencia = @s OR c.descripcion LIKE CONCAT('%',@s,'%'))
+		"
+		return dbr.list(db,sql_search,params)
+	}
+
 	@table_name = "cardex"
 
     // point @create 	to entity.create

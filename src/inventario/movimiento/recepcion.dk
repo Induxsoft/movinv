@@ -1,0 +1,65 @@
+#include "dkli.dkh"
+#!
+module "recepcion.dk"
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "uielements.v12.dkl"
+    #include "inventario/config.dk"
+    // #include "dbr.dkh"
+    // #include "dbr.vars.dkl"
+    // #include "dbr.localize.dkl"
+
+    do @context.begin(@crud_context)
+
+    ref titles = ifnull(@("&./titles"),record.create())
+
+    ik_sm_style = "
+    #input_search_container, #input_description_container,
+    #button_search_container, #button_clear_container {
+        height: calc(1.5em + .5rem + 2px) !important;
+        padding: .25rem .5rem !important;
+        font-size: .875rem !important;
+    }
+    "
+
+    new nav_config
+    {
+        @"title": "Recepción"
+        @"urlexit": "javascript:window.history.back()"
+    }
+    #$
+    div(class="container v12-list-view" id="view")
+    {
+        section(class="bg-white" id="top_area")
+        {
+            #!
+            do uie.printV12FormBar(nav_config)
+            #$
+
+            form(class="" action="./" method="GET" id="form-filter")
+            {
+                "input-key"(name="s" id="ik_movinv" "data-value"="{}" "data-key"="orden_num" "data-search"="referencia" "data-text"="descripcion" "data-source"="#<@URL_BUSCAR_OTRASPASO>" columns="referencia,descripcion,origen,destino" colcaptions="Referencia,Descripción,Origen,Destino" "control-styles"="#<ik_sm_style>"){$""}
+            }
+        }
+
+        section(class="" id="work_area")
+        {
+            code{"#<to.json(@('&.'))>"}
+        }
+
+        script(type="text/javascript")
+        {$'
+            document.addEventListener("DOMContentLoaded", () => 
+            {
+                document.getElementById("ik_movinv").addEventListener("change",(e)=>{
+                document.getElementById("form-filter").submit();
+                });
+            });
+            
+        '}
+    }
+    #!
+
+    do @context.end()
+}
