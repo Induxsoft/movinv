@@ -57,10 +57,12 @@ model "movinv"
     entity "inv_orden_traspaso" : "TableModel"
     {
         @"ref_salida" ref: "cardex" required unique
+        @"ref_entrada" ref: "cardex" 
         @"ref_origen" ref: "almacen" required
         @"ref_destino" ref: "almacen" required
         @"completada" bool
         @"cancelada" bool
+
     }
 
     entity "inv_orden_tr_faltante" : "TableModel"
