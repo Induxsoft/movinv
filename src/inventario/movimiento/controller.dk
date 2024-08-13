@@ -25,6 +25,9 @@ module "controller"
             @form_view = "recepcion.dk"
 
             point @list to movinv.recepcion.search
+            point @read to movinv.recepcion.load
+            point @create to movinv.recepcion.process
+            point @update to movinv.recepcion.process
         }
         case "existencias"
         {

@@ -125,9 +125,9 @@ program
                                     "edit-th"(type="NoEditable" field="existencia"){$"Existencia"}
                                     "edit-th"(type="Number" field="cantidad"){$"Cantidad"}
                                     "edit-th"(type="NoEditable" field="nueva_existencia"){$"Nva. Exist."}
-                                    "edit-th"(type="Text" field="lote"){$"Lote"}
-                                    "edit-th"(type="Date" field="fcad"){$"Caducidad"}
-                                    "edit-th"(type="Text" field="serie"){$"Serie"}
+                                    "edit-th"(type="NoEditable" field="lote" button="true"){$"Lote"}
+                                    "edit-th"(type="NoEditable" field="fcad"){$"Caducidad"}
+                                    "edit-th"(type="NoEditable" field="serie" button="true"){$"Serie"}
                                 }
                             }
                         }

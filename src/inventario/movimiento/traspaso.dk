@@ -71,11 +71,12 @@ program
                         div(class="col-2")
                         {
                             label("for"="mov_2p"){$"Aplicación:"}
-                            select(name="mov_2p" class="form-select induxsoft-form-control me-1" id ="mov_2p")
+                            select(name="mov_2p" class="induxsoft-form-select" id ="mov_2p")
                             {
                                 option(value="0"){$"Completa"}
                                 option(value="1"){$"En dos pasos"}
                             }
+                            input(type="hidden" name="step" value="1")
                         }
                     }
                     div(class="row")
@@ -155,9 +156,9 @@ program
                                     "edit-th"(type="Number" field="cantidad"){$"Cantidad"}
                                     "edit-th"(type="NoEditable" field="nueva_existencia_origen" title="Nueva existencia en almacen de origen"){$"Nva. Exist. Orig."}
                                     "edit-th"(type="NoEditable" field="nueva_existencia_destino" title="Nueva existencia en almacen de destino"){$"Nva. Exist. Dest."}
-                                    "edit-th"(type="Text" field="lote"){$"Lote"}
-                                    "edit-th"(type="Date" field="fcad"){$"Caducidad"}
-                                    "edit-th"(type="Text" field="serie"){$"Serie"}
+                                    "edit-th"(type="NoEditable" field="lote" button="true"){$"Lote"}
+                                    "edit-th"(type="NoEditable" field="fcad"){$"Caducidad"}
+                                    "edit-th"(type="NoEditable" field="serie" button="true"){$"Serie"}
                                 }
                             }
                         }

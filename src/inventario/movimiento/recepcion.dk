@@ -6,13 +6,14 @@ module "recepcion.dk"
     #include "serialize.dkh"
     #include "uielements.v12.dkl"
     #include "inventario/config.dk"
-    // #include "dbr.dkh"
-    // #include "dbr.vars.dkl"
-    // #include "dbr.localize.dkl"
 
     do @context.begin(@crud_context)
 
-    ref titles = ifnull(@("&./titles"),record.create())
+    ref movinv = ifnull(@("&./movinv"),record.create())
+    ref detalle = ifnull(@("&./detalle"),list.create())
+    ref orden = record.copy(movinv,"ord_num,mov_num,referencia,descripcion,alm_origen,alm_destino")
+
+    @_order_num = @("#parameters/_entity_id")
 
     ik_sm_style = "
     #input_search_container, #input_description_container,
@@ -23,11 +24,22 @@ module "recepcion.dk"
     }
     "
 
+    function fn_print_buttons()
+    {
+        #$
+        button(class="btn btn-sm border-secondary induxsoft-corners btn-main-action" type="button" id="btn_process"){$"Recibir"}
+        #!
+    }
+    point nav_buttons to fn_print_buttons
     new nav_config
     {
         @"title": "Recepción"
-        @"urlexit": "javascript:window.history.back()"
+        @"urlexit": @INVENTARIO //"javascript:window.history.back()"
+        @"buttons*": nav_buttons
     }
+
+    if @_order_num <= 0 { do field.remove(nav_config,"buttons") }
+
     #$
     div(class="container v12-list-view" id="view")
     {
@@ -37,24 +49,164 @@ module "recepcion.dk"
             do uie.printV12FormBar(nav_config)
             #$
 
-            form(class="" action="./" method="GET" id="form-filter")
+            form(class="mb-2" action="./" method="GET" id="form-filter")
             {
-                "input-key"(name="s" id="ik_movinv" "data-value"="{}" "data-key"="orden_num" "data-search"="referencia" "data-text"="descripcion" "data-source"="#<@URL_BUSCAR_OTRASPASO>" columns="referencia,descripcion,origen,destino" colcaptions="Referencia,Descripción,Origen,Destino" "control-styles"="#<ik_sm_style>"){$""}
+                "input-key"(name="ot" id="ik_orden" "data-key"="ord_num" "data-search"="referencia" "data-text"="descripcion" "data-value"="#<to.json(orden)>" "data-source"="#<@URL_BUSCAR_OTRASPASO>" columns="referencia,descripcion,alm_origen,alm_destino" colcaptions="Referencia,Descripción,Origen,Destino" "hidden-input"="false" "control-styles"="#<ik_sm_style>"){$""}
             }
         }
 
+        #!
+        if @_order_num > 0 {#$
         section(class="" id="work_area")
         {
-            code{"#<to.json(@('&.'))>"}
+            form(class="my-2" action="./" method="POST" id="form-recepcion")
+            {
+                input(type="hidden" name="sys_pk" value="#<@@(movinv,'#sys_pk')>")
+                input(type="hidden" name="sys_recver" value="#<@@(movinv,'#sys_recver')>")
+
+                div(class="row")
+                {
+                    div(class="col-auto")
+                    {
+                        label(class="form-label fw-bold d-block mb-1"){$"Fecha: "}
+                        $"#<@@(movinv,'$fecha')>"
+                    }
+                    div(class="col-auto")
+                    {
+                        input(type="hidden" name="referencia" value="#<@@(movinv,'$referencia')>")
+                        label(class="form-label fw-bold d-block mb-1"){$"Referencia: "}
+                        $"#<@@(movinv,'$referencia')>"
+                    }
+                    div(class="col-auto")
+                    {
+                        input(type="hidden" name="icategoria" value="#<@@(movinv,'#icategoria')>")
+                        label(class="form-label fw-bold d-block mb-1"){$"Categoría: "}
+                        $"#<@@(movinv,'$cat_traspaso')>"
+                    }
+                    div(class="col-auto")
+                    {
+                        input(type="hidden" name="iorigen" value="#<@@(movinv,'#iorigen')>")
+                        label(class="form-label fw-bold d-block mb-1"){$"Almacén origen: "}
+                        $"#<@@(movinv,'$alm_origen')>"
+                    }
+                    div(class="col-auto")
+                    {
+                        input(type="hidden" name="idestino" value="#<@@(movinv,'#idestino')>")
+                        label(class="form-label fw-bold d-block mb-1"){$"Almacén destino: "}
+                        $"#<@@(movinv,'$alm_destino')>"
+                    }
+                    div(class="col-12")
+                    {
+                        label(class="form-label fw-bold d-block mb-1"){$"Descripción: "}
+                        textarea(class="form-control rounded-0 border-0" name="descripcion" style="pointer-events:none;"){$"#<@@(movinv,'$descripcion')>"}
+                    }
+                }
+            }
+
+            div(class="border border-top-0 mb-2" id="div_detalle" style="width:auto; min-width:100%; height:60vh; display:flex;")
+            {
+                "edit-table"(id="tbl_detalle" data="#<to.json(detalle)>" "auto-confirm"="true" style="width:100%;"
+                "row-height"="1.2rem"
+                "control-styles"='
+                    tr td[data-cell="Código"],
+                    tr td[data-cell="Descripción"],
+                    tr td[data-cell="Unidad"],
+                    tr td[data-cell="Divisa"],
+                    tr td[data-cell="Importe"],
+                    tr td[data-cell="Enviado"],
+                    tr td[data-cell="Faltante/Sobrante"],
+                    tr td[data-cell="No. Lote"],
+                    tr td[data-cell="Caducidad"],
+                    tr td[data-cell="No. Serie"]
+                    {
+                        background-color:#FAFAFA;
+                        color:#000;
+                    }
+
+                    tr th { font-size:.9rem; outline:none !important; font-weight:500 !important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; -o-text-overflow:ellipsis; }
+                    tr td { font-size:.8rem; }
+                    #__table_input { font-size:unset !important; }
+                ')
+                {
+                    "edit-thead"
+                    {
+                        "edit-tr"
+                        {
+                            "edit-th"(type="NoEditable" field="codigo"){$"Código"}
+                            "edit-th"(type="NoEditable" field="descripcion"){$"Descripción"}
+                            "edit-th"(type="NoEditable" field="unidad" textalign="center"){$"Unidad"}
+                            "edit-th"(type="NoEditable" field="cdivisa" textalign="center"){$"Divisa"}
+                            "edit-th"(type="NoEditable" field="abonos" textalign="end" format="true" decs="8" prefix="$" thousandssep="true"){$"Importe"}
+                            "edit-th"(type="NoEditable" field="salidas" textalign="center" format="true" decs="3"){$"Enviado"}
+                            "edit-th"(type="Number" field="recibidas" textalign="center" format="true" decs="3"){$"Recibido"}
+                            "edit-th"(type="NoEditable" field="faltantes" textalign="center" format="true" decs="3"){$"Faltante/Sobrante"}
+                            "edit-th"(type="NoEditable" field="lote"){$"No. Lote"}
+                            "edit-th"(type="NoEditable" field="fcad"){$"Caducidad"}
+                            "edit-th"(type="NoEditable" field="serie"){$"No. Serie"}
+                            "edit-th"(type="Memo" field="nota"){$"Notas"}
+                        }
+                    }
+                }
+            }
+        }
         }
 
         script(type="text/javascript")
         {$'
             document.addEventListener("DOMContentLoaded", () => 
             {
-                document.getElementById("ik_movinv").addEventListener("change",(e)=>{
-                document.getElementById("form-filter").submit();
+                const form = document.getElementById("form-recepcion");
+                const table = document.getElementById("tbl_detalle");
+                const ik_orden = document.getElementById("ik_orden");
+                const btn_process = document.getElementById("btn_process");
+
+                ik_orden.change_event = (data) => {
+                    let vw_otraspaso = "#<@INV_VIEW_OTRASPASO>";
+                    let order_num = data?.ord_num??0;
+                    window.location.href = vw_otraspaso.replace("{order_num}",order_num);
+                }
+
+                if (btn_process) btn_process.addEventListener("click", () => {
+                    if (confirm("¿Esta seguro(a) que desea procesar la recepción seleccionada?"))
+                        InduxsoftCrudlModel.Submit(form, {_detalle: (table?.DataArray??[])}, null, null, {url_exit: "#<@INVENTARIO>"});
                 });
+
+                if (table)
+                {
+                    const events = table.EdiTable.Const.Events;
+                    let _arr = table?.DataArray??[];
+                    let _obj = {};
+
+                    table.AutoAddRow = false;
+                    table.AutoDelRow = false;
+
+                    table.Events[events.BeforeUpdateCell] = (e) =>
+                    {
+                        let index = e.sender.RowIndexOfTd(e.td);
+                        _obj = e.sender.DataArray[index];
+                    }
+
+                    table.Events[events.ConfirmEdition] = (e) =>
+                    {
+                        let field = e.coldef.field;
+                        let index = e.sender.RowIndexOfTd(e.td);
+                        let obj = e.sender.DataArray[index];
+                        
+                        if (field === "recibidas")
+                        {
+                            let recibidas = Number(e.text);
+                            if (recibidas < 0) {
+                                alert("El valor ingresado no puede ser menor a cero.");
+                                recibidas = Number(_obj.recibidas);
+                            }
+
+                            obj["faltantes"] = Math.sub(Number(obj.salidas),recibidas);
+                            e.text = recibidas;
+                        }
+
+                        table.UpdateRow(index);
+                    }
+                }
             });
             
         '}

@@ -12,6 +12,7 @@ module "existencias.dk"
 
     ref producto = ifnull(@("&./producto"),record.create())
     ref existencias = ifnull(@("&./existencias"),list.create())
+    ref transferencias = ifnull(@("&./transferencias"),list.create())
 
     @_entity_id = @("$parameters/_entity_id")
     @current_url = lib.curr_url()
@@ -33,7 +34,7 @@ module "existencias.dk"
     }
     point before_cell to fn_before_cell
 
-    new table_definition
+    new def_table_ex
     {
         @"id": "tbl_existencias"
         @"datatable*": existencias
@@ -42,7 +43,7 @@ module "existencias.dk"
 
         member @"attributes"
         {
-            @"class": "table"
+            @"class": "table table-sm table-bordered"
         }
         
         member @"columns"
@@ -52,55 +53,63 @@ module "existencias.dk"
             {
                 @"caption": "Mínimo"
                 @"format": "#,0.0000"
-
-                member @"attributes"
-                {
-                    @"class": "text-center"
-                }
             }
             member @"maximo"
             {
                 @"caption": "Máximo"
                 @"format": "#,0.0000"
-
-                member @"attributes"
-                {
-                    @"class": "text-center"
-                }
             }
             member @"preorden"
             {
                 @"caption": "P. Re-orden"
                 @"format": "#,0.0000"
-                
-                member @"attributes"
-                {
-                    @"class": "text-center"
-                }
             }
             member @"existencia"
             {
                 @"caption": "Existencia"
                 @"format": "#,0.0000"
                 @"summary": "sum"
-
-                member @"attributes"
-                {
-                    @"class": "text-center"
-                }
             }
             member @"saldo"
             {
                 @"caption": "Saldo"
                 @"format": "$ #,0.0000"
                 @"summary": "sum"
-
-                member @"attributes"
-                {
-                    @"class": "text-end"
-                }
             }
             member @"_actions" { @"caption": "Acciones" }
+        }
+    }
+
+    new def_table_tr
+    {
+        @"id": "tbl_transferencias"
+        @"datatable*": transferencias
+        @"show_summary": @true
+
+        member @"attributes"
+        {
+            @"class": "table table-sm table-bordered"
+        }
+        
+        member @"columns"
+        {
+            member @"fecha" { @"caption": "Fecha" }
+            member @"referencia" { @"caption": "Referencia" }
+            member @"alm_origen" { @"caption": "Almacén origen" }
+            member @"salidas"
+            {
+                @"caption": "Cantidad"
+                @"format": "#,0.000"
+                @"summary": "sum"
+            }
+            member @"unidad" { @"caption": "Unidad" }
+            member @"abonos"
+            {
+                @"caption": "Importe"
+                @"format": "$ #,0.000"
+                @"summary": "sum"
+            }
+            member @"alm_destino" { @"caption": "Almacén destino" }
         }
     }
 
@@ -111,15 +120,18 @@ module "existencias.dk"
     }
 
     #$
-    div(class="container")
+    div(class="v12-list-view" id="view")
     {
-        #!
-        do uie.printV12FormBar(navbar_settings)
-        #$
+        section(class="container-fluid bg-white" id="top_area")
+        {
+            #!
+            do uie.printV12FormBar(navbar_settings)
+            #$
+        }
 
         div(class="#<ifstr(@('error/message')!='','alert alert-danger','')> overflow-auto"){$"#<@('error/message')>"}
 
-        div(class="bg-white p-1" id="section-to-print")
+        section(class="container-fluid bg-white" id="work_area")
         {
             div(class="show-on-print"){
             div(class="row")
@@ -141,7 +153,7 @@ module "existencias.dk"
 
             div(class="d-flex justify-content-end flex-wrap gap-3 mb-1")
             {
-                span(class="flex-grow-1 fw-bold"){$"#<@@(producto,'$tproducto')>"}
+                h6(class="flex-grow-1"){$"#<@@(producto,'$tproducto')>"}
 
                 span{ small(class="fw-bold"){$"Existencia y saldo: "} $"#<format(@@(producto,'#existencia'),'#,0.0000')>" }
                 span{ small(class="fw-bold"){$""} $"#<@@(producto,'$unidad')>" }
@@ -157,8 +169,31 @@ module "existencias.dk"
 
             div(class="table-container my-2")
             {
+                style
+                {$'
+                    table th { text-align:center; }
+
+                    #tbl_existencias td:nth-child(2),
+                    #tbl_existencias td:nth-child(3),
+                    #tbl_existencias td:nth-child(4),
+                    #tbl_existencias td:nth-child(5),
+                    #tbl_existencias td:nth-child(7),
+                    #tbl_transferencias td:nth-child(4),
+                    #tbl_transferencias td:nth-child(5)
+                    { text-align:center; }
+
+                    #tbl_existencias td:nth-child(6),
+                    #tbl_transferencias td:nth-child(6)
+                    { text-align:end; }
+                '}
                 #!
-                do uie.dbTable(table_definition)
+                do uie.dbTable(def_table_ex)
+                #$
+
+                h6{"Transferencias en proceso"}
+
+                #!
+                do uie.dbTable(def_table_tr)
                 #$
             }
         }

@@ -14,6 +14,7 @@ GE13,Agregar traspaso de productos,inventario.movimiento
 GE14,Ver cardex del producto,inventario.movimiento
 GE15,Ver existencias del producto,inventario.movimiento
 GE16,Ver lotes o series del producto,inventario.movimiento
+GE17,Recepción de transferencia,inventario.movimiento
 inventario.reports,Informes de inventario,inventario
 GE31,Diario de almacén (Informe),inventario.reports
 GE32,Movimiento (informe),inventario.reports

@@ -131,7 +131,7 @@ module "list.dk"
         @"title": "Inventario"
         @"buttons*": @null
         @"urlexit": "/"
-        @"main": ""
+        @"main": "GE11,GE12,GE13,GE17"
         @"actions*": dbr.apps.itemactions(@('&database'),"DET077","action","",0)
         @"reports*": dbr.apps.itemactions(@('&database'),"DET077","report","",0)
         @"jscurrentcontext": "movinv.getCurrentContext"

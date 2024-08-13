@@ -240,6 +240,8 @@ module "model"
 		almacen2 = 0
 
 		tipo_mov = @@(data, "$tipo_movimiento")
+		mov_2p = parse.bool(@@(data,"#mov_2p"))
+		step = @@(data,"#step")
 
 		if field.exist(data, "ialmacen") {
 			almacen1 = @@(data,"#ialmacen")
@@ -261,6 +263,8 @@ module "model"
 		valuar = @false
 		
 		do field.remove(data, "tipo_movimiento")
+		if field.exist(data,"mov_2p"){ do field.remove(data,"mov_2p") }
+		if field.exist(data,"step"){ do field.remove(data,"step") }
 
 		if not(isnull(productos)) && list.count(productos) > 0
 		{
@@ -291,13 +295,17 @@ module "model"
 					case "traspaso"
 					{
 						// Salida
-						@mover_serie = @true
-						valuar = @true
-						ref dcardex1 = movinv.genDetalle(producto, almacen1, @false)
-						do movinv.setSerieLote(db,producto,dcardex1,@mTraspaso)
-						do list.add(detalle, dcardex1)
+						if not(mov_2p) || (mov_2p && step==1)
+						{
+							@mover_serie = @true
+							valuar = @true
+							ref dcardex1 = movinv.genDetalle(producto, almacen1, @false)
+							do movinv.setSerieLote(db,producto,dcardex1,@mTraspaso)
+							do list.add(detalle, dcardex1)	
+						}
 						// Entrada
-						if not(@@(data,"#mov_2p")) //No efectuar la entrada si se ha marcado como operación en dos pasos
+						//No efectuar la entrada si se ha marcado como operación en dos pasos
+						if not(mov_2p) || (mov_2p && step==2)
 						{
 							@mover_serie = @false
 							ref dcardex2 = movinv.genDetalle(producto, almacen2, @true)
@@ -319,26 +327,19 @@ module "model"
 					@"joinfield": "fk_cardex_movimientos"
 					@"keyfield": "sys_pk"
 					@"table": "dcardex"
-					@"select_query": "SELECT NOW();"
+					@"select_query": "SELECT TRUE AS success;"
 					@"fields": "abonos,auditado,cargos,contabilizado,cpromedio,entradas,resto,salidas,tipocambio,valuado,ialmacen,iproducto,ilote,iserie"
 				}
 			}
 		}
 
 		// @use_transaction = @false
-		
 		// do dbr.begin(db)
-		es_orden_transferencia=@false
-		if field.exist(data,"mov_2p") 
-		{ 
-			es_orden_transferencia=@@(data,"#mov_2p")
-			do field.remove(data,"mov_2p") 
-		}
 
 		ref res = record.caseinsensitive(entity.create(db, params, data))
 		do erp.inventario.aplicar_mov(db,@@(res,"#sys_pk"),valuar)
 
-		if es_orden_transferencia
+		if mov_2p && step==1
 		{
 			new orden
 			{
@@ -350,8 +351,8 @@ module "model"
 			}
 			do dbr.save(db,"inv_orden_traspaso",orden)
 		}
+
 		// do dbr.commit(db)
-		
 		return res
 
 		/* exception
@@ -376,7 +377,8 @@ module "model"
         do dbr.apps.action.pre(@@(action,@@(data,"$tipo_movimiento")))
         do dbr.begin(db)
 
-        ref result = movinv.agregarMovimiento(db,params,data)
+		// do rise_error(0,to.json(data))
+		ref result = movinv.agregarMovimiento(db,params,data)
 
         do dbr.apps.action.pos(result)
         do dbr.commit(db)
@@ -439,7 +441,7 @@ module "model"
 
 			if mov!=@mEntrada && isnull(dlote) { do rise_error(500,"El número de lote indicado para "+@@(producto,"$descripcion")+" no existe, indique uno diferente.") }
 
-			if mov==@mEntrada && isnull(dlote)
+			if isnull(dlote) && (mov==@mEntrada || mov==@mTraspaso)
 			{
 				new data
 				{
@@ -455,7 +457,7 @@ module "model"
 			dcardex<"ilote"> : field.num(dlote,"sys_pk")
 
 			ref dclxa = dbr.rec(db,"SELECT sys_pk FROM clotexalmacen WHERE fk_lote_exisxalmacen=@ilote AND ialmacen=@ialmacen LIMIT 1;",dcardex)
-			if mov==@mEntrada && isnull(dclxa)
+			if isnull(dclxa) && (mov==@mEntrada || mov==@mTraspaso)
 			{
 				new data2
 				{
@@ -548,10 +550,33 @@ module "model"
 		WHERE ex.fk_producto_iexistencias = @_entity_id
 		"
 
+		sql_transferencias = "
+		SELECT
+			IFNULL(DATE_FORMAT(c.sys_dtcreated,'%Y-%m-%d'),'') AS fecha,
+			c.referencia,
+			CONCAT(a.codigo,' - ',a.descripcion) AS alm_origen,
+			dc.salidas,
+			p.unidad,
+			dc.abonos,
+			CONCAT(b.codigo,' - ',b.descripcion) AS alm_destino
+		FROM inv_orden_traspaso o
+			INNER JOIN cardex c ON c.sys_pk = o.ref_salida
+			INNER JOIN dcardex dc ON dc.fk_cardex_movimientos = c.sys_pk
+			INNER JOIN producto p ON p.sys_pk = dc.iproducto
+			INNER JOIN almacen a ON a.sys_pk = dc.ialmacen
+			INNER JOIN almacen b ON b.sys_pk = o.ref_destino
+		WHERE
+			IFNULL(dc.salidas, 0) > 0
+			AND IFNULL(o.completada, 0) = 0
+			AND IFNULL(o.cancelada, 0) = 0
+			AND p.sys_pk = @_entity_id
+		"
+
 		new data
 		{
 			@"producto*": dbr.rec(db,sql_producto,params)
 			@"existencias*": dbr.list(db,sql_existencias,params)
+			@"transferencias*": dbr.list(db,sql_transferencias,params)
 		}
 
 		return data
@@ -629,29 +654,198 @@ module "model"
         }
 	}
 
+	// =============== RECEPCIÓN DE PRODUCTOS
+
 	function movinv.recepcion.search(&db,&params)
 	{
-		@url_redir = "/!/inventario/movimiento/?_view=recepcion"
-		
 		if trim(@@(params,"$s")) == "" { return list.create() }
 
 		sql_search = "
 		SELECT
+			ot.sys_pk ord_num,
+			c.sys_pk mov_num,
 			c.referencia,
 			c.descripcion,
-			a1.descripcion origen,
-			a2.descripcion destino,
-			c.sys_pk mov_num,
-			ot.sys_pk orden_num
+			a1.descripcion alm_origen,
+			a2.descripcion alm_destino
 		FROM inv_orden_traspaso ot
 			INNER JOIN cardex c ON ot.ref_salida=c.sys_pk
-			inner join almacen a1 on ot.ref_origen=a1.sys_pk
-			inner join almacen a2 on ot.ref_destino=a2.sys_pk
-		WHERE IFNULL(ot.completada,0)=0
+			INNER JOIN almacen a1 ON ot.ref_origen=a1.sys_pk
+			INNER JOIN almacen a2 ON ot.ref_destino=a2.sys_pk
+		WHERE
+			IFNULL(ot.completada,0)=0
 			AND IFNULL(ot.cancelada,0)=0
 			AND (c.referencia = @s OR c.descripcion LIKE CONCAT('%',@s,'%'))
 		"
 		return dbr.list(db,sql_search,params)
+	}
+
+	function movinv.recepcion.load(&db,&params)
+	{
+		if @@(params,"#_entity_id") <= 0 { return record.create() }
+
+		sql_movinv = "
+		SELECT
+			ot.sys_pk,
+			ot.sys_recver,
+			ot.ref_salida,
+			ot.ref_entrada,
+			ot.sys_pk AS ord_num,
+			ms.sys_pk AS mov_num,
+			cs.sys_pk AS icategoria,
+			a1.sys_pk AS iorigen,
+			a2.sys_pk AS idestino,
+			IFNULL(DATE_FORMAT(ms.fecha,'%d/%m/%Y'),'') fecha,
+			ms.referencia,
+			CONCAT(cs.codigo,' - ',cs.descripcion) cat_traspaso,
+			CONCAT(a1.codigo,' - ',a1.descripcion) alm_origen,
+			CONCAT(a2.codigo,' - ',a2.descripcion) alm_destino,
+			IFNULL(ms.descripcion,'') descripcion
+		FROM inv_orden_traspaso AS ot
+			INNER JOIN cardex AS ms ON ot.ref_salida = ms.sys_pk
+			INNER JOIN categoria AS cs ON ms.icategoria = cs.sys_pk
+			INNER JOIN almacen AS a1 ON ot.ref_origen = a1.sys_pk
+			INNER JOIN almacen AS a2 ON ot.ref_destino = a2.sys_pk
+		WHERE ot.sys_pk = @_entity_id
+		"
+
+		sql_detalle = "
+		SELECT
+			itm.sys_pk AS itm_pk,
+			prod.sys_pk,
+			prod.codigo,
+			prod.descripcion,
+			prod.unidad,
+			dvs.codigo AS cdivisa,
+			IFNULL(itm.abonos,0) abonos,
+			IFNULL(itm.salidas,0) salidas,
+			IFNULL(itm.salidas,0) recibidas,
+			0 AS faltantes,
+			prod.reqlote,
+			IFNULL(lt.numero,'') AS `lote`,
+			IFNULL(DATE_FORMAT(lt.fcaducidad,'%Y-%m-%d'),'') fcad,
+			prod.reqserie,
+			IFNULL(sr.numero,'') AS `serie`
+		FROM dcardex AS itm
+			INNER JOIN producto AS prod ON itm.iproducto = prod.sys_pk
+			INNER JOIN divisa AS dvs ON prod.idivisa = dvs.sys_pk
+			LEFT JOIN lote AS lt ON itm.ilote = lt.sys_pk
+			LEFT JOIN serie AS sr ON itm.iserie = sr.sys_pk
+		WHERE itm.fk_cardex_movimientos = @ref_salida
+		"
+
+		ref movinv = dbr.rec(db,sql_movinv,params)
+		ref detalle = dbr.list(db,sql_detalle,movinv)
+
+		new data
+		{
+			@"movinv*": movinv
+			@"detalle*": detalle
+		}
+
+		return data
+	}
+
+	function movinv.recepcion.process(&db,&params,&data)
+	{
+		@use_transaction = @false
+
+		do dbr.apps.action.pre("GE17")
+        do dbr.begin(db)
+
+		detalle = field.dstr(data,"_detalle","[]")
+		if detalle == "" { detalle = "[]" }
+		ref _detalle = from.json(detalle)
+
+		ref _params = record.copy(params,"*")
+		ref _productos = list.create()
+		ref _faltantes = list.create()
+
+		for i=0; i<list.count(_detalle)
+		{
+			ref obj = list.obj(_detalle,i)
+			
+			using obj
+			{
+				@"costoultimo": div(@@(obj,"#abonos"),@@(obj,"#salidas"))
+				@"cantidad": @@(obj,"#recibidas")
+			}
+			if @@(obj,"#faltantes") != 0
+			{
+				new faltante
+				{
+					@"ref_dcardex": @@(obj,"#itm_pk")
+					@"faltante": @@(obj,"#faltantes")
+					@"costo": (div(@@(obj,"#abonos"),@@(obj,"#salidas")) * @@(obj,"#faltantes"))
+					@"nota": @@(obj,"$nota")
+				}
+				do list.add(_faltantes,faltante)
+			}
+			if @@(obj,"#recibidas") > 0 { do list.add(_productos,obj) }
+		}
+
+		@table_name = "cardex"
+		point @read to entity.read
+
+		new movimiento
+		{
+			@"tipo_movimiento": "traspaso"
+			@"mov_2p": @true
+			@"step": 2
+			@"fecha": date_str(now(),"yyyy-MM-dd")
+			@"referencia": @@(data,"$referencia")+"-E"
+			@"icategoria": @@(data,"#icategoria")
+			@"ialmacen": @@(data,"#iorigen")
+			@"ialmacen2": @@(data,"#idestino")
+			@"descripcion": @@(data,"$descripcion")
+			@"_productos*": _productos
+		}
+		ref mov = movinv.agregarMovimiento(db,params,movimiento)
+		// do rise_error(0,to.json(mov))
+
+		@table_name = "inv_orden_traspaso"
+		point @read to movinv.recepcion.load
+
+		new orden
+		{
+			@"sys_pk": @@(data,"#sys_pk")
+			@"sys_recver": @@(data,"#sys_recver")
+			@"ref_entrada": @@(mov,"#sys_pk")
+			@"completada": @true
+			@"_faltantes*": _faltantes
+		}
+		using @childs
+		{
+			member "_faltantes"
+			{
+				@"joinfield": "ref_orden"
+				@"keyfield": "sys_pk"
+				@"table": "inv_orden_tr_faltante"
+				@"select_query": "SELECT TRUE AS success;"
+				@"fields": "ref_dcardex,faltante,costo,nota"
+			}
+		}
+		ref ord = entity.update(db,_params,orden)
+		// do rise_error(0,to.json(ord))
+
+		// do rise_error(0,"success")
+		ref params:_params
+
+        do dbr.apps.action.pos(ord)
+        do dbr.commit(db)
+        do dbr.apps.action.ext(ord)
+
+		return ord
+
+        exception
+        {
+            do errordet(@false)
+			code = last_error_code()
+			error = last_error()
+            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            if isset("@@_action_context") { do dbr.apps.action.log() }
+            do rise_error(code,error)
+        }
 	}
 
 	@table_name = "cardex"

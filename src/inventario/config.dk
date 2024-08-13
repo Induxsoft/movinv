@@ -40,6 +40,7 @@ module "config.dk"
     @INV_GET_DOCUMENTO = "/!/inventario/cardex/@id/"
     @INV_GET_EXISTENCIAS = "/!/inventario/movimiento/@id/existencias/"
     @INV_GET_LOTE_SERIE = "/!/inventario/movimiento/@id/lote-serie/"
+    @INV_VIEW_OTRASPASO = "/!/inventario/movimiento/{order_num}/recepcion/"
 
     @INV_MAXMIN = "/!/inventario/maxmin/"
     @INV_NEW_MAXMIN = "/!/inventario/maxmin/_new/"

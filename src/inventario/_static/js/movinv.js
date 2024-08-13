@@ -55,15 +55,17 @@ var movinv =
 
             if (ik_lot_prod)
             {
-                // this.table.setInputKey("lote",ik_lot_prod);
+                this.table.setInputKey("lote",ik_lot_prod);
                 btn_add_lote.addEventListener("click", () => this.launchIkLoteSerie(ik_lot_prod));
+                ik_lot_prod.onBeforeSearch = (surl) => this.beforeSearchLoteSerie(surl);
                 ik_lot_prod.change_event = (data) => this.addLoteToProduct(data);
             }
 
             if (ik_ser_prod)
             {
-                // this.table.setInputKey("serie",ik_ser_prod);
+                this.table.setInputKey("serie",ik_ser_prod);
                 btn_add_serie.addEventListener("click", () => this.launchIkLoteSerie(ik_ser_prod));
+                ik_ser_prod.onBeforeSearch = (surl) => this.beforeSearchLoteSerie(surl);
                 ik_ser_prod.change_event = (data) => this.addSerieToProduct(data);
             }
         }
@@ -108,7 +110,7 @@ var movinv =
         this.tEvents = this.table.EdiTable.Const.Events;
         this.tData = this.table.DataArray;
 
-        this.table.Events[this.tEvents.EnterCell] = (e) => { this.tEnterCell(e); }
+        // this.table.Events[this.tEvents.EnterCell] = (e) => { this.tEnterCell(e); }
         // this.table.Events[this.tEvents.StartEdition] = (e) => { this.tStartEdition(e); }
         this.table.Events[this.tEvents.BeforeUpdateCell] = (e) => { this.tBeforeUpdateCell(e); }
         this.table.Events[this.tEvents.ConfirmEdition] = (e) => { this.tConfirmEdition(e); }
@@ -144,12 +146,27 @@ var movinv =
             return;
         }
 
-        let endpoint = this.url_lotes_series_producto;
-        endpoint = endpoint.replace("@iproducto",producto.sys_pk);
-        endpoint = endpoint.replace("@ialmacen",ialmacen);
-
-        ik.setAttribute("data-source",endpoint);
         ik.searchText("%",false);
+    },
+    beforeSearchLoteSerie(dataSource)
+    {
+        let curr_row = this.table.CurrentRowIndex();
+        let producto = (this.table?.DataArray??[])[curr_row] ?? {};
+        let ik_almacen_id = "";
+        let ialmacen = 0;
+
+        if (this.movimiento === "entrada") ik_almacen_id = "ik_entrada_almacen";
+        if (this.movimiento === "salida") ik_almacen_id = "ik_salida_almacen";
+        if (this.movimiento === "traspaso") ik_almacen_id = "ik_almacen_origen";
+
+        const ik_almacen = document.getElementById(ik_almacen_id);
+        if (ik_almacen) ialmacen = Number((ik_almacen.getValue()??{})?.sys_pk??0);
+
+        let params = {
+            iproducto: producto.sys_pk,
+            ialmacen: ialmacen
+        }
+        return InduxsoftCrudlModel.UrlReplace(dataSource,params);
     },
     addLoteToProduct(data)
     {
