@@ -176,7 +176,7 @@ module ":erp.inventario"
         
         exception
         {
-            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            if start_transaction { do dbr.rollback(db) }
             do rise_error(last_error_code(),last_error())
         }
     }
@@ -266,7 +266,7 @@ module ":erp.inventario"
         
         exception
         {
-            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            if start_transaction { do dbr.rollback(db) }
             do rise_error(last_error_code(),last_error())
         }
     }
