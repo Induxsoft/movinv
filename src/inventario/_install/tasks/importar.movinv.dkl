@@ -1,0 +1,326 @@
+#include "dkli.dkh"
+#!
+program "Importar movimientos"
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "dbr.dkh"
+    #include "batch.v12.dkl"
+
+    do @context.begin(@batch_context)
+
+    //#region Variables/Parámetros
+    ref params = @("&params")
+    ref db = @("&database")
+    
+    ref @batchDB = db
+    ref @buffer = text.create()
+    @qname = @("$qname")
+    @token = @("$job/token")
+    
+    // ctipoproducto
+    @prod_tpo_no_inventariable = 1
+    @prod_tpo_inventariable = 2
+
+    // cstatusseries
+    @stt_serie_disponible = 1
+    @stt_serie_vendido = 2
+    @stt_serie_devuelto_a_proveedor = 3
+    @stt_serie_devuelto_por_cliente = 4
+    @stt_serie_ensamblado = 5
+    @stt_serie_no_disponible = 6
+
+    pFecha = @@(params,"$fecha")
+    pReferencia = trim(@@(params,"$referencia"))
+    pICategoria = @@(params,"#icategoria")
+    pDescripcion = trim(@@(params,"$descripcion"))
+    fsrc = @@(params,"$file_path")
+
+    //#region Funciones
+    ref lib_csv = _import_library("devkron.serialize.csv.dll")
+    
+    do _map_function(lib_csv,"devkron.serialize.csv.csvHelper","CsvRead","CsvRead","System.String,System.String","*")
+    do _map_function(lib_csv,"devkron.serialize.csv.csvHelper","CsvWrite","CsvWrite","System.String,*System.Object","void")
+
+    function date_format(str,fmt)
+    {
+        fecha = trim(str(str))
+        formato = trim(str(fmt))
+
+        if fecha == "" { return "" }
+        if formato == "" { formato = "yyyy-MM-ddTHH:mm:ss" }
+
+        ref datetime = str2dt(fecha)
+        fecha = date_str(datetime,formato)
+
+        return fecha
+
+        exception
+        {
+            do pop_exception()
+            // do rise_error(500,"Debe proporcionar una cadena de fecha con un formato válido.")
+            return ""
+        }
+    }
+
+    function get_producto(&db,prod,tipo)
+    {
+        new params 
+        {
+            @"producto": prod
+            @"tipo": tipo
+        }
+
+        sql_producto = "
+        SELECT
+            p.sys_pk,
+            p.codigo,
+            p.descripcion,
+            CONCAT(p.codigo,' - 'p.descripcion) AS `producto`,
+            IFNULL(p.costoultimo,0) costoultimo,
+            IFNULL(p.existencia,0) existencia,
+            d.tcambio,
+            p.reqlote, p.reqserie
+        FROM producto AS p
+            INNER JOIN divisa d ON p.idivisa = d.sys_pk
+        WHERE (p.sys_pk = @producto OR p.sys_guid = @producto OR p.codigo = @producto)
+            AND p.itipo = @tipo
+        "
+        return dbr.rec(db,sql_producto,params)
+    }
+
+    function gen_dcardex(&db,&obj)
+    {
+        entradas = @@(obj,"#entradas")
+        salidas = @@(obj,"#salidas")
+        if entradas < 0 { entradas = 0 }
+        if salidas < 0 { salidas = 0 }
+
+        if @@(obj,"$producto") == "" { do rise_error(518,"El 'producto' del movimiento a importar es requerido.") }
+        if @@(obj,"$almacen") == "" { do rise_error(519,"El 'almacen' del movimiento a importar es requerido") }
+        if (entradas+salidas) < 1 { do rise_error(520,"Las 'entradas' o 'salidas' del movimiento a importar es requerida.") }
+        
+        ref producto = get_producto(db,@@(obj,"producto"),@prod_tpo_inventariable)
+        ialmacen = dbr.num(db,"select sys_pk from almacen where sys_pk=@almacen or sys_guid=@almacen or codigo=@almacen",obj)
+        
+        if isnull(producto) { do rise_error(521,"("+@@(obj,"$producto")+") No es encontró el producto proporcionado o no es de tipo 'Inventariable'.") }
+        if ialmacen < 1 { do rise_error(522,"("+@@(obj,"$almacen")+") No se encontro el almacén proporcionado.") }
+        if entradas > 0 && salidas > 0 { do rise_error(523,"Debe indicar únicamente las 'entradas' o 'salidas' para: "+@@(producto,"$producto")) }
+
+        cargos = @@(obj,"#importe")
+        abonos = @@(obj,"#importe")
+        if cargos <= 0 { cargos = (@@(producto,"#costoultimo") * entradas) }
+        if abonos <= 0 { abonos = (@@(producto,"#costoultimo") * salidas) }
+
+        new dcardex
+        {
+            @"sys_pk": 0
+            @"sys_guid": uuid()
+            @"sys_dtcreated*": dbr.sql("now()")
+            @"sys_timestamp*": dbr.sql("now()")
+            @"sys_recver": 0
+            @"auditado": 0
+            @"contabilizado": 0
+            @"cpromedio": ((abonos + cargos) / (entradas + salidas))
+            @"entradas": entradas
+            @"cargos": cargos
+            @"salidas": salidas
+            @"abonos": abonos
+            @"tipocambio": @@(producto,"#tcambio")
+            @"iproducto": @@(producto,"#sys_pk")
+            @"ialmacen": ialmacen
+            @"ilote*": @null
+            @"iserie*": @null
+        }
+        do set_lote_serie(db,dcardex,producto,obj)
+
+        return dcardex
+    }
+
+    function set_lote_serie(&db,&dcardex,&producto,&obj)
+    {
+        ref prod = record.copyexin(obj,producto,"lote,caducidad,serie",",","",":")
+
+        if @@(prod,"#reqlote") && trim(@@(prod,"$lote")) == "" { do rise_error(524,"No se indico el número de lote requerido para : "+@@(prod,"$producto")) }
+        if @@(prod,"#reqserie") && trim(@@(prod,"$serie")) == "" { do rise_error(525,"No se indico el número de serie requerido para : "+@@(prod,"$producto")) }
+        
+        isEntrada = (@@(dcardex,"#entradas") > 0)
+        isSalida = (@@(dcardex,"#salidas") > 0)
+
+        if @@(prod,"#reqlote")
+        {
+            ref lote = dbr.rec(db,"SELECT sys_pk, numero FROM lote WHERE numero=@lote AND iproducto=@sys_pk LIMIT 1",prod)
+            if isSalida && isnull(lote) { do rise_error(526,"El número de lote indicado para "+@@(prod,"$producto")+" no existe, indique uno diferente.") }
+            
+            if isnull(lote)
+            {
+                new data1
+				{
+                    @"sys_pk": 0
+                    @"sys_guid": uuid()
+                    @"sys_dtcreated*": dbr.sql("now()")
+                    @"sys_timestamp*": dbr.sql("now()")
+                    @"sys_recver": 0
+					@"fentrada*": dbr.sql("now()")
+					@"fcaducidad": date_format(@@(prod,"$caducidad"),"yyyy-MM-dd")
+					@"numero": trim(@@(prod,"$lote"))
+					@"iproducto": @@(prod,"#sys_pk")
+				}
+				if @@(data1,"$fcaducidad")=="" { do field.remove(data1,"fcaducidad") }
+
+				do dbr.insert(db,"lote",data1)
+                ref lote:dbr.rec(db,"SELECT sys_pk, numero FROM lote WHERE sys_pk = LAST_INSERT_ID()",@null)
+            }
+
+            dcardex<"ilote"> : field.num(lote,"sys_pk")
+
+            ref dclxa = dbr.rec(db,"SELECT sys_pk FROM clotexalmacen WHERE fk_lote_exisxalmacen=@ilote AND ialmacen=@ialmacen LIMIT 1",dcardex)
+			if isEntrada && isnull(dclxa)
+			{
+				new data2
+				{
+                    @"sys_pk": 0
+                    @"sys_guid": uuid()
+                    @"sys_dtcreated*": dbr.sql("now()")
+                    @"sys_timestamp*": dbr.sql("now()")
+                    @"sys_recver": 0
+					@"cantidad": 0
+					@"ialmacen": field.num(dcardex,"ialmacen")
+					@"fk_lote_exisxalmacen": field.num(dcardex,"ilote")
+				}
+				do dbr.insert(db,"clotexalmacen",data2)
+			}
+        }
+
+        if @@(prod,"#reqserie")
+        {
+            ref serie = dbr.rec(db,"SELECT sys_pk, numero, status, IF(iproducto=@sys_pk,TRUE,FALSE) AS used FROM serie WHERE numero=@serie AND iproducto=@sys_pk LIMIT 1",prod)
+
+            if isSalida && isnull(serie) { do rise_error(527,"El número de serie indicado para '"+@@(prod,"$producto")+"' no existe, indique uno diferente.") }
+			if isEntrada && not(isnull(serie)) && @@(serie,"#used")
+			{ do rise_error(528,"El número de serie '"+@@(serie,"$numero")+"' para '"+@@(prod,"$producto")+"' ya está asignado, indique una nueva serie para este producto.") }
+			if isSalida && @@(serie,"#status") != @stt_serie_disponible && @@(serie,"#status") != @stt_serie_devuelto_por_cliente
+			{ do rise_error(529,"El número de serie indicado para '"+@@(prod,"$producto")+"' no se encuentra disponible, indique uno diferente.") }
+
+            if isnull(serie)
+			{
+				new data3
+				{
+                    @"sys_pk": 0
+                    @"sys_guid": uuid()
+                    @"sys_dtcreated*": dbr.sql("now()")
+                    @"sys_timestamp*": dbr.sql("now()")
+                    @"sys_recver": 0
+					@"fentrada*": dbr.sql("now()")
+					@"status": @stt_serie_disponible
+					@"numero": trim(@@(prod,"$serie"))
+					@"iproducto": @@(prod,"#sys_pk")
+					@"ialmacen": field.num(dcardex,"ialmacen")
+				}
+				if @@(dcardex,"#ilote") > 0 { data3<"ilote"> : field.num(dcardex,"ilote") }
+				
+                do dbr.insert(db,"serie",data3)
+                ref serie:dbr.rec(db,"SELECT sys_pk, numero FROM serie WHERE sys_pk = LAST_INSERT_ID()",@null)
+			}
+
+            // Establecer salida de la serie
+			if isSalida { do dbr.execute(db,ftext("UPDATE serie SET status=#<@stt_serie_no_disponible> WHERE sys_pk=@sys_pk"),serie) }
+
+            dcardex<"iserie"> : field.num(serie,"sys_pk")
+        }
+    }
+
+    //#region Ejecución
+    // VALIDACIONES
+    if pReferencia == "" { do rise_error(511,"La 'Referencia' es requerida.") }
+    if pDescripcion == "" { do rise_error(512,"La 'Descripción' es requerida.") }
+    if pICategoria < 1 { do rise_error(513,"La 'Categoria' es requerida.") }
+    if fsrc == "" { do rise_error(514,"El 'Archivo a importar' es requerido.") }
+    if not(file.exists(fsrc)) { do rise_error(515,"No se encontro el archivo a importar.") }
+    if file.extension(fsrc)!=".csv" { do rise_error(516,"Se esperaba un archivo de tipo `csv`.") }
+
+    ref data = CsvRead(fsrc,"")
+    length = list.count(data)
+    if length < 1 { do rise_error(517,"El archivo proporcionado no cuenta con registros para importar.") }
+    ppart = div(100,length)
+    progress = 0
+    
+    include "inventario/movimientos.dkh"
+    // do dbr.begin(db)
+
+    new cardex
+    {
+        @"sys_pk": 0
+        @"sys_guid": uuid()
+        @"sys_dtcreated*": dbr.sql("now()")
+        @"sys_timestamp*": dbr.sql("now()")
+        @"sys_recver": 0
+        @"fecha*": @null
+        @"referencia": pReferencia
+        @"icategoria": pICategoria
+        @"descripcion": pDescripcion
+    }
+    if pFecha != "" { cardex<"fecha"> : str2dt(pFecha) }
+
+    pkSalida = 0
+    pkEntrada = 0
+
+    for i = 0; i < list.count(data); i+1
+    {
+        ref obj = record.caseinsensitive(list.obj(data,i))
+        
+        ref dcardex = gen_dcardex(db,obj)
+        isEntrada = (@@(dcardex,"#entradas") > 0)
+        isSalida = (@@(dcardex,"#salidas") > 0)
+
+        if isSalida
+        {
+            if pkSalida == 0
+            {
+                ref c_salida = record.copy(cardex,"*")
+                c_salida<"sys_guid"> : uuid()
+                c_salida<"referencia"> : pReferencia+"-S"
+                do dbr.insert(db,"cardex",c_salida)
+                pkSalida = dbr.num(db,"select last_insert_id();",@null)
+            }
+
+            dcardex<"fk_cardex_movimientos"> : pkSalida
+            do dbr.insert(db,"dcardex",dcardex)
+        }
+        if isEntrada
+        {
+            if pkEntrada == 0
+            {
+                ref c_entrada = record.copy(cardex,"*")
+                c_entrada<"sys_guid"> : uuid()
+                c_entrada<"referencia"> : pReferencia+"-E"
+                do dbr.insert(db,"cardex",c_entrada)
+                pkEntrada = dbr.num(db,"select last_insert_id();",@null)
+            }
+
+            dcardex<"fk_cardex_movimientos"> : pkEntrada
+            do dbr.insert(db,"dcardex",dcardex)
+        }
+
+        progress = progress + ppart
+        do batch.update_percent(@token,progress)
+
+        exception{ do batch.saveLog(@token,last_error()+"\r\n"+to.json(obj)) }
+    }
+
+    if pkSalida > 0 { do erp.inventario.aplicar_mov(db,pkSalida,@true) }
+    if pkEntrada > 0 { do erp.inventario.aplicar_mov(db,pkEntrada,@false) }
+
+    // do dbr.commit(db)
+
+    if file.exists(fsrc) { do file.delete(fsrc) }
+    // do file.wtext("___batch_context.json",to.json(@batch_context))
+    exception
+    {
+        if file.exists(fsrc) { do file.delete(fsrc) }
+        if dbr.in_transaction(db) { do dbr.rollback(db) }
+        if @token != "" { do batch.saveLog(@token,last_error()) }
+    }
+
+    do @context.end()
+}
