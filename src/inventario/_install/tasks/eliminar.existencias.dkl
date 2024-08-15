@@ -1,0 +1,51 @@
+#include "dkli.dkh"
+#!
+program "Eliminar existencias (dcardex)"
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "dbr.dkh"
+    #include "batch.v12.dkl"
+
+    do @context.begin(@batch_context)
+
+    //* PREPARACIÓN DE VARIABLES
+    ref params = @("&params")
+    ref db = @("&database")
+
+    ref @batchDB = db
+    ref @buffer = text.create()
+    @qname = @("$qname")
+    @token = @("$job/token")
+
+    //* DECLARACIÓN DE FUNCIONES
+
+    //* ======================================== [ EJECUCIÓN DEL PROGRAMA ]
+    do dbr.begin(db)
+    
+    do dbr.execute(db,"DELETE FROM dcapa;",@null)
+    do dbr.execute(db,"DELETE FROM clotexalmacen;",@null)
+    do dbr.execute(db,"DELETE FROM inv_orden_tr_faltante;",@null)
+    do dbr.execute(db,"DELETE FROM inv_orden_traspaso;",@null)
+    do dbr.execute(db,"DELETE FROM dcardex;",@null)
+    do dbr.execute(db,"DELETE FROM cardex;",@null)
+    do dbr.execute(db,"DELETE FROM serie;",@null)
+    do dbr.execute(db,"DELETE FROM lote;",@null)
+    do dbr.execute(db,"UPDATE existencias SET existencia = 0, saldo = 0;",@null)
+    do dbr.execute(db,"UPDATE producto SET existencia = 0, saldo = 0;",@null)
+
+    // do rise_error(200,"success")
+    do dbr.commit(db)
+
+    exception
+    {
+        do errordet(@false)
+        code = last_error_code()
+        error = last_error()
+
+        if dbr.in_transaction(db) { do dbr.rollback(db) }
+        do rise_error(code,error)
+    }
+
+    do @context.end()
+}

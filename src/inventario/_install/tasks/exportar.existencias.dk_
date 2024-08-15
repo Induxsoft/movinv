@@ -1,0 +1,61 @@
+#include "dkli.dkh"
+#!
+program "Exportar existencias (dcardex)"
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "dbr.dkh"
+    #include "batch.v12.dkl"
+
+    do @context.begin(@batch_context)
+
+    //* PREPARACIÓN DE VARIABLES
+    ref params = @("&params")
+    ref db = @("&database")
+
+    ref @batchDB = db
+    ref @buffer = text.create()
+    @qname = @("$qname")
+    @token = @("$job/token")
+
+    //* DECLARACIÓN DE FUNCIONES
+    ref lib_csv = _import_library("devkron.serialize.csv.dll")
+    
+    do _map_function(lib_csv,"devkron.serialize.csv.csvHelper","CsvRead","CsvRead","System.String,System.String","*")
+    do _map_function(lib_csv,"devkron.serialize.csv.csvHelper","CsvWrite","CsvWrite","System.String,*System.Object","void")
+
+    //* ======================================== [ EJECUCIÓN DEL PROGRAMA ]
+    // VALIDACIONES
+    if @("#params/ialmacen") < 1 { do rise_error(511,"Es necesario indicar un 'Almacén'.") }
+    if @("$params/dir_out") == "" { do rise_error(512,"Es necesario indicar la 'Ruta de salida'.") }
+    if not(dir.exists(@("$params/dir_out"))) { do rise_error(513,"No se encontro el directorio de salida.") }
+
+    dir_out = @@(params,"$dir_out")
+    file_name = "EXP"+str(ndatetime.now())+".csv"
+    file_cols = "producto,almacen,entradas,salidas,importe,lote,caducidad,serie"
+    file_out = path.concat(dir_out,file_name)
+
+    sql = "
+    SELECT
+        p.codigo AS `producto`,
+        a.codigo AS `almacen`,
+        IFNULL(d.entradas,0) entradas,
+        IFNULL(d.salidas,0) salidas,
+        (IFNULL(d.cargos,0) + IFNULL(d.abonos,0)) AS importe,
+        IFNULL(l.numero,'') AS `lote`,
+        IFNULL(DATE_FORMAT(l.fcaducidad,'%Y-%m-%d'),'') AS caducidad,
+        IFNULL(s.numero,'') AS `serie`
+    FROM dcardex d
+        INNER JOIN producto p ON d.iproducto = p.sys_pk
+        INNER JOIN almacen a ON d.ialmacen = a.sys_pk
+        LEFT JOIN lote l ON d.ilote = l.sys_pk
+        LEFT JOIN serie s ON d.iserie = s.sys_pk
+    WHERE d.ialmacen = @ialmacen
+    "
+    ref data = dbr.list(db,sql,params)
+
+    do file.wtext(file_out,file_cols)
+    do CsvWrite(file_out,data)
+
+    do @context.end()
+}

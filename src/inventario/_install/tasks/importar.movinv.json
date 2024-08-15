@@ -1,12 +1,18 @@
 {
     "fecha": {
         "control":"date",
-        "caption":"Fecha"
+        "caption":"Fecha",
+        "wrp_attr": {
+            "class":"col-auto"
+        }
     },
     "referencia": {
         "control":"text",
         "required":"true",
-        "caption":"Referencia"
+        "caption":"Referencia",
+        "wrp_attr": {
+            "class":"col-auto"
+        }
     },
     "icategoria": {
         "control":"select",
@@ -17,16 +23,22 @@
             "query":"SELECT sys_pk, CONCAT(codigo,' - ',descripcion) descripcion FROM categoria WHERE NOT IFNULL(sys_deleted,0) AND tipo=3 ORDER BY codigo;",
             "keyfield":"sys_pk",
             "showfield":"descripcion"
+        },
+        "wrp_attr": {
+            "class":"col-auto"
+        }
+    },
+    "file_path": {
+        "control":"file",
+        "required":"true",
+        "caption":"Importar desde (.csv)",
+        "wrp_attr": {
+            "class":"col-auto"
         }
     },
     "descripcion": {
         "control":"textarea",
         "required":"true",
         "caption":"Descripción"
-    },
-    "file_path": {
-        "control":"file",
-        "required":"true",
-        "caption":"Importar desde (.csv)"
     }
 }

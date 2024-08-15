@@ -1,0 +1,13 @@
+{
+    "ialmacen": {
+        "control":"select",
+        "required":"true",
+        "caption":"Almacén",
+        "source": {
+            "type":"query",
+            "query":"SELECT sys_pk, CONCAT(codigo,' - ',descripcion) descripcion FROM almacen WHERE NOT IFNULL(sys_deleted,0) ORDER BY codigo;",
+            "keyfield":"sys_pk",
+            "showfield":"descripcion"
+        }
+    }
+}

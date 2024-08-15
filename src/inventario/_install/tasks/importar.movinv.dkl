@@ -30,7 +30,7 @@ program "Importar movimientos"
     @stt_serie_ensamblado = 5
     @stt_serie_no_disponible = 6
 
-    pFecha = @@(params,"$fecha")
+    pFecha = trim(@@(params,"$fecha"))
     pReferencia = trim(@@(params,"$referencia"))
     pICategoria = @@(params,"#icategoria")
     pDescripcion = trim(@@(params,"$descripcion"))
@@ -63,6 +63,11 @@ program "Importar movimientos"
         }
     }
 
+    function between(value, min, max)
+    {
+        return value >= min && value <= max
+    }
+
     function get_producto(&db,prod,tipo)
     {
         new params 
@@ -76,7 +81,7 @@ program "Importar movimientos"
             p.sys_pk,
             p.codigo,
             p.descripcion,
-            CONCAT(p.codigo,' - 'p.descripcion) AS `producto`,
+            CONCAT(p.codigo,' - ',p.descripcion) AS `producto`,
             IFNULL(p.costoultimo,0) costoultimo,
             IFNULL(p.existencia,0) existencia,
             d.tcambio,
@@ -106,6 +111,12 @@ program "Importar movimientos"
         if isnull(producto) { do rise_error(521,"("+@@(obj,"$producto")+") No es encontró el producto proporcionado o no es de tipo 'Inventariable'.") }
         if ialmacen < 1 { do rise_error(522,"("+@@(obj,"$almacen")+") No se encontro el almacén proporcionado.") }
         if entradas > 0 && salidas > 0 { do rise_error(523,"Debe indicar únicamente las 'entradas' o 'salidas' para: "+@@(producto,"$producto")) }
+
+        if @@(producto,"#reqserie")
+        {
+            if entradas > 1 { entradas = 1 }
+            if salidas > 1 { salidas = 1 }
+        }
 
         cargos = @@(obj,"#importe")
         abonos = @@(obj,"#importe")
@@ -230,6 +241,20 @@ program "Importar movimientos"
         }
     }
 
+    function update_percent(value)
+    {
+        new params
+        {
+            @"token":@token
+        }
+        new data
+        {
+            @"percentage":value
+            @"progress_type":2
+        }
+        do dbr.update(batch.openDB(),"job",data,"sys_guid=@token",params)
+    }
+
     //#region Ejecución
     // VALIDACIONES
     if pReferencia == "" { do rise_error(511,"La 'Referencia' es requerida.") }
@@ -242,25 +267,25 @@ program "Importar movimientos"
     ref data = CsvRead(fsrc,"")
     length = list.count(data)
     if length < 1 { do rise_error(517,"El archivo proporcionado no cuenta con registros para importar.") }
-    ppart = div(100,length)
-    progress = 0
+    progress = div(100,length)
+    percent = 0
     
     include "inventario/movimientos.dkh"
-    // do dbr.begin(db)
+    do dbr.begin(db)
 
     new cardex
     {
         @"sys_pk": 0
-        @"sys_guid": uuid()
+        @"sys_guid": ""
         @"sys_dtcreated*": dbr.sql("now()")
         @"sys_timestamp*": dbr.sql("now()")
         @"sys_recver": 0
-        @"fecha*": @null
+        @"fecha": pFecha
         @"referencia": pReferencia
         @"icategoria": pICategoria
         @"descripcion": pDescripcion
     }
-    if pFecha != "" { cardex<"fecha"> : str2dt(pFecha) }
+    if pFecha=="" { do field.remove(cardex,"fecha") }
 
     pkSalida = 0
     pkEntrada = 0
@@ -302,24 +327,39 @@ program "Importar movimientos"
             do dbr.insert(db,"dcardex",dcardex)
         }
 
-        progress = progress + ppart
-        do batch.update_percent(@token,progress)
+        percent = percent + progress
+        do update_percent(percent)
 
-        exception{ do batch.saveLog(@token,last_error()+"\r\n"+to.json(obj)) }
+        exception
+        {
+            if between(last_error_code(),511,589) {
+                do batch.saveLog(@token,last_error()+"\r\n"+to.json(obj))
+            }
+            else
+            {
+                do errordet(@false)
+                do rise_error(500,last_error())
+            }
+        }
     }
 
     if pkSalida > 0 { do erp.inventario.aplicar_mov(db,pkSalida,@true) }
     if pkEntrada > 0 { do erp.inventario.aplicar_mov(db,pkEntrada,@false) }
 
-    // do dbr.commit(db)
+    do dbr.commit(db)
 
     if file.exists(fsrc) { do file.delete(fsrc) }
     // do file.wtext("___batch_context.json",to.json(@batch_context))
     exception
     {
+        do errordet(@false)
+        code = last_error_code()
+        error = last_error()
+
         if file.exists(fsrc) { do file.delete(fsrc) }
         if dbr.in_transaction(db) { do dbr.rollback(db) }
-        if @token != "" { do batch.saveLog(@token,last_error()) }
+        // if @token != "" { do batch.saveLog(@token,error) }
+        do rise_error(code,error)
     }
 
     do @context.end()
