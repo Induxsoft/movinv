@@ -167,7 +167,7 @@ module "model"
 		if @@(params,"#fil_claseprod") > 0 { conditions = conditions + " AND p.iclase = @fil_claseprod" }
 		if @@(params,"#fil_linea") > 0 { conditions = conditions + " AND p.ilinea = @fil_linea" }
 		
-		if trim(@@(params,"$s")) != "" { conditions = conditions + " AND (p.codigo LIKE CONCAT('%',@s,'%') OR p.descripcion LIKE CONCAT('%',@s,'%'))" }
+		if trim(@@(params,"$s")) != "" { conditions = conditions + " AND (p.codigo = @s OR p.descripcion LIKE CONCAT('%',@s,'%'))" }
 
 		if @@(params,"$_mov") == "traspaso"
 		{
