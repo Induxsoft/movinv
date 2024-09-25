@@ -69,6 +69,8 @@ module "Movimiento"
             {
                 "input-key"(name="sys_pk" id="ik_movinv" "data-value"="#<to.json(@('&./master'))>" "data-key"="sys_pk" "data-search"="referencia" "data-text"="descripcion" "data-source"="#<@URL_BUSCAR_MOVIMIENTO>" columns="referencia,fecha,descripcion" colcaptions="Referencia,Fecha,Descripción" "control-styles"="#<ik_sm_style>"){$""}
             }
+
+
         }
 
         div(class="bg-light w-100 p-2" id="work_area") {
@@ -233,8 +235,8 @@ module "Movimiento"
                 document.getElementById("form-filter").submit();
                 });
             });
-            
         '}
+
     }
     #!
 

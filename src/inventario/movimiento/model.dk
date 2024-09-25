@@ -37,7 +37,6 @@ module "model"
 	{
 		sql_search = "
 		SELECT sys_pk, referencia, descripcion, IFNULL(DATE_FORMAT(fecha,'%Y-%m-%d'),'') fecha
-			
 		FROM cardex
 		WHERE descripcion LIKE CONCAT('%',@s,'%') OR referencia = @s
 		"

@@ -24,3 +24,5 @@ GE3A,Series,Series,,/!/inventario/reports/series/,0,inventario.reports,DET077,0,
 GE3B,Historial de número de series,H. Series,,/!/inventario/reports/historial-series/,0,inventario.reports,DET077,0,report
 GE3C,Valor del inventario,V. Inventario,,/!/inventario/reports/valor-inventario/,0,inventario.reports,DET077,0,report
 GE3D,Informe de exitencias debajo del mínimo o el punto de reorden,Existencias,,/!/inventario/reports/existencias/,0,inventario.reports,DET077,0,report
+GE3E,Vales de entrada,Existencias,,/!/inventario/reports/vales-de-entrada/,0,inventario.reports,DET077,0,report
+GE3F,Vales de salida,Existencias,,/!/inventario/reports/vales-de-salida/,0,inventario.reports,DET077,0,report

@@ -31,3 +31,6 @@ GE3A,Series (informe),inventario.reports
 GE3B,Historial de número de series (informe),inventario.reports
 GE3C,Valor del inventario (informe),inventario.reports
 GE3D,Informe de exitencias debajo del mínimo o el punto de reorden,inventario.reports
+GE3E,Vales de entrada,inventario.reports
+GE3F,Vales de salida,inventario.reports
+

@@ -14,6 +14,11 @@ module "config.dk"
     @mSalida = 2
     @mTraspaso = 3
     
+    // Formato de presentación
+	@THOUSANDS_SEPARATOR = ","
+	@DECIMAL_SEPARATOR = "."
+	@DECIMAL_PRECISION = 2
+
     // _STATIC RESOURCES
     @CSS_MAIN = "/$/inventario/css/main.css"
     @JS_MAIN = "/$/inventario/js/main.js"

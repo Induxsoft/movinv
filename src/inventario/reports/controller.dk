@@ -82,6 +82,19 @@ module "ReportController"
             point @read to Report.ValorInventario
             break
         }
+        case "vales-de-entrada"
+        {
+            @form_view = "vales.de.entrada.dk"
+            point @read to Report.ValesDeEntrada
+            break
+        }
+        case "vales-de-salida"
+        {
+            @form_view = "vales.de.salida.dk"
+            point @read to Report.ValesDeSalida
+            break
+        }
+
         default
         {
             point @read to Report.NotImplemented

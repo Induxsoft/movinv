@@ -1,0 +1,175 @@
+#include "dkli.dkh"
+#!
+module "Compras netas totales"
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "uielements.v12.dkl"
+    #include "../config.dk"
+    #include "../_lib/lib2.dk"
+
+    do @context.begin(@crud_context)
+    
+
+    ref data = @("&./lista")
+
+
+
+    ref titles = ifnull(@("&./titles"),record.create())
+
+    // aqui se cortan los decimales
+    @DECIMAL_PRECISION = @("#parameters/decimals")
+
+    new nav_config
+    {
+        @"title": "Vales de Entrada"
+        @"urlexit": @INVENTARIO
+    }
+
+    #$
+    div(class="container v12-list-view" id="view")
+    {
+        section(class="bg-white" id="top_area")
+        {
+            #!
+            do uie.printV12FormBar(nav_config)
+            #$
+            style
+            {$'
+                tr th { font-size:.9rem; outline:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; -o-text-overflow:ellipsis; }
+                tr td { font-size:.8rem; }
+            '}
+
+        #!
+        if @("error/message") != ""{
+            #$
+            p{"#<@('error/message')>"}
+        }
+        #$
+            form(class="" action="./" method="GET" id="form-filter")
+            {
+                div(class="align-items-center gap-1 mb-1")
+                {
+                    div(class="gap-1 flex-grow-1")
+                    {
+                        div(class="row")
+                        {
+                            div(class="col-md-4")
+                             {
+                               span(class=" text-dark"){"Referencia"}
+                               "input-key"(name="pkcardex" id="ik_movinv" "data-value"="#<to.json(@('&./vale'))>" "data-key"="sys_pk" "data-search"="referencia" "data-text"="descripcion" "data-source"="#<@URL_BUSCAR_MOVIMIENTO>" columns="referencia,fecha,descripcion" colcaptions="Referencia,Fecha,Descripción" "control-styles"="#<ik_sm_style>"){$""}
+                            }
+                    }
+                }
+            }
+        }
+
+
+
+        div(class="bg-light w-100 p-2" style="max-height:80vh; overflow-y:auto;") {
+        div(class="" style="box-shadow: inset 0 -3em 3em rgba(0, 0, 0, 0.1), 0.3em 0.3em 1em rgba(0, 0, 0, 0.3);")
+        {
+            section(class="bg-white p-1" id="work_area")
+            {
+                p(class="text-center mb-0"){$"#<@@(titles,'$title')>"}
+                p(class="text-center mb-0"){$"#<@@(titles,'$subtitle')>"}
+                p(class="text-center mb-0"){$"#<@@(titles,'$subtitle_2')>"}
+
+                div(class="row")
+                {
+                    div(class="col-3")
+                    {
+                        //se comento porque no queremos que aparezca el usuario
+                       //small(class="d-block"){ $ "#<cut(@('$http/session/user/name'),25)>" }
+                        small(class="d-block"){ b{$"Impresión: "} $"#<date_str(now(),'dd/MMM/yyyy')>" }
+                    }
+                    div(class="col-6")//subtitulo
+                    {
+                        h5(class="text-center"){$"Vales de Entrada"}
+                    }
+                    div(class="col-3 text-end")
+                    {
+                        $""
+                    }
+                }
+                
+
+
+                table(class="table table-sm table-bordered my-2")
+                {
+                    thead{
+                                th(scope="col"){"Fecha"}
+                                th(scope="col"){"Código"}
+                                th(scope="col"){"Descripción"}
+                                th(scope="col"){"Lote"}
+                                th(scope="col"){"Serie"}
+                                th(scope="col"){"Unidad"}
+                                th(scope="col"){"Cargos"}
+                                th(scope="col"){"Entradas"}
+                             // th(scope="col"){"Total"}
+                     }
+
+                 tbody
+                    {
+                        $""
+                        #!
+                        doc=""
+                        bonis=0
+                        pagos=0
+
+                        cargo=0
+                        entrada=0
+                       
+                        for i = 0; i < list.count(data); i+1
+                        {
+                            ref obj = list.obj(data,i)
+                               
+                               cargos = parse.num(lib.number_format(@@(obj,'$cargos'))) 
+                               cargo = cargo + cargos
+
+                               entradas = parse.num(lib.number_format(@@(obj,'$entradas'))) 
+                               entrada = entrada + entradas
+
+                                #$
+                                tr
+                                {
+                                    td(class=""){$"#<@@(obj,'$fecha')>"}
+                                    td(class=""){$"#<@@(obj,'$cproducto')>"}
+                                    td(class="" ){$"#<@@(obj,'$dproducto')>"}
+                                    td(class=""){$"#<@@(obj,'$num_lote')>"}
+                                    td(class=""){$"#<@@(obj,'$num_serie')>"}
+                                    td(class=""){$"#<@@(obj,'$unidad')>"}
+                                    td(class="text-end"){$"$ #<cargos>"}
+                                    td(class="text-end"){$"#<entradas>"}
+                                }
+                        }
+                       
+                        #$
+                        tr(class="group-summary")
+                        {
+                            $""
+                            td(colspan="6"){""}
+                            td(class="text-end fw-bold"){$"$ #<lib.number_format(cargo)>"}
+                            td(class="text-end fw-bold"){$"#<lib.number_format(entrada)>"}
+                        }
+                    }
+                }
+
+                p(class="text-center mb-0"){$"#<@@(titles,'$footer')>"}
+            }
+        }}
+       
+        script(type="text/javascript")
+        {$'
+            document.addEventListener("DOMContentLoaded", () => 
+            {
+                document.getElementById("ik_movinv").addEventListener("change",(e)=>{
+                document.getElementById("form-filter").submit();
+                });
+            });
+        '}
+    }
+    #!
+    do @context.end()
+  }
+}

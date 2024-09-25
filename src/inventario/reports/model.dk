@@ -4,12 +4,17 @@ module "Reportes de movimiento de inventario. :Report"
 {
     function prepareView(&db,&params,&data)
     {
+        if not(field.exist(params,"decimals")){ params<"decimals"> : parse.num(dbr.vars.get(db,"FXCA001")) }
+
         sql_almcns = "SELECT sys_pk, codigo, descripcion FROM almacen WHERE NOT IFNULL(sys_deleted,0)"
         sql_clases = "SELECT id, const FROM cclaseproducto"
         sql_lineas = "SELECT sys_pk, codigo, descripcion FROM linea WHERE NOT IFNULL(sys_deleted,0) AND clase = @fil_clase"
         sql_marcas = "SELECT sys_pk, codigo, descripcion FROM marca WHERE NOT IFNULL(sys_deleted,0)"
         sql_deptos = "SELECT sys_pk, codigo, descripcion FROM departamento WHERE NOT IFNULL(sys_deleted,0)"
         sql_catmov = "SELECT sys_pk, codigo, descripcion FROM categoria WHERE NOT IFNULL(sys_deleted,0)"
+        
+       //sql_cardex = "SELECT * FROM cardex"
+
 
         switch @@(@http_context,"$request/get/_entity_id")
         {
@@ -22,6 +27,8 @@ module "Reportes de movimiento de inventario. :Report"
                     @"list_lineas*": dbr.list(db,sql_lineas,params)
                     @"list_marcas*": dbr.list(db,sql_marcas,@null)
                     @"list_deptos*": dbr.list(db,sql_deptos,@null)
+
+                   // @"list_cardex*": dbr.list(db,sql_cardex,@null)
                 }
                 break
             }
@@ -116,6 +123,10 @@ module "Reportes de movimiento de inventario. :Report"
         do prepareDefaultReportData(db,data)
     }
 
+    new data
+    {  
+    }
+
     prepareDefaultReportData::&db,&data
     {
         using data
@@ -186,6 +197,7 @@ module "Reportes de movimiento de inventario. :Report"
 
         exception{ do catch() }
     }
+
 
     function Movimientos(&db,&params)
     {
@@ -450,6 +462,7 @@ module "Reportes de movimiento de inventario. :Report"
     function ValorInventario(&db,&params)
     {
         do dbr.apps.action.grant("GE3C")
+
         params.m_decs:=val(dbr.vars.get(db,"FXCA001")) //Decimales de precisión en dinero
         new data {}
             data.detail:= ref dbr.list(db,"select 
@@ -495,9 +508,113 @@ module "Reportes de movimiento de inventario. :Report"
 
         do prepareDefaultReportData(db,data)
         return data
+        exception{ do catch() } 
 
-        exception{ do catch() }
+        
     }
+
+    function ValesDeEntrada(&db,&params)
+    {
+    // do rise_error(99,to.json(params))
+     do dbr.apps.action.grant("GE3E")
+
+    sql_vales_de_entrada = "SELECT
+                            c.sys_pk AS pkcardex,
+                            d.sys_pk AS pkdcardex,
+                            c.fecha,
+                            c.referencia,
+                            c.doccompra,
+                            c.docventa,
+                            c.descripcion,
+                            d.iproducto,
+                            p.codigo AS cproducto,
+                            p.descripcion AS dproducto,
+                            p.unidad,
+                            p.costoultimo,
+                            dvs.descripcion AS ddivisa,
+                            alm.codigo AS calmacen,
+                            alm.descripcion AS dalmacen,
+                            d.cargos,
+                            d.entradas,
+                            d.tipocambio,
+                            lt.numero AS num_lote,
+                            sr.numero AS num_serie
+                        FROM cardex AS c
+                            INNER JOIN dcardex AS d ON d.fk_cardex_movimientos = c.sys_pk
+                            INNER JOIN producto AS p ON d.iproducto = p.sys_pk
+                            INNER JOIN almacen AS alm ON d.ialmacen = alm.sys_pk
+                            INNER JOIN divisa AS dvs ON p.idivisa = dvs.sys_pk
+                            LEFT JOIN lote AS lt ON d.ilote = lt.sys_pk
+                            LEFT JOIN serie AS sr ON d.iserie = sr.sys_pk
+                        WHERE p.uf_sys_baja IS NULL AND (c.sys_pk = @pkcardex OR c.referencia = @referencia)
+                        ORDER BY p.idivisa, p.descripcion;"
+
+        sql_vale = "SELECT sys_pk, referencia, descripcion, IFNULL(DATE_FORMAT(fecha,'%Y-%m-%d'),'') fecha FROM cardex WHERE (sys_pk = @pkcardex OR referencia = @referencia)"
+
+        //este data sirve para usar consultas db
+        new data
+        {
+            @"vale*": dbr.rec(db,sql_vale,params)
+            @"lista*": dbr.list(db,sql_vales_de_entrada,params)
+        }
+        do prepareView(db,params,data)
+        //retorna los datos de la consulta
+        return data //retorna la data
+        exception{ do catch() }
+    } 
+
+
+    function ValesDeSalida(&db,&params)
+    {
+    // do rise_error(99,to.json(params))
+     do dbr.apps.action.grant("GE3F")
+
+    sql_vales_de_salida = "SELECT
+                            c.sys_pk AS pkcardex,
+                            d.sys_pk AS pkdcardex,
+                            c.fecha,
+                            c.referencia,
+                            c.doccompra,
+                            c.docventa,
+                            c.descripcion,
+                            d.iproducto,
+                            p.codigo AS cproducto,
+                            p.descripcion AS dproducto,
+                            p.unidad,
+                            p.costoultimo,
+                            dvs.descripcion AS ddivisa,
+                            alm.codigo AS calmacen,
+                            alm.descripcion AS dalmacen,
+                            d.abonos,
+                            d.salidas,
+                            d.tipocambio,
+                            lt.numero AS num_lote,
+                            sr.numero AS num_serie
+                        FROM cardex AS c
+                            INNER JOIN dcardex AS d ON d.fk_cardex_movimientos = c.sys_pk
+                            INNER JOIN producto AS p ON d.iproducto = p.sys_pk
+                            INNER JOIN almacen AS alm ON d.ialmacen = alm.sys_pk
+                            INNER JOIN divisa AS dvs ON p.idivisa = dvs.sys_pk
+                            LEFT JOIN lote AS lt ON d.ilote = lt.sys_pk
+                            LEFT JOIN serie AS sr ON d.iserie = sr.sys_pk
+                        WHERE p.uf_sys_baja IS NULL AND (c.sys_pk = @pkcardex OR c.referencia = @referencia)
+                        ORDER BY p.idivisa, p.descripcion;"
+
+        sql_vale = "SELECT sys_pk, referencia, descripcion, IFNULL(DATE_FORMAT(fecha,'%Y-%m-%d'),'') fecha FROM cardex WHERE (sys_pk = @pkcardex OR referencia = @referencia)"
+
+        //este data sirve para usar consultas db
+        new data
+        {
+            @"vale*": dbr.rec(db,sql_vale,params)
+            @"listasalida*": dbr.list(db,sql_vales_de_salida,params)
+        }
+
+        do prepareView(db,params,data)
+        //retorna los datos de la consulta
+        return data //retorna la data
+        exception{ do catch() }
+    } 
+
 
     NotImplemented::&db,&params { do rise_error(404,"Reporte no implementado") }
 
