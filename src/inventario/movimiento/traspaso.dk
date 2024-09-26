@@ -31,7 +31,7 @@ program
                     }
                 }
             }
-            div(class="work_area" class="container-section")
+            div(class="work_area" class="container-section p-2")
             {
                 input(type="hidden" name="tipo_movimiento" value="traspaso")
 
@@ -39,17 +39,17 @@ program
                 {
                     div(class="row align-items-center")
                     {
-                        div(class="col-2")
+                        div(class="col-lg-2 col-md-3 col-sm-12")
                         {
                             label{$"Fecha:"}
                             input(type="date" name="fecha" class="induxsoft-form-control" value="#<date_str(now(),'yyyy-MM-dd')>")
                         }
-                        div(class="col-3")
+                        div(class="col-lg-2 col-md-3 col-sm-12")
                         {
                             label{$"Referencia:"}
                             input(type="text" name="referencia" class="induxsoft-form-control" required="true")
                         }
-                        div(class="col-5")
+                        div(class="col-lg-5 col-md-4 col-sm-12")
                         {
                             label{$"Categoría:"}
                             "input-key"(
@@ -68,7 +68,7 @@ program
                                 "control-styles"=""
                             ){$""}
                         }
-                        div(class="col-2")
+                        div(class="col-lg-2 col-md-2 col-sm-12")
                         {
                             label("for"="mov_2p"){$"Aplicación:"}
                             select(name="mov_2p" class="induxsoft-form-select" id ="mov_2p")
@@ -81,7 +81,7 @@ program
                     }
                     div(class="row")
                     {
-                        div(class="col-6")
+                        div(class="col-lg-6 col-md-6 col-sm-12")
                         {
                             label{$"Almacén de origen:"}
                             "input-key"(
@@ -100,7 +100,7 @@ program
                                 "control-styles"=""
                             ){$""}
                         }
-                        div(class="col-6")
+                        div(class="col-lg-6 col-md-6 col-sm-12")
                         {
                             label{$"Almacén de destino:"}
                             "input-key"(
