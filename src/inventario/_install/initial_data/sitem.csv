@@ -18,19 +18,18 @@ GE17,Recepción de transferencia,inventario.movimiento
 GE18,Importar movimientos,inventario.movimiento
 GE19,Eliminar existencias,inventario.movimiento
 inventario.reports,Informes de inventario,inventario
-GE31,Diario de almacén (Informe),inventario.reports
-GE32,Movimiento (informe),inventario.reports
-GE33,Diario de productos (informe),inventario.reports
-GE34,Niveles de existencias (informe),inventario.reports
-GE35,Historial de traspasos (informe),inventario.reports
-GE36,Detalle de traspasos entre almacenes (informe),inventario.reports
-GE37,Existencias a una fecha (informe),inventario.reports
-GE38,Existencias por lotes (informe),inventario.reports
-GE39,Caducidades (informe),inventario.reports
-GE3A,Series (informe),inventario.reports
-GE3B,Historial de número de series (informe),inventario.reports
-GE3C,Valor del inventario (informe),inventario.reports
+GE31,Diario de almacén,inventario.reports
+GE32,Movimiento,inventario.reports
+GE33,Diario de productos,inventario.reports
+GE34,Niveles de existencias,inventario.reports
+GE35,Historial de traspasos,inventario.reports
+GE36,Detalle de traspasos entre almacenes,inventario.reports
+GE37,Existencias a una fecha,inventario.reports
+GE38,Existencias por lotes,inventario.reports
+GE39,Caducidades,inventario.reports
+GE3A,Series,inventario.reports
+GE3B,Historial de número de series,inventario.reports
+GE3C,Valor del inventario,inventario.reports
 GE3D,Informe de exitencias debajo del mínimo o el punto de reorden,inventario.reports
 GE3E,Vales de entrada,inventario.reports
 GE3F,Vales de salida,inventario.reports
-

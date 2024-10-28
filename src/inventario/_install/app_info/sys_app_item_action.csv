@@ -1,5 +1,6 @@
 ﻿id,title,shorttitle,icon16x16,href,_blank,appid,itemtype,req_context_item_id,act_type
 GE00,"Importar máximos, mínimos de productos por almacén",Importar,,/!/batch/taskman/GE/importar.maxmin/?exit_url_encode=LyEvaW52ZW50YXJpby9tYXhtaW4v,0,inventario.maxmin,DET076,0,action
+
 GE11,Agregar entrada de productos,Entrada,,/!/inventario/movimiento/_new/entrada/,0,inventario.movimiento,DET077,0,action
 GE12,Agregar salida de productos,Salida,,/!/inventario/movimiento/_new/salida/,0,inventario.movimiento,DET077,0,action
 GE13,Agregar traspaso de productos,Traspaso,,/!/inventario/movimiento/_new/traspaso/,0,inventario.movimiento,DET077,0,action
@@ -9,8 +10,10 @@ GE16,Ver lotes o series del producto,Lote/Serie,,/!/inventario/movimiento/@_src_
 GE17,Recepción de transferencia,Recepción,,/!/inventario/movimiento/?_view=recepcion,0,inventario.movimiento,DET077,0,action
 GE18,Importar movimientos,Imp. MovInv,,/!/batch/taskman/GE/importar.movinv/?exit_url_encode=LyEvaW52ZW50YXJpby9tb3ZpbWllbnRvLw||,0,inventario.movimiento,DET077,0,action
 GE19,Eliminar existencias,Eliminar existencias,,/!/batch/taskman/GE/eliminar.existencias/?exit_url_encode=LyEvaW52ZW50YXJpby9tb3ZpbWllbnRvLw||,0,inventario.movimiento,DET077,0,action
+
 GE20,"Listar máximos, mínimos de productos por almacén",Listar,,/!/inventario/maxmin/,0,inventario.maxmin,DET076,0,action
 GE21,"Crear máximos, mínimos de productos por almacén",Crear,,/!/inventario/maxmin/_new/,0,inventario.maxmin,DET076,0,action
+
 GE31,Diario de almacén,Diario almacén,,/!/inventario/reports/diario-almacen/,0,inventario.reports,DET077,0,report
 GE32,Movimiento de inventario,Movimiento de inventario,,/!/inventario/reports/movimientos/,0,inventario.reports,DET077,0,report
 GE33,Diario de productos,Diario productos,,/!/inventario/reports/diario-productos/,0,inventario.reports,DET077,0,report
