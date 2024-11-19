@@ -538,8 +538,10 @@ module "model"
 			alm.sys_pk AS ialmacen,
 			alm.codigo AS calmacen,
 			alm.descripcion AS dalmacen,
+			ex.sys_pk AS iexistencia,
 			ex.existencia,
 			ex.saldo,
+			IFNULL(ex.ubicacion,'') ubicacion,
 			IFNULL(uf_maximo,0) AS maximo,
 			IFNULL(uf_minimo,0) AS minimo,
 			IFNULL(uf_preorden,0) AS preorden
@@ -588,6 +590,40 @@ module "model"
             do dbr.apps.action.log()
             do rise_error(code,error)
         }
+	}
+
+	function movinv.ex.ubicacion(&db,&params,&data)
+	{
+		@use_transaction = @false
+
+		do dbr.apps.action.grant("GE1A")
+		// do dbr.apps.action.pre("GE1A")
+		// do dbr.begin(db)
+
+		sql = "
+		UPDATE existencias SET
+			sys_timestamp = NOW(),
+			sys_recver = IFNULL(sys_recver,0)+1,
+			ubicacion = @ubicacion
+		WHERE sys_pk = @iexistencia
+		"
+		do dbr.execute(db,sql,data)
+		// ref ex = dbr.rec(db,"select * from existencias where sys_pk = @iexistencia",data)
+		
+		// do dbr.apps.action.pos(ex)
+		// do dbr.commit(db)
+		// do dbr.apps.action.ext(ex)
+
+		return data
+
+		exception
+		{
+			do errordet(@false)
+			code = last_error_code()
+			error = last_error()
+            do dbr.apps.action.log()
+            do rise_error(code,error)
+		}
 	}
 
 	function movinv.loteserie(&db,&params)

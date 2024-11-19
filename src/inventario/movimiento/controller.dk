@@ -33,6 +33,7 @@ module "controller"
         {
             @form_view = "existencias.dk"
             point @read to movinv.existencias
+            point @update to movinv.ex.ubicacion
             break
         }
         case "lote-serie"

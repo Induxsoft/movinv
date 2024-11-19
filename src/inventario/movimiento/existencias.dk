@@ -20,6 +20,17 @@ module "existencias.dk"
     function fn_before_cell(&params,&row,&cell)
     {
         if @@(cell,"cell_type")!="data" && @@(cell,"cell_type")!="unknow" { return }
+        if @@(cell,"$column") == "ubicacion"
+        {
+            sys_pk = @@(row,"$iexistencia")
+            value = @@(row,"$ubicacion")
+            id = "sf-"+sys_pk
+            onchange = "saveUbicacion("+sys_pk+",this.value);"
+            
+            cell<"text"> : ftext('
+                <safe-input type="text" value="#<value>" id="#<id>" placeholder="Indicar ubicación" onchange="#<onchange>"></safe-input>
+            ')
+        }
         if @@(cell,"$column") == "_actions"
         {
             btn_style = "cursor:pointer; text-decoration:none; padding:0px 8px; background-color:#F5F5F5; color:#000;"
@@ -49,6 +60,7 @@ module "existencias.dk"
         member @"columns"
         {
             member @"dalmacen" { @"caption": "Almacén" }
+            member @"ubicacion" { @"caption": "Ubicación" }
             member @"minimo"
             {
                 @"caption": "Mínimo"
@@ -173,16 +185,16 @@ module "existencias.dk"
                 {$'
                     table th { text-align:center; }
 
-                    #tbl_existencias td:nth-child(2),
-                    #tbl_existencias td:nth-child(3),
-                    #tbl_existencias td:nth-child(4),
-                    #tbl_existencias td:nth-child(5),
-                    #tbl_existencias td:nth-child(7),
+                    #tbl_existencias td:nth-child(8),
                     #tbl_transferencias td:nth-child(4),
                     #tbl_transferencias td:nth-child(5)
                     { text-align:center; }
 
+                    #tbl_existencias td:nth-child(3),
+                    #tbl_existencias td:nth-child(4),
+                    #tbl_existencias td:nth-child(5),
                     #tbl_existencias td:nth-child(6),
+                    #tbl_existencias td:nth-child(7),
                     #tbl_transferencias td:nth-child(6)
                     { text-align:end; }
                 '}
@@ -196,6 +208,33 @@ module "existencias.dk"
                 do uie.dbTable(def_table_tr)
                 #$
             }
+        }
+
+        //////////////////////////////////////////////////////////////////
+        div(id="_custom_area")
+        {
+            script(type="text/javascript")
+            {$'
+                function saveUbicacion(pk,text) {
+                    const sf = document.getElementById("sf-"+pk);
+                    
+                    InduxsoftCrudlModel.InvokeService("./", {iexistencia:pk, ubicacion:text}, 
+                    (data) => {
+                        if (data.message) {
+                            alert(data.message);
+                            sf._cancelEdit();
+                            return
+                        }
+                        sf._tempValue = text;
+                        console.log("Ubicación actualizada.");
+                    },
+                    (error) => {
+                        alert(error.message ?? JSON.stringify(error));
+                        sf._cancelEdit();
+                    },
+                    "PATCH", false);
+                }
+            '}
         }
     }
     #!

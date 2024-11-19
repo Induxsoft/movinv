@@ -17,6 +17,7 @@ GE16,Ver lotes o series del producto,inventario.movimiento
 GE17,Recepción de transferencia,inventario.movimiento
 GE18,Importar movimientos,inventario.movimiento
 GE19,Eliminar existencias,inventario.movimiento
+GE1A,Indicar ubicación por almacén,inventario.movimiento
 inventario.reports,Informes de inventario,inventario
 GE31,Diario de almacén,inventario.reports
 GE32,Movimiento,inventario.reports

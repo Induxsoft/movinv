@@ -13,9 +13,6 @@ module "Reportes de movimiento de inventario. :Report"
         sql_deptos = "SELECT sys_pk, codigo, descripcion FROM departamento WHERE NOT IFNULL(sys_deleted,0)"
         sql_catmov = "SELECT sys_pk, codigo, descripcion FROM categoria WHERE NOT IFNULL(sys_deleted,0)"
         
-       //sql_cardex = "SELECT * FROM cardex"
-
-
         switch @@(@http_context,"$request/get/_entity_id")
         {
             case "existencias"
@@ -27,8 +24,6 @@ module "Reportes de movimiento de inventario. :Report"
                     @"list_lineas*": dbr.list(db,sql_lineas,params)
                     @"list_marcas*": dbr.list(db,sql_marcas,@null)
                     @"list_deptos*": dbr.list(db,sql_deptos,@null)
-
-                   // @"list_cardex*": dbr.list(db,sql_cardex,@null)
                 }
                 break
             }
@@ -123,10 +118,6 @@ module "Reportes de movimiento de inventario. :Report"
         do prepareDefaultReportData(db,data)
     }
 
-    new data
-    {  
-    }
-
     prepareDefaultReportData::&db,&data
     {
         using data
@@ -211,12 +202,13 @@ module "Reportes de movimiento de inventario. :Report"
 
         do prepareDefaultReportData(db,data)
 
-        if @@(params,"#sys_pk")>0
+        if @@(params,"#sys_pk") > 0
         {
-            params.m_decs:=val(dbr.vars.get(db,"FXCA001")) //Decimales de precisión en dinero
-            params.v_decs:=val(dbr.vars.get(db,"FXCA002")) //Decimales de precisión en volúmenes
+            params.m_decs := val(dbr.vars.get(db,"FXCA001")) //Decimales de precisión en dinero
+            params.v_decs := val(dbr.vars.get(db,"FXCA002")) //Decimales de precisión en volúmenes
             
-            data.master := ref dbr.rec(db,"select 
+            data.master := ref dbr.rec(db,"
+                            select 
                                 c.sys_pk,
                                 IFNULL(DATE_FORMAT(c.fecha,'%Y-%m-%d'),'') fecha_doc, 
                                 date_format(c.sys_dtcreated,'%Y-%m-%dT%k:%i:%S') fecha_creacion, 
@@ -227,9 +219,13 @@ module "Reportes de movimiento de inventario. :Report"
                                 t.descripcion categoria, 
                                 ifnull(c.aplicado,0) aplicado, 
                                 ifnull(c.valuado,0) valuado
-                                from cardex c inner join categoria t on c.icategoria=t.sys_pk
-                                where c.sys_pk=@sys_pk;",params)
-            data.detail:= ref dbr.list(db,"select p.codigo cod_prod, 
+                            from cardex c
+                                inner join categoria t on c.icategoria=t.sys_pk
+                            where c.sys_pk=@sys_pk;
+                        ",params)
+            
+            data.detail := ref dbr.list(db,"
+                            select p.codigo cod_prod, 
                                 p.descripcion producto, 
                                 p.unidad unidad, 
                                 round(ifnull(d.entradas,0),@v_decs) entradas, 
@@ -242,12 +238,13 @@ module "Reportes de movimiento de inventario. :Report"
                                 a.codigo cod_almacen, 
                                 a.descripcion almacen,
                                 concat(a.codigo,' - ',a.descripcion, ' (',m.codigo,')') almacen_divisa
-                            from dcardex d inner join producto p on d.iproducto=p.sys_pk 
+                            from dcardex d
+                                inner join producto p on d.iproducto=p.sys_pk 
                                 inner join almacen a on d.ialmacen=a.sys_pk
                                 inner join divisa m on p.idivisa=m.sys_pk
                             where d.fk_cardex_movimientos=@sys_pk
-                                order by a.descripcion, m.codigo, p.descripcion;
-            ",params)
+                            order by a.descripcion, m.codigo, p.descripcion;
+                        ",params)
         }
         
         return data
@@ -368,28 +365,34 @@ module "Reportes de movimiento de inventario. :Report"
 
         params.m_decs:=val(dbr.vars.get(db,"FXCA001")) //Decimales de precisión en dinero
 
-        sql=ftext("select concat(a.codigo, ' ', a.descripcion,' (',m.codigo, ') ', m.descripcion, ' ') agrupacion, c.sys_pk sys_pk, 
-                                    c.sys_dtcreated creacion, 
-                                    c.sys_timestamp actualizacion, 
-                                    c.fecha fecha_doc,
-                                    cat.codigo cod_categoria, 
-                                    cat.descripcion categoria, 
-                                    c.referencia,
-                                    c.descripcion descripcion, 
-                                    m.codigo cod_divisa,
-                                    m.descripcion divisa,
-                                    a.codigo cod_almacen, 
-                                    a.descripcion almacen,
-                                    round(sum(ifnull(d.cargos,0)),@m_decs) cargos, 
-                                    round(sum(ifnull(d.abonos,0)),@m_decs) abonos
-                                from cardex c inner join dcardex d on d.fk_cardex_movimientos=c.sys_pk inner join producto p on d.iproducto=p.sys_pk 
-                                    inner join almacen a on d.ialmacen=a.sys_pk
-                                    inner join divisa m on p.idivisa=m.sys_pk
-                                    inner join categoria cat on cat.sys_pk=c.icategoria
-                                where ifnull(c.aplicado,0) and #<filter>
-                                group by
-                                    c.sys_pk
-                                    order by m.codigo, a.descripcion, c.sys_timestamp, c.referencia;")
+        sql = ftext("
+            select
+                concat(a.codigo, ' ', a.descripcion,' (',m.codigo, ') ', m.descripcion, ' ') agrupacion,
+                c.sys_pk, 
+                c.sys_dtcreated creacion, 
+                c.sys_timestamp actualizacion, 
+                c.fecha fecha_doc,
+                cat.codigo cod_categoria, 
+                cat.descripcion categoria, 
+                c.referencia,
+                c.descripcion descripcion, 
+                m.codigo cod_divisa,
+                m.descripcion divisa,
+                a.codigo cod_almacen, 
+                a.descripcion almacen,
+                round(sum(ifnull(d.cargos,0)),@m_decs) cargos, 
+                round(sum(ifnull(d.abonos,0)),@m_decs) abonos
+            from cardex c
+                inner join dcardex d on d.fk_cardex_movimientos=c.sys_pk
+                inner join producto p on d.iproducto=p.sys_pk 
+                inner join almacen a on d.ialmacen=a.sys_pk
+                inner join divisa m on p.idivisa=m.sys_pk
+                inner join categoria cat on cat.sys_pk=c.icategoria
+            where ifnull(c.aplicado,0) and #<filter>
+            group by c.sys_pk
+            order by m.codigo, a.descripcion, c.sys_timestamp, c.referencia;
+        ")
+        
         new data
         {
             @"detail*": dbr.list(db,sql,params)
@@ -416,25 +419,30 @@ module "Reportes de movimiento de inventario. :Report"
         params.m_decs:=val(dbr.vars.get(db,"FXCA001")) //Decimales de precisión en dinero
         params.v_decs:=val(dbr.vars.get(db,"FXCA002")) //Decimales de precisión en volúmenes
 
-        sql=ftext("select concat(a.codigo, ' ', a.descripcion,' (',m.codigo, ') ', m.descripcion, ' ') agrupacion,
-                    a.codigo cod_almacen,
-                    a.descripcion almacen,
-                    date(dc.sys_timestamp) aplicacion,
-                    p.codigo cod_producto,
-                    p.descripcion producto,
-                    p.unidad,
-                    m.codigo cod_divisa,
-                    m.descripcion divisa,
-                    round(sum(ifnull(dc.entradas,0)),@v_decs) entradas,
-                    round(sum(ifnull(dc.cargos,0)),@m_decs) cargos,
-                    round(sum(ifnull(dc.salidas,0)),@v_decs) salidas,
-                    round(sum(ifnull(dc.abonos,0)),@m_decs) abonos
-                from cardex c inner join dcardex dc on c.sys_pk= dc.fk_cardex_movimientos
-                    inner join producto p on dc.iproducto=p.sys_pk
-                    inner join divisa m on p.idivisa=m.sys_pk
-                    inner join almacen a on dc.ialmacen=a.sys_pk
-                where ifnull(c.aplicado,0) and #<filter>
-                group by a.sys_pk, p.sys_pk, date(dc.sys_timestamp);")
+        sql = ftext("
+            select
+                concat(a.codigo, ' ', a.descripcion,' (',m.codigo, ') ', m.descripcion, ' ') agrupacion,
+                a.codigo cod_almacen,
+                a.descripcion almacen,
+                date(dc.sys_timestamp) aplicacion,
+                p.codigo cod_producto,
+                p.descripcion producto,
+                p.unidad,
+                m.codigo cod_divisa,
+                m.descripcion divisa,
+                round(sum(ifnull(dc.entradas,0)),@v_decs) entradas,
+                round(sum(ifnull(dc.cargos,0)),@m_decs) cargos,
+                round(sum(ifnull(dc.salidas,0)),@v_decs) salidas,
+                round(sum(ifnull(dc.abonos,0)),@m_decs) abonos
+            from cardex c
+                inner join dcardex dc on c.sys_pk= dc.fk_cardex_movimientos
+                inner join producto p on dc.iproducto=p.sys_pk
+                inner join divisa m on p.idivisa=m.sys_pk
+                inner join almacen a on dc.ialmacen=a.sys_pk
+            where ifnull(c.aplicado,0) and #<filter>
+            group by a.sys_pk, p.sys_pk, date(dc.sys_timestamp);
+        ")
+
         new data
         {
             @"detail*": dbr.list(db,sql,params)
@@ -464,48 +472,53 @@ module "Reportes de movimiento de inventario. :Report"
         do dbr.apps.action.grant("GE3C")
 
         params.m_decs:=val(dbr.vars.get(db,"FXCA001")) //Decimales de precisión en dinero
-        new data {}
-            data.detail:= ref dbr.list(db,"select 
-                                    concat(a.codigo,' ',a.descripcion, ' [', d.codigo,'] ',cp.const) agrupacion,
-                                    a.codigo cod_almacen,
-                                    a.descripcion descripcion,
-                                    cp.id id_clase,
-                                    cp.const clase,
-                                    d.codigo cod_divisa,
-                                    d.descripcion divisa,
-                                    l.codigo cod_linea,
-                                    l.descripcion linea,
-                                    round(sum(ifnull(e.saldo,0)),@m_decs) valor 
-                                from existencias e inner join almacen a on e.ialmacen=a.sys_pk
-                                    inner join producto p on e.fk_producto_iexistencias=p.sys_pk 
-                                    inner join divisa d on p.idivisa=d.sys_pk
-                                    inner join linea l on p.ilinea=l.sys_pk 
-                                    inner join cclaseproducto cp on l.clase=cp.id
-                                group by a.codigo,
-                                    a.descripcion,
-                                    cp.id,
-                                    cp.const,
-                                    d.codigo,
-                                    d.descripcion,
-                                    l.codigo,
-                                    l.descripcion
-                                order by a.descripcion, cp.const, d.descripcion, l.descripcion;", params)
-            data.summary:= ref dbr.list(db,"select 
-                                    a.codigo cod_almacen,
-                                    a.descripcion almacen,
-                                    d.codigo cod_divisa,
-                                    d.descripcion divisa,
-                                    round(sum(ifnull(e.saldo,0)),@m_decs) valor 
-                                from existencias e inner join almacen a on e.ialmacen=a.sys_pk
-                                    inner join producto p on e.fk_producto_iexistencias=p.sys_pk 
-                                    inner join divisa d on p.idivisa=d.sys_pk
-                                group by a.codigo,
-                                    a.descripcion,
-                                    d.codigo,
-                                    d.descripcion
-                                order by d.descripcion, a.descripcion;", params)
         
-
+        new data {}
+            data.detail := ref dbr.list(db,"
+                            select 
+                                concat(a.codigo,' ',a.descripcion, ' [', d.codigo,'] ',cp.const) agrupacion,
+                                a.codigo cod_almacen,
+                                a.descripcion descripcion,
+                                cp.id id_clase,
+                                cp.const clase,
+                                d.codigo cod_divisa,
+                                d.descripcion divisa,
+                                l.codigo cod_linea,
+                                l.descripcion linea,
+                                round(sum(ifnull(e.saldo,0)),@m_decs) valor 
+                            from existencias e 
+                                inner join almacen a on e.ialmacen=a.sys_pk
+                                inner join producto p on e.fk_producto_iexistencias=p.sys_pk 
+                                inner join divisa d on p.idivisa=d.sys_pk
+                                inner join linea l on p.ilinea=l.sys_pk 
+                                inner join cclaseproducto cp on l.clase=cp.id
+                            group by a.codigo,
+                                a.descripcion,
+                                cp.id,
+                                cp.const,
+                                d.codigo,
+                                d.descripcion,
+                                l.codigo,
+                                l.descripcion
+                            order by a.descripcion, cp.const, d.descripcion, l.descripcion;
+                        ", params)
+            data.summary:= ref dbr.list(db,"
+                            select 
+                                a.codigo cod_almacen,
+                                a.descripcion almacen,
+                                d.codigo cod_divisa,
+                                d.descripcion divisa,
+                                round(sum(ifnull(e.saldo,0)),@m_decs) valor 
+                            from existencias e inner join almacen a on e.ialmacen=a.sys_pk
+                                inner join producto p on e.fk_producto_iexistencias=p.sys_pk 
+                                inner join divisa d on p.idivisa=d.sys_pk
+                            group by a.codigo,
+                                a.descripcion,
+                                d.codigo,
+                                d.descripcion
+                            order by d.descripcion, a.descripcion;
+                        ", params)
+        
         do prepareDefaultReportData(db,data)
         return data
         exception{ do catch() } 
@@ -515,106 +528,103 @@ module "Reportes de movimiento de inventario. :Report"
 
     function ValesDeEntrada(&db,&params)
     {
-    // do rise_error(99,to.json(params))
-     do dbr.apps.action.grant("GE3E")
+        do dbr.apps.action.grant("GE3E")
 
-    sql_vales_de_entrada = "SELECT
-                            c.sys_pk AS pkcardex,
-                            d.sys_pk AS pkdcardex,
-                            c.fecha,
-                            c.referencia,
-                            c.doccompra,
-                            c.docventa,
-                            c.descripcion,
-                            d.iproducto,
-                            p.codigo AS cproducto,
-                            p.descripcion AS dproducto,
-                            p.unidad,
-                            p.costoultimo,
-                            dvs.descripcion AS ddivisa,
-                            alm.codigo AS calmacen,
-                            alm.descripcion AS dalmacen,
-                            d.cargos,
-                            d.entradas,
-                            d.tipocambio,
-                            lt.numero AS num_lote,
-                            sr.numero AS num_serie
-                        FROM cardex AS c
-                            INNER JOIN dcardex AS d ON d.fk_cardex_movimientos = c.sys_pk
-                            INNER JOIN producto AS p ON d.iproducto = p.sys_pk
-                            INNER JOIN almacen AS alm ON d.ialmacen = alm.sys_pk
-                            INNER JOIN divisa AS dvs ON p.idivisa = dvs.sys_pk
-                            LEFT JOIN lote AS lt ON d.ilote = lt.sys_pk
-                            LEFT JOIN serie AS sr ON d.iserie = sr.sys_pk
-                        WHERE p.uf_sys_baja IS NULL AND (c.sys_pk = @pkcardex OR c.referencia = @referencia)
-                        ORDER BY p.idivisa, p.descripcion;"
+        sql_vales_de_entrada = "
+        SELECT
+            c.sys_pk AS pkcardex,
+            d.sys_pk AS pkdcardex,
+            c.fecha,
+            c.referencia,
+            c.doccompra,
+            c.docventa,
+            c.descripcion,
+            d.iproducto,
+            p.codigo AS cproducto,
+            p.descripcion AS dproducto,
+            p.unidad,
+            p.costoultimo,
+            dvs.descripcion AS ddivisa,
+            alm.codigo AS calmacen,
+            alm.descripcion AS dalmacen,
+            d.cargos,
+            d.entradas,
+            d.tipocambio,
+            lt.numero AS num_lote,
+            sr.numero AS num_serie
+        FROM cardex AS c
+            INNER JOIN dcardex AS d ON d.fk_cardex_movimientos = c.sys_pk
+            INNER JOIN producto AS p ON d.iproducto = p.sys_pk
+            INNER JOIN almacen AS alm ON d.ialmacen = alm.sys_pk
+            INNER JOIN divisa AS dvs ON p.idivisa = dvs.sys_pk
+            LEFT JOIN lote AS lt ON d.ilote = lt.sys_pk
+            LEFT JOIN serie AS sr ON d.iserie = sr.sys_pk
+        WHERE p.uf_sys_baja IS NULL AND (c.sys_pk = @pkcardex OR c.referencia = @referencia)
+        ORDER BY p.idivisa, p.descripcion;
+        "
 
         sql_vale = "SELECT sys_pk, referencia, descripcion, IFNULL(DATE_FORMAT(fecha,'%Y-%m-%d'),'') fecha FROM cardex WHERE (sys_pk = @pkcardex OR referencia = @referencia)"
 
-        //este data sirve para usar consultas db
         new data
         {
             @"vale*": dbr.rec(db,sql_vale,params)
             @"lista*": dbr.list(db,sql_vales_de_entrada,params)
         }
         do prepareView(db,params,data)
-        //retorna los datos de la consulta
-        return data //retorna la data
-        exception{ do catch() }
-    } 
+        return data
 
+        exception{ do catch() }
+    }
 
     function ValesDeSalida(&db,&params)
     {
-    // do rise_error(99,to.json(params))
-     do dbr.apps.action.grant("GE3F")
+        do dbr.apps.action.grant("GE3F")
 
-    sql_vales_de_salida = "SELECT
-                            c.sys_pk AS pkcardex,
-                            d.sys_pk AS pkdcardex,
-                            c.fecha,
-                            c.referencia,
-                            c.doccompra,
-                            c.docventa,
-                            c.descripcion,
-                            d.iproducto,
-                            p.codigo AS cproducto,
-                            p.descripcion AS dproducto,
-                            p.unidad,
-                            p.costoultimo,
-                            dvs.descripcion AS ddivisa,
-                            alm.codigo AS calmacen,
-                            alm.descripcion AS dalmacen,
-                            d.abonos,
-                            d.salidas,
-                            d.tipocambio,
-                            lt.numero AS num_lote,
-                            sr.numero AS num_serie
-                        FROM cardex AS c
-                            INNER JOIN dcardex AS d ON d.fk_cardex_movimientos = c.sys_pk
-                            INNER JOIN producto AS p ON d.iproducto = p.sys_pk
-                            INNER JOIN almacen AS alm ON d.ialmacen = alm.sys_pk
-                            INNER JOIN divisa AS dvs ON p.idivisa = dvs.sys_pk
-                            LEFT JOIN lote AS lt ON d.ilote = lt.sys_pk
-                            LEFT JOIN serie AS sr ON d.iserie = sr.sys_pk
-                        WHERE p.uf_sys_baja IS NULL AND (c.sys_pk = @pkcardex OR c.referencia = @referencia)
-                        ORDER BY p.idivisa, p.descripcion;"
+        sql_vales_de_salida = "
+        SELECT
+            c.sys_pk AS pkcardex,
+            d.sys_pk AS pkdcardex,
+            c.fecha,
+            c.referencia,
+            c.doccompra,
+            c.docventa,
+            c.descripcion,
+            d.iproducto,
+            p.codigo AS cproducto,
+            p.descripcion AS dproducto,
+            p.unidad,
+            p.costoultimo,
+            dvs.descripcion AS ddivisa,
+            alm.codigo AS calmacen,
+            alm.descripcion AS dalmacen,
+            d.abonos,
+            d.salidas,
+            d.tipocambio,
+            lt.numero AS num_lote,
+            sr.numero AS num_serie
+        FROM cardex AS c
+            INNER JOIN dcardex AS d ON d.fk_cardex_movimientos = c.sys_pk
+            INNER JOIN producto AS p ON d.iproducto = p.sys_pk
+            INNER JOIN almacen AS alm ON d.ialmacen = alm.sys_pk
+            INNER JOIN divisa AS dvs ON p.idivisa = dvs.sys_pk
+            LEFT JOIN lote AS lt ON d.ilote = lt.sys_pk
+            LEFT JOIN serie AS sr ON d.iserie = sr.sys_pk
+        WHERE p.uf_sys_baja IS NULL AND (c.sys_pk = @pkcardex OR c.referencia = @referencia)
+        ORDER BY p.idivisa, p.descripcion;
+        "
 
         sql_vale = "SELECT sys_pk, referencia, descripcion, IFNULL(DATE_FORMAT(fecha,'%Y-%m-%d'),'') fecha FROM cardex WHERE (sys_pk = @pkcardex OR referencia = @referencia)"
 
-        //este data sirve para usar consultas db
         new data
         {
             @"vale*": dbr.rec(db,sql_vale,params)
             @"listasalida*": dbr.list(db,sql_vales_de_salida,params)
         }
-
         do prepareView(db,params,data)
-        //retorna los datos de la consulta
-        return data //retorna la data
-        exception{ do catch() }
-    } 
+        return data
 
+        exception{ do catch() }
+    }
 
     NotImplemented::&db,&params { do rise_error(404,"Reporte no implementado") }
 
