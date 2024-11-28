@@ -17,14 +17,6 @@ GE21,"Crear máximos, mínimos de productos por almacén",Crear,,/!/inventario/m
 GE31,Diario de almacén,Diario almacén,,/!/inventario/reports/diario-almacen/,0,inventario.reports,DET077,0,report
 GE32,Movimiento de inventario,Movimiento de inventario,,/!/inventario/reports/movimientos/,0,inventario.reports,DET077,0,report
 GE33,Diario de productos,Diario productos,,/!/inventario/reports/diario-productos/,0,inventario.reports,DET077,0,report
-GE34,Niveles de existencias,Ex. Niveles,,/!/inventario/reports/niveles-existencias/,0,inventario.reports,DET077,0,report
-GE35,Historial de traspasos,H. Traspasos,,/!/inventario/reports/historial-traspasos/,0,inventario.reports,DET077,0,report
-GE36,Detalle de traspasos entre almacenes,D. Traspasos,,/!/inventario/reports/dtraspasos-almacen/,0,inventario.reports,DET077,0,report
-GE37,Existencias a una fecha,Ex. Fecha,,/!/inventario/reports/existencias-fecha/,0,inventario.reports,DET077,0,report
-GE38,Existencias por lotes,Ex. Lotes,,/!/inventario/reports/existencias-lote/,0,inventario.reports,DET077,0,report
-GE39,Caducidades,Caducidades,,/!/inventario/reports/caducidades/,0,inventario.reports,DET077,0,report
-GE3A,Series,Series,,/!/inventario/reports/series/,0,inventario.reports,DET077,0,report
-GE3B,Historial de número de series,H. Series,,/!/inventario/reports/historial-series/,0,inventario.reports,DET077,0,report
 GE3C,Valor del inventario,V. Inventario,,/!/inventario/reports/valor-inventario/,0,inventario.reports,DET077,0,report
 GE3D,Informe de exitencias debajo del mínimo o el punto de reorden,Existencias,,/!/inventario/reports/existencias/,0,inventario.reports,DET077,0,report
 GE3E,Vales de entrada,Existencias,,/!/inventario/reports/vales-de-entrada/,0,inventario.reports,DET077,0,report

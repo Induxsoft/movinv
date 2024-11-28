@@ -255,6 +255,7 @@ module "Reportes de movimiento de inventario. :Report"
     function Caducidades(&db,&params)
     {
         do dbr.apps.action.grant("GE39")
+        // GE39,Caducidades,Caducidades,,/!/inventario/reports/caducidades/,0,inventario.reports,DET077,0,report
 
         new data
         {
@@ -269,6 +270,7 @@ module "Reportes de movimiento de inventario. :Report"
     function Series(&db,&params)
     {
         do dbr.apps.action.grant("GE3A")
+        // GE3A,Series,Series,,/!/inventario/reports/series/,0,inventario.reports,DET077,0,report
 
         new data
         {
@@ -283,6 +285,7 @@ module "Reportes de movimiento de inventario. :Report"
     function ExistenciasFecha(&db,&params)
     {
         do dbr.apps.action.grant("GE37")
+        // GE37,Existencias a una fecha,Ex. Fecha,,/!/inventario/reports/existencias-fecha/,0,inventario.reports,DET077,0,report
 
         new data
         {
@@ -297,6 +300,7 @@ module "Reportes de movimiento de inventario. :Report"
     function ExistenciasLotes(&db,&params)
     {
         do dbr.apps.action.grant("GE38")
+        // GE38,Existencias por lotes,Ex. Lotes,,/!/inventario/reports/existencias-lote/,0,inventario.reports,DET077,0,report
 
         new data
         {
@@ -311,6 +315,7 @@ module "Reportes de movimiento de inventario. :Report"
     function NivelesExistencia(&db,&params)
     {
         do dbr.apps.action.grant("GE34")
+        // GE34,Niveles de existencias,Ex. Niveles,,/!/inventario/reports/niveles-existencias/,0,inventario.reports,DET077,0,report
 
         new data
         {
@@ -325,6 +330,7 @@ module "Reportes de movimiento de inventario. :Report"
     function HistorialTraspasos(&db,&params)
     {
         do dbr.apps.action.grant("GE35")
+        // GE35,Historial de traspasos,H. Traspasos,,/!/inventario/reports/historial-traspasos/,0,inventario.reports,DET077,0,report
 
         new data
         {
@@ -339,6 +345,7 @@ module "Reportes de movimiento de inventario. :Report"
     function HistorialSeries(&db,&params)
     {
         do dbr.apps.action.grant("GE3B")
+        // GE3B,Historial de número de series,H. Series,,/!/inventario/reports/historial-series/,0,inventario.reports,DET077,0,report
 
         new data
         {
@@ -456,6 +463,7 @@ module "Reportes de movimiento de inventario. :Report"
     function DTraspasosAlmacen(&db,&params)
     {
         do dbr.apps.action.grant("GE36")
+        // GE36,Detalle de traspasos entre almacenes,D. Traspasos,,/!/inventario/reports/dtraspasos-almacen/,0,inventario.reports,DET077,0,report
 
         new data
         {
