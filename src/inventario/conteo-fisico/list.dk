@@ -1,0 +1,81 @@
+#include "dkli.dkh"
+#!
+module ""
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "uielements.v12.dkl"
+    #include "../config.dk"
+
+    do @context.begin(@crud_context)
+
+    ref entity = ifnull(@("&./entity"),record.create())
+    ref detail = ifnull(@("&./details"),list.create())
+
+    @_entity_id = @("$parameters/_entity_id")
+    @is_new = (@_entity_id == "_new")
+
+
+    new table_definition
+    {
+        @"datatable*": ifnull(@("&./data"),list.create())
+        @"table_footer": "Mostrando los primeros # clientes ordenados por código"
+        member @"columns"
+        {
+            member @"nombre" { @"caption":"Nombre" }
+            member @"inicio" { @"caption":"Inicio" }
+            member @"conclusion" { @"caption":"Conclusión" }
+            member @"status" { @"caption":"Estado" }
+            member @"tipo" { @"caption":"Tipo" }
+            member @"saldofisico" { @"caption":"S. Físico" }
+            member @"saldoteorico" { @"caption":"S. Teórico" }
+            member @"diferencia" { @"caption":"Diferencia" }
+            member @"notas" { @"caption":"Notas" }
+            member @"_actions"
+            {
+                @"caption":"Acciones"
+                @"template":'<div style="display:flex;gap:8px;justify-content:center;">
+                                <a href="./${DataRow.sys_pk}/details/" style="cursor:pointer; text-decoration: none; padding: 0px 8px; background-color: #F5F5F5; color: #000;border:1px solid;">Detalle</a>
+                                <button style="border:1px solid;margin-right:5px;" onclick="InduxsoftCrudlModel.Delete(${DataRow.sys_pk})">Eliminar</button>
+                                ${DataRow.cerrado ? ``:`<button style="border:1px solid;margin-right:5px;" onclick="conteo.CerrarConteo(${DataRow.sys_pk})">Cerrar conteo</button>`}
+                                <button style="border:1px solid;margin-right:5px;" onclick="conteo.SincronizarConteo(${DataRow.sys_pk})">Sincronizar</button>
+                            </div>'
+            }
+        }
+    }
+
+    fn_print_buttons::
+    {
+        act_btn_cls = "btn btn-sm border-secondary induxsoft-corners btn-main-action"
+        
+        #$
+        a(href="./_new/" class="#<act_btn_cls>" type="button" id="btn_guardar"  title="Aceptar"){$"Nuevo"}
+        #!
+    }
+    point print_buttons to fn_print_buttons
+    new nav_config
+    {
+        @"title":"Conteo físico"
+        @"buttons*": print_buttons
+        @"urlexit": "."
+        @"print_mode": 0 // 0-window.print(), 1-v12PrintHTML()
+        member @"hidden"{@"send":@true}
+    }
+
+    #$ div(class="container-fluid v12-list-view" id="view")
+    {
+        script(src="#<@JS_CONTEO_FISICO>"){""}
+        section(id="top_area")
+        {
+            #!
+            do uie.printV12FormBar(nav_config)
+            #$
+        }
+        section(id="work_area")
+        {
+            #!
+            do uie.dbeditable(table_definition,"table_conteo_fisico")
+            #$
+        }
+    }
+}

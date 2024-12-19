@@ -10,6 +10,7 @@ GE16,Ver lotes o series del producto,Lote/Serie,,/!/inventario/movimiento/@_src_
 GE17,Recepción de transferencia,Recepción,,/!/inventario/movimiento/?_view=recepcion,0,inventario.movimiento,DET077,0,action
 GE18,Importar movimientos,Imp. MovInv,,/!/batch/taskman/GE/importar.movinv/?exit_url_encode=LyEvaW52ZW50YXJpby9tb3ZpbWllbnRvLw||,0,inventario.movimiento,DET077,0,action
 GE19,Eliminar existencias,Eliminar existencias,,/!/batch/taskman/GE/eliminar.existencias/?exit_url_encode=LyEvaW52ZW50YXJpby9tb3ZpbWllbnRvLw||,0,inventario.movimiento,DET077,0,action
+GE1B,Conteo físico,Conteo,,/!/inventario/conteo-fisico/,0,inventario.movimiento,DET077,0,action
 
 GE20,"Listar máximos, mínimos de productos por almacén",Listar,,/!/inventario/maxmin/,0,inventario.maxmin,DET076,0,action
 GE21,"Crear máximos, mínimos de productos por almacén",Crear,,/!/inventario/maxmin/_new/,0,inventario.maxmin,DET076,0,action

@@ -1,0 +1,33 @@
+#include "dkli.dkh"
+#!
+module ""
+{
+    point @create   to conteo.create
+    point @blank    to conteo.blank
+    point @read     to conteo.read
+    point @list     to conteo.list
+    point @delete   to conteo.delete
+
+    switch @@(params,"$_view")
+    {
+        case "details"
+        {
+            point @read to conteo.details
+            @form_view="details.dk"
+            break
+        }
+        case "search-almacen"
+        {
+            point @read to conteo.search.almacen
+            break
+        }
+        case "cerrar-conteo"
+        {
+            point @update to conteo.cerrar
+        }
+        case "sinc-conteo"
+        {
+            point @update to conteo.sincronizar
+        }
+    }
+}

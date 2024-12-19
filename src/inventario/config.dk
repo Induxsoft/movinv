@@ -24,6 +24,7 @@ module "config.dk"
     @JS_MAIN = "/$/inventario/js/main.js"
     @JS_MOVINV = "/$/inventario/js/movinv.js"
     @JS_FILTER = "/$/inventario/js/filter.js"
+    @JS_CONTEO_FISICO="/$/inventario/js/conteofisico.js"
 
     // _PACKAGE
     @URL_BUSCAR_ALMACEN = "/!/inventario/movimiento/?_view=almacen&s=@search"

@@ -1,0 +1,215 @@
+#include "dkli.dkh"
+#!
+module ""
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "uielements.dkl"
+    #include "uielements.v12.dkl"
+    #include "../_lib/icons.dk"
+    #include "../_lib/lib.dk"
+    #include "../config.dk"
+
+    do @context.begin(@crud_context)
+    
+    new lineas
+    {
+        @"datatable*": @('&./lineas')
+        @"id": "sel_linea"
+        member "attributes"
+        {
+            @"name": "sel_linea"
+            @"class": "induxsoft-form-select"
+        }
+        @"text_field": "descripcion"
+        @"value_field": "sys_pk"
+        @"first_text":"< Todas las líneas >"
+        @"first_value":"*"
+        @"selected": ""
+    }
+    new departamentos
+    {
+        @"datatable*": @('&./departamentos')
+        @"id": "sel_departamento"
+        member "attributes"
+        {
+            @"name": "sel_departamento"
+            @"class": "induxsoft-form-select"
+        }
+        @"text_field": "descripcion"
+        @"value_field": "sys_pk"
+        @"first_text":"< Todas los departamentos >"
+        @"first_value":"*"
+        @"selected": ""
+    }
+    new marcas
+    {
+        @"datatable*": @('&./marcas')
+        @"id": "sel_marca"
+        member "attributes"
+        {
+            @"name": "sel_marca"
+            @"class": "induxsoft-form-select"
+        }
+        @"text_field": "descripcion"
+        @"value_field": "sys_pk"
+        @"first_text":"< Todas las marcas >"
+        @"first_value":"*"
+        @"selected": ""
+    }
+    new grupos_prod
+    {
+        @"datatable*": @('&./grupos')
+        @"id": "sel_grupo"
+        member "attributes"
+        {
+            @"name": "sel_grupo"
+            @"class": "induxsoft-form-select"
+        }
+        @"text_field": "nombre"
+        @"value_field": "sys_pk"
+        @"first_text":"< Todas las marcas >"
+        @"first_value":"*"
+        @"selected": ""
+    }
+
+    buttons::
+    {
+        #$
+        button(class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="conteo.Submit('form_conteo_fisico')"){$"#<@ICON_SAVE>"}
+        #!
+    }
+    point buttons to buttons
+
+    new nav_config
+    {
+        @"title": "Nuevo conteo físico de invetarios"
+        @"buttons*": buttons
+        @"urlexit": ".."
+    }
+    ref detail=list.create()
+    do AutoFillRows(detail,5)
+
+    #$ div(class="container-lg v12-list-view" id="view")
+    {
+        script(src="#<@JS_CONTEO_FISICO>"){""}
+        section(id="top_area")
+        {
+            #!
+            do uie.printV12FormBar(nav_config)
+            #$
+        }
+        section(id="work_area")
+        {
+            form(action="." method="POST" id="form_conteo_fisico")
+            {
+                div(class="row")
+                {
+                    div(class="col-md-6")
+                    {
+                        label(class="form-label fw-bold"){"Nombre:"}
+                        input(type="text" class="induxsoft-form-control" required="true" maxlength="50" id="nombre" name="nombre" value="#<@('$./nombre')>")
+                    }
+                    
+                    div(class="col-md-6")
+                    {
+                        label{"Línea:"}
+                        #!
+                        do uie.dbSelect(lineas)
+                        #$
+                    }
+                    div(class="col-md-6")
+                    {
+                        label{"Departamento:"}
+                        #!
+                        do uie.dbSelect(departamentos)
+                        #$
+                    }
+                    div(class="col-md-6")
+                    {
+                        label{"Marca:"}
+                        #!
+                        do uie.dbSelect(marcas)
+                        #$
+                    }
+                    div(class="col-md-6")
+                    {
+                        label{"Grupo:"}
+                        #!
+                        do uie.dbSelect(grupos_prod)
+                        #$
+                    }
+                    div(class="col-md-12")
+                    {
+                        label{"Notas:"}
+                        textarea(class="induxsoft-form-control" name="notas" maxlength="2048"){"#<@('$./notas')>"}
+                    }
+                    div(class="col-md-6 mt-2")
+                    {
+                        div(class="row")
+                        {
+                            div(class="col-md-2")
+                            {
+                                label{input(type="checkbox" name="random" id="aleatorio")" Aleatorio"}
+                            }
+                            div(class="col-md-8")
+                            {
+                                div(class="d-flex")
+                                {
+                                    input(type="number" name="articulos" id="articulos" class="form-control form-control-sm w-25 rounded-0 me-2" disabled="true")
+                                    label{" artículos"}
+                                }
+                            }
+                        }
+                    }
+                    div(class="col-md-12 mt-2")
+                    {
+                        div(class="card")
+                        {
+                            div(class="card-body")
+                            {
+                                label(class="fw-bold"){"Almacén(s):"}
+
+                                "input-key"(id="ip_uf_almacen" 
+                                "data-key"="sys_pk" 
+                                "data-search"="codigo" 
+                                "data-text"="descripcion" 
+                                "data-source"="#<@URL_BUSCAR_ALMACEN>" 
+                                "data-value"="{}" 
+                                columns="codigo,descripcion" 
+                                colcaptions="Código,Descripción"){$""}
+                                
+                                div(class="mt-2")
+                                {
+                                    div(class="d-flex justify-content-end mb-2")
+                                    {
+                                        button(type="button" class="border-0 me-2" title="Agregar fila" onclick="conteo.AddRow()"){$'#<@ICON_ADD_ROW>'}
+                                        button(type="button" class="border-0 me-2" title="Eliminar fila" onclick="conteo.DeleteRow()"){$'#<@ICON_REMOVE_ROW>'}
+                                    }
+                                    
+                                    "edit-table"(id="tbl_almacenes" data="#<to.json(detail)>" class="printable-element " style="width:100%;"
+                                    "auto-confirm"="true"
+                                    "row-height"="1.2rem"
+                                    "hidde-selector"="true" 
+                                    "cards-responsive"="true"
+                                    "control-styles"="")
+                                    {
+                                        "edit-thead"
+                                        {
+                                            "edit-tr"
+                                            {
+                                                "edit-th"(type="NoEditable" field="codigo"){$"Código"}
+                                                "edit-th"(type="NoEditable" field="descripcion"){$"Descripción"}
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                }
+            }
+        }
+    }
+}

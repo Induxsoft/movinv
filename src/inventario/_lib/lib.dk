@@ -21,7 +21,15 @@ module
         }
         return list
     }
-
+    // Si no hay más de {minrows} filas, autorellenar con filas vacias.
+    function AutoFillRows(&list,minrows)
+    {
+        add = (minrows - list.count(list))
+        repeat add
+        {
+            do list.add(list,record.create())
+        }
+    }
     function print_date_filter(&get, &contentBefore, &contentAfter)
     {
         #$ form(action="./" method="GET" id="form_filter" class="no-print")

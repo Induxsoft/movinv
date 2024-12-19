@@ -1,0 +1,253 @@
+#include "dkli.dkh"
+#!
+module ":conteo"
+{
+    @list_query="SELECT
+                c.sys_pk,
+                c.cerrado,
+                c.conclusion,
+                c.inicio,
+                c.nombre,
+                c.notas,
+                c.parcial,
+                ifnull(c.saldofisico,0)saldofisico,
+                ifnull(c.saldoteorico,0)saldoteorico,
+                c.sincronizado
+            From
+                cfconteo c
+            Order BY
+                c.inicio;"
+
+    @table_name="cfconteo"
+    ImportExist::&db,&params
+    {
+        if @@(params,"#grupo") < 1
+        {
+            sql="select
+                    producto.sys_pk as pk,
+                    producto.reqlote as lote,
+                    producto.reqserie as serie,
+                    divisa.tcambio as tc
+                from
+                    producto
+                    inner join divisa on divisa.sys_pk = producto.idivisa
+                where
+                    producto.itipo = 2"
+        }
+        else 
+        {
+            sql="select
+                    distinct producto.sys_pk as pk,
+                    producto.reqlote as lote,
+                    producto.reqserie as serie,
+                    divisa.tcambio as tc
+                from
+                    (
+                        producto
+                        inner join divisa on divisa.sys_pk = producto.idivisa
+                    )
+                    inner join grupoproductos_producto_ on producto.sys_pk = grupoproductos_producto_.iproductos
+                where
+                    producto.itipo = 2
+                    and grupoproductos_producto_.igrupos = @grupo"
+        }
+
+        if @@(params,"#linea")> 0{sql=sql + " AND producto.ilinea=@linea "}
+        if @@(params,"#marca")> 0{sql=sql + " AND producto.imarca=@marca "}
+        if @@(params,"#departamento")> 0{sql=sql + " AND producto.IDepartamento=@linea "}
+
+        if @@(params,"#random"){sql=sql + " ORDER BY RAND() LIMIT ifnull(@limit,1)"}
+
+        ref productos=dbr.list(db,sql,params)
+        for i = 0; i < @count(productos)
+        {
+            ref producto=@item(productos,i)
+            if not(@@(producto,"#lote")) || not(@@(producto,"#serie"))
+            {
+                params<"ppk">:@@(producto,"#pk")
+                params<"ptc">:if(@@(producto,"#tc")> 0,@@(producto,"#tc"),1)
+                do ImportProducto(db,params)
+            }
+        }
+    }
+    ImportProducto::&db,&params
+    {
+        sql="select sys_pk from almacen where sys_pk=@almacen"
+        ref almacen=dbr.rec(db,sql,params)
+        if not(isnull(almacen))
+        {
+            sql="select
+                    almacen.sys_pk as pkalmacen,
+                    existencias.existencia as existencia,
+                    (existencias.existencia * ifnull(producto.costopromedio,1)) as saldo,
+                    existencias.saldo as saldo1
+                from
+                    almacen
+                    inner join (
+                        existencias
+                        inner join producto on existencias.fk_producto_iexistencias = producto.sys_pk
+                    ) on almacen.sys_pk = existencias.ialmacen
+                where
+                    existencias.fk_producto_iexistencias =@ppk
+                    and existencias.ialmacen =@almacen
+                LIMIT 1"
+
+            ref existencia=dbr.rec(db,sql,params)
+            
+            costopromedio=round(div((@@(existencia,"#saldo") * @@(params,"#ptc")) , @@(existencia,"#existencia")),4)
+            new cfexist
+            {
+                @"costopromedio":costopromedio
+                @"exist_fisico": 0
+                @"exist_teorico": round(@@(existencia,"#existencia"),6)
+                @"ialmacen":@@(existencia,"#pkalmacen")
+                @"iproducto":@@(params,"#ppk")
+                @"iconteo":@@(params,"#pk_conteo")
+            }
+
+            do dbr.save(db,"cfexist",cfexist)
+
+            params<"exist_teorico">:@@(cfexist,"#exist_teorico") * @@(cfexist,"#costopromedio")
+
+            sql="UPDATE cfConteo SET saldoteorico=ifnull(saldoteorico,0) + @exist_teorico WHERE sys_pk=@pk_conteo"
+
+            do dbr.execute(db,sql,params)
+        }
+    }
+    prepareView::&db,&params,&data
+    {
+        using data
+        {
+            // @"almacenes*":dbr.list(db,"SELECT a.sys_pk,CONCAT(a.codigo,' - ',a.descripcion)descripcion FROM almacen a WHERE IFNULL(a.sys_deleted,0)=0",@null)
+            @"lineas*":dbr.list(db,"select l.sys_pk,concat(l.codigo,' - ',l.descripcion)descripcion from linea l where IFNULL(l.sys_deleted,0)=0 and (clase = 1 Or clase=4 Or Clase=3 or Clase = 2) Order By descripcion",@null)
+            @"departamentos*":dbr.list(db,"SELECT d.sys_pk,CONCAT(d.codigo,' - ',d.descripcion)descripcion FROM departamento d WHERE IFNULL(d.sys_deleted,0)=0",@null)
+            @"marcas*":dbr.list(db,"SELECT m.sys_pk,CONCAT(m.codigo,' - ',m.descripcion)descripcion FROM marca m WHERE IFNULL(m.sys_deleted,0)=0",@null)
+            @"grupos*":dbr.list(db,"Select sys_pk, nombre From grupoproductos Order By nombre",@null)
+        }
+    }
+    read::&db,&params
+    {
+        ref entity= entity.read(db,params)
+        do prepareView(db,params,entity)
+        return entity
+    }
+    blank::&db,&params
+    {
+      new entity{}
+      do prepareView(db,params,entity)
+      return entity
+    }
+    create::&db,&params,&data
+    {
+        @use_transaction=@false
+
+        using params
+        {
+            @"linea":@@(data,"#sel_linea")
+            @"almacen":@@(data,"#uf_almacen")
+            @"departamento":@@(data,"#sel_departamento")
+            @"marca":@@(data,"#sel_marca")
+            @"grupo":@@(data,"#sel_grupo")
+            @"random":parse.bool(@@(data,"random"))
+            @"limit":if(@@(data,"#articulos")> 0,@@(data,"#articulos"),1)
+        }
+        data<"parcial">: 0
+        if @@(data,"#sel_linea")> 0 || @@(data,"#sel_departamento") > 0 || @@(data,"#sel_marca")> 0 || @@(data,"#sel_grupo")> 0{data<"parcial">: 1}
+        
+        data<"inicio*">:now()
+        @create_fields="cerrado,conclusion,inicio,nombre,notas,parcial,saldofisico,saldoteorico,sincronizado"
+
+        ref almacenes=from.json(@@(data,"$uf_almacen"))
+
+        do dbr.begin(db)
+            
+            ref entity=entity.create(db,params,data)
+            params<"pk_conteo">:@@(entity,"#sys_pk")
+
+            for i = 0; i < @count(almacenes)
+            {
+                ref almacen=@item(almacenes,i)
+                params<"almacen">:@@(almacen,"#sys_pk")
+                do ImportExist(db,params)   
+            }
+        do dbr.commit(db)
+        
+        exception
+        {
+            if dbr.in_transaction(db){do dbr.rollback(db)}
+            do rise_error(last_error_code(),last_error())
+        }
+        
+    
+        return entity
+    }
+    list::&db,&params
+    {
+       ref entity= entity.list(db,params)
+       for i = 0; i < @count(entity)
+       {
+            ref item=@item(entity,i)
+            
+            if @@(item,"#parcial"){item<"tipo">:"Parcial"}
+            else{item<"tipo">:"Completo"}
+
+            if @@(item,"#cerrado")
+            {
+                item<"status">:"Abierto"
+                item<"conclusion">:"En proceso"
+
+                if @@(item,"#sincronizado")
+                {
+                    item<"status">:"Sincronizado"
+                }
+                else{item<"status">:"Cerrado"}
+            }
+            else 
+            {
+                item<"status">:"Abierto"
+                item<"conclusion">:"En proceso"
+            }
+            item<"diferencia">:@@(item,"#saldofisico") - @@(item,"#saldoteorico")
+       }
+
+       new data
+       {
+            @"data*":entity
+       }
+       return data
+    }
+    
+    delete::&db,&params
+    {
+        do rise_error(0,"delete")
+        do dbr.execute(db,"DELETE FROM cfCaptura WHERE IConteo=@_entity_id",params)
+        do dbr.execute(db,"DELETE FROM cfExist WHERE IConteo=@_entity_id",params)
+        do dbr.execute(db,"DELETE FROM cfConteo WHERE Sys_PK=@_entity_id",params)
+    }
+    cerrar::&db,&params,&data
+    {
+        do rise_error(0,"cerrar")
+        do dbr.execute(db,"UPDATE cfConteo SET cerrado= 1 WHERE sys_pk=@_entity_id",params)
+    }
+    sincronizar::&db,&params,&data
+    {
+        do rise_error(0,"*_* pendiente")
+    }
+    search.almacen::&db,&params
+    {
+        sql="SELECT 
+            a.sys_pk,
+            a.codigo,
+            a.descripcion
+        FROM almacen a 
+        WHERE IFNULL(a.sys_deleted,0)=0
+        AND CONCAT_WS('',a.codigo,a.descripcion) like concat('%',@s,'%')
+        ORDER BY a.codigo desc"
+
+        return dbr.list(db,sql,params)
+    }
+    details::&db,&params
+    {
+        return list.create()
+    }
+}

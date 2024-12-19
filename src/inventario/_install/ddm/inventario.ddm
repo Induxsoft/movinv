@@ -331,7 +331,47 @@ model "movinv"
             field "iproducto"
         }
     }
+    /* uod.cfcaptura */
+    entity "cfcaptura" : "TableModel"
+    {
+        @"cantidad" decimal(18,8) required
+        @"ialmacen" int required
+        @"iproducto" int required
+        @"notas" string(255)
+        @"referencia" string(50) required
+        @"usuario" string(50) required
+        @"iconteo" int ref:"cfconteo" ["sys_pk"] required
+    }
+    /* uod.cfconteo */
+    entity "cfconteo" : "TableModel"
+    {
+        @"cerrado" bool
+        @"conclusion" date
+        @"inicio" date
+        @"nombre" string(50)
+        @"notas" string(2048)
+        @"parcial" bool
+        @"saldofisico" decimal(18,8)
+        @"saldoteorico" decimal(18,8)
+        @"sincronizado" bool
+    }
+    /* uod.cfexist */
+    entity "cfexist" : "TableModel"
+    {
+        @"costopromedio" decimal(18,8)
+        @"exist_fisico" decimal(18,8)
+        @"exist_teorico" decimal(18,8)
+        @"ialmacen" int required
+        @"iproducto" int required
+        @"iconteo" int ref:"cfconteo" ["sys_pk"] required
 
+        index "idx_cfexist1" unique
+        {
+            field "ialmacen"
+            field "iproducto"
+            field "iconteo"
+        }
+    }
     // Relaciones a catálogos
     entity "ctiposcategorias" : "EnumModel" {}
     entity "cclaseproducto" : "EnumModel" {}
