@@ -5,36 +5,248 @@ module ""
     #include "functions.dkh"
     #include "serialize.dkh"
     #include "uielements.v12.dkl"
+    #include "uielements.dkl"
     #include "../config.dk"
 
     do @context.begin(@crud_context)
 
-    ref entity = ifnull(@("&./entity"),record.create())
-    ref detail = ifnull(@("&./details"),list.create())
+    ref entity = ifnull(@("&./conteo"),record.create())
+    ref detail = ifnull(@("&./data"),list.create())
+
+    new fil_almacen
+    {
+        @"datatable*": ifnull(@("&./almacenes"),list.create())
+        @"id": "fil_almacen"
+        new member "attributes"
+        {
+            @"class": "form-select form-select-sm rounded-0"
+            @"name": "fil_almacen"
+            @"onchange":"document.getElementById('form_filter_detail').submit()"
+        }
+        @"first_value": "*"
+        @"first_text": "< Todos los almacenes >"
+        @"value_field": "sys_pk"
+        @"text_field": "descripcion"
+        @"selected": @("#parameters/fil_almacen")
+    }
+    new table_definition
+    {
+        @"datatable*": detail
+        @"table_footer": "Mostrando los primeros # clientes ordenados por código"
+        @"tableheight": "96%"
+        member @"columns"
+        {
+            member @"almacen" { @"caption":"Almacén" }
+            member @"producto" { @"caption":"Producto" }
+            member @"linea" { @"caption":"Línea" }
+            member @"marca" { @"caption":"Marca" }
+            member @"unidad" { @"caption":"Unidad" }
+            member @"costopromedio" { @"caption":"Costo promedio" }
+            member @"exist_fisico" 
+            { 
+                @"caption":"Existencia físico" 
+                textalign       :="end" 
+                format          :="true" 
+                thousandssep    :="true" 
+                decs            :="2"
+            }
+            member @"exist_teorico" 
+            { 
+                @"caption":"Existencia teorico" 
+                textalign       :="end" 
+                format          :="true" 
+                thousandssep    :="true" 
+                decs            :="2"
+            }
+            member @"diferencia" 
+            { 
+                @"caption":"Diferencia"  
+                textalign       :="end" 
+                format          :="true" 
+                thousandssep    :="true" 
+                decs            :="2"
+            }
+            member @"valorfisico" 
+            { 
+                @"caption":"Valor físico" 
+                prefix          := "$ " 
+                textalign       :="end" 
+                format          :="true" 
+                thousandssep    :="true" 
+                decs            :="2"
+            }
+            member @"valorteorico" 
+            { 
+                @"caption":"Valor teorico" 
+                prefix          := "$ " 
+                textalign       :="end" 
+                format          :="true" 
+                thousandssep    :="true" 
+                decs            :="2"
+            }
+            member @"diferenciavalor" 
+            { 
+                @"caption":"Diferencia valor" 
+                prefix          := "$ " 
+                textalign       :="end" 
+                format          :="true" 
+                thousandssep    :="true" 
+                decs            :="2"
+            }
+        }
+    }
+
+    buttons::
+    {
+        if not(@("#./conteo/cerrado"))
+        {
+            #$
+            button(class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="conteo.detail.showModal();"){"Capturar existencia física"}
+            button(class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="conteo.CerrarConteo(#<@('#./conteo/sys_pk')>)"){"Cerrar conteo"}
+            #!
+        }
+        if not(@("#./conteo/sincronizado"))
+        {
+            #$
+            button(class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="conteo.SincronizarConteo(#<@('#./conteo/sys_pk')>)"){"Sincronizar"}
+            #!
+        }
+    }
+
+    point buttons to buttons
 
     new nav_config
     {
-        @"title":"Conteo físico"
-        @"buttons*": @null
+        @"title":"Conteo físico ["+@@(entity,"$nombre")+"]"
+        @"buttons*": buttons
         @"urlexit": "../../"
         @"print_mode": 0 // 0-window.print(), 1-v12PrintHTML()
         member @"hidden"{@"send":@true}
     }
 
-    #$ div(class="container-fluid v12-list-view" id="view")
+    #$ 
+    div(class="container-fluid v12-list-view" id="view")
     {
+        #!
+            #include "modals.dk"
+        #$
+
         script(src="#<@JS_CONTEO_FISICO>"){""}
+
         section(id="top_area")
         {
             #!
             do uie.printV12FormBar(nav_config)
             #$
+            div(class="mt-2")
+            {
+                table(class="table")
+                {
+                    thead
+                    {
+                        tr
+                        {
+                            th{"Nombre"}
+                            th{"Tipo"}
+                            th{"Inicio"}
+                            th{"Estado"}
+                            th{"S. Físico"}
+                            th{"S. teorico"}
+                        }
+                    }
+                    tbody
+                    {
+                        tr
+                        {
+                            td{"#<@@(entity,'$nombre')>"}
+                            td{"#<@@(entity,'$tipo')>"}
+                            td{"#<@@(entity,'$inicio')>"}
+                            td{"#<@@(entity,'$status')>"}
+                            td(id="td_saldo_fisico"){"#<@@(entity,'$saldofisico')>"}
+                            td{"#<@@(entity,'$saldoteorico')>"}
+                        }
+                    }
+                }
+            }
+            form(action="." id="form_filter_detail")
+            {
+                div(class="row")
+                {
+                    div(class="col-md-6")
+                    {
+                        label{"Almacén:"}
+                        #!
+                        do uie.dbSelect(fil_almacen)
+                        #$
+                    }
+                    div(class="col-md-6")
+                    {
+                        div(class="d-flex justify-content-end  mt-4")
+                        {
+                            button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print me-2" onclick="conteo.Export(#<@('#./conteo/sys_pk')>)"){"Exportar TXT"}
+                            button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print me-2" onclick="conteo.Export(#<@('#./conteo/sys_pk')>,1)"){"Exportar HTML"}
+                            button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print me-2" onclick="conteo.Export(#<@('#./conteo/sys_pk')>,2)"){"Exportar CSV"}
+
+                            #!
+                            if not(@("#./conteo/cerrado"))
+                            {
+                                #$
+                                input(type="file" class="induxsoft-form-control d-none" onchange="conteo.Import(#<@('#./conteo/sys_pk')>)" accept=".txt" id="file_import" name="file_import")
+                                label("for"="file_import" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print me-2" ){"Importar TXT"}
+                            }
+                            
+                        }
+                    }
+                }
+            }
+            hr{}
         }
         section(id="work_area")
         {
             #!
-            // do uie.dbeditable(table_definition,"table_conteo_fisico")
+                do uie.dbeditable(table_definition,"tbl_detail_conteo_fisico")
             #$
+        }
+        section(id="bottom_area")
+        {
+            div(class="d-flex")
+            {
+                span(class="flex-grow-1"){""}
+                table
+                {
+                    tbody
+                    {
+                        tr(class="d-flex gap-2")
+                        {
+                            td
+                            {
+                                small(class="fw-bold"){"Valor físico"}
+                                h6(id="summary_vfisico"){"000.00"}
+                            }
+                            td
+                            {
+                                small(class="fw-bold"){"Valor teorico"}
+                                h6(id="summary_vteorico"){"000.00"}
+                            }
+                            td
+                            {
+                                small(class="fw-bold"){"Diferencia Valor"}
+                                h6(id="summary_vdiferencia"){"000.00"}
+                            }
+                        }
+                    }
+                }
+            }
+            
+        }
+
+        script
+        {
+            $'
+            conteo.detail.url_conteo="#<@URL_CONTEO_FISICO>";
+            conteo.detail.id_conteo=#<@@(entity,"#sys_pk")>;
+            conteo.detail.url_producto="#<@URL_BUSCAR_PRODUCTO>&fil_almacen=@almacen";
+            '
         }
     }
 }

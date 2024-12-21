@@ -29,5 +29,20 @@ module ""
         {
             point @update to conteo.sincronizar
         }
+        case "regitrar-capture"
+        {
+            point @update to conteo.registrar
+            break
+        }
+        case "export"
+        {
+            point @update to conteo.export.e.import
+            break
+        }
+        case "import"
+        {
+            point @update to conteo.export.e.import
+            break
+        }
     }
 }

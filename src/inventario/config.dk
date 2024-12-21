@@ -37,7 +37,8 @@ module "config.dk"
     @URL_OBTENER_LOTES_DE_PRODUCTO = "/!/inventario/movimiento/?_view=obtener-lotes-de-producto&iproducto=@iproducto&ialmacen=@ialmacen"
     @URL_OBTENER_SERIES_DE_PRODUCTO = "/!/inventario/movimiento/?_view=obtener-series-de-producto&iproducto=@iproducto&ialmacen=@ialmacen"
 
-    @MENU = "/!/inventario/"
+    @URL_DOWNLOAD="/inventario/_services/download.dkl?_path=@path"
+    @MENU = "/!/inventario/movimiento/"
 
     @INVENTARIO = "/!/inventario/movimiento/"
     @INV_ADD_ENTRADA = "/!/inventario/movimiento/_new/entrada/"
@@ -51,7 +52,9 @@ module "config.dk"
     @INV_MAXMIN = "/!/inventario/maxmin/"
     @INV_NEW_MAXMIN = "/!/inventario/maxmin/_new/"
 
-    @default_max_rows=250
+    @URL_CONTEO_FISICO="/!/inventario/conteo-fisico/"
+
+    @default_max_rows= 250
 
     new @icons
     {

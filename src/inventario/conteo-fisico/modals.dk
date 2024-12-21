@@ -1,0 +1,92 @@
+#include "dkli.dkh"
+#!
+module ""
+{
+   #$
+    div(class="modal fade" id="modal_captura" tabindex="-1" role="dialog" "aria-bs-labelledby"="modalforms" "aria-bs-hidden"="true" "data-bs-backdrop"="false")
+    {
+        div(class= "modal-dialog modal-lg" role ="document")
+        {
+            div(class="modal-content")
+            {
+                div(class="modal-header")
+                {
+                    h5(class="modal-title" id="textomdl"){"Captura"}
+                    button(type="button" class="close border-0" "data-bs-dismiss"="modal" "aria-bs-label"="Close")
+                    {
+                        span ("aria-bs-hidden"="true") {$"&times;"}
+                    }
+                }
+                div(class="modal-body" id="bdymsg")
+                {
+                    label(style="color:red" id="lbl_alert_interchat" class="d-flex"){""}
+
+                    #!
+                    if isset("fil_almacen")
+                    {
+                        ref modal_fil_almacen=from.json(to.json(fil_almacen))
+                        using modal_fil_almacen
+                        {
+                            @"first_value": ""
+                            @"first_text": ""
+                            @"id": "modal_fil_almacen"
+                        }
+                        
+                        do field.remove(@@(modal_fil_almacen,"&attributes"),"onchange")
+                        #$
+                        div
+                        {
+                            label{"Almacén:"}
+                            #!
+                            do uie.dbSelect(modal_fil_almacen)
+                            #$
+                        }
+                    }
+                    #$
+                    label{"Referencia:"}
+                    input(type="text" class="induxsoft-form-control" id="referencia" name="referencia" maxlength="50" required="true" alert="El campo nombre es requerido")
+
+                    label{"Notas:"}
+                    textarea(class="induxsoft-form-control" id="notas" name="notas"){""}
+
+                    div(class="row")
+                    {
+                        div(class="col-md-8")
+                        {
+                            label{"Producto:"}
+                            
+                            "input-key"(id="ik_producto" 
+                            "data-key"="sys_pk" 
+                            "data-search"="codigo" 
+                            "data-text"="descripcion" 
+                            "data-source"="" 
+                            "data-value"="{}" 
+                            columns="codigo,descripcion,unidad" 
+                            colcaptions="Código,Descripción,Unidad"){$""}
+
+                            p(id="mod_text_prod" class="text-success"){""}
+                        }
+                        div(class="col-md-2")
+                        {
+                            label{"Cantidad:"}
+                            input(type="number" class="induxsoft-form-control" value="1" id="cantidad" name="cantidad" required="true" alert="El campo cantidad es requerido")
+                        }
+                        div(class="col-md-2 mt-4")
+                        {
+                            button(class="btn btn-sm border-secondary induxsoft-corners no-print" id="btn_regis_capture"){"Registrar"}
+                        }
+                    }
+                }
+                div(class="modal-footer" id="footer-capture")
+                {
+                    div(class="w-100")
+                    {
+                        h6(class="m-0"){"TIP:"}
+                        p(class="m-0"){"Para disminuir la existencia física capture un valor negativo."}
+                        small(class="m-0"){"(anteponga el signo - [menos] a la cantidad a restar)"}
+                    }
+                }
+            }
+        }		
+    }
+}

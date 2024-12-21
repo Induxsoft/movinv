@@ -68,7 +68,7 @@ module ""
         }
         @"text_field": "nombre"
         @"value_field": "sys_pk"
-        @"first_text":"< Todas las marcas >"
+        @"first_text":"< Todas los grupos >"
         @"first_value":"*"
         @"selected": ""
     }
@@ -168,23 +168,25 @@ module ""
                         {
                             div(class="card-body")
                             {
-                                label(class="fw-bold"){"Almacén(s):"}
-
-                                "input-key"(id="ip_uf_almacen" 
-                                "data-key"="sys_pk" 
-                                "data-search"="codigo" 
-                                "data-text"="descripcion" 
-                                "data-source"="#<@URL_BUSCAR_ALMACEN>" 
-                                "data-value"="{}" 
-                                columns="codigo,descripcion" 
-                                colcaptions="Código,Descripción"){$""}
-                                
                                 div(class="mt-2")
                                 {
+                                    h6(class="fw-bold"){"Almacén(s):"}
                                     div(class="d-flex justify-content-end mb-2")
                                     {
-                                        button(type="button" class="border-0 me-2" title="Agregar fila" onclick="conteo.AddRow()"){$'#<@ICON_ADD_ROW>'}
-                                        button(type="button" class="border-0 me-2" title="Eliminar fila" onclick="conteo.DeleteRow()"){$'#<@ICON_REMOVE_ROW>'}
+                                        div(class="flex-grow-1")
+                                        {
+                                            "input-key"(id="ip_uf_almacen" 
+                                            "data-key"="sys_pk" 
+                                            "data-search"="codigo" 
+                                            "data-text"="descripcion" 
+                                            "data-source"="#<@URL_BUSCAR_ALMACEN>" 
+                                            "data-value"="{}" 
+                                            columns="codigo,descripcion" 
+                                            colcaptions="Código,Descripción"){$""}
+                                        }
+                                        
+                                        button(type="button" class="border-0 me-1" title="Agregar fila" onclick="conteo.AddRow()"){$'#<@ICON_ADD_ROW>'}
+                                        button(type="button" class="border-0 me-1" title="Eliminar fila" onclick="conteo.DeleteRow()"){$'#<@ICON_REMOVE_ROW>'}
                                     }
                                     
                                     "edit-table"(id="tbl_almacenes" data="#<to.json(detail)>" class="printable-element " style="width:100%;"

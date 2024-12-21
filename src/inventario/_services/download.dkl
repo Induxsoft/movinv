@@ -1,0 +1,24 @@
+#include "dkli.dkh"
+#! //Conmutación a contexto IMPERATIVO
+
+module ""
+{
+    #include "functions.dkh" 
+    #include "serialize.dkh"
+    
+    ref params = @@(@http_context,"&request/get")
+    
+    filepath=url_dcode(@@(params,"$_path"))
+    
+    if not(file.exists(filepath)){do rise_error(500,"No se encontró el archivo indicado: "+filepath)}
+
+    //Establecer encabezado de respuesta http
+    @http_context<"response/headers/content-type">:"application/octet-stream;charset=utf-8"
+    //Indicar que se trata de un archivo adjunto y su nombre
+    //Más información en: https://developer.mozilla.org/es/docs/Web/HTTP/Headers/Content-Disposition
+    @http_context<"response/headers/content-disposition">: "attachment; filename="+file.name(filepath)
+    //Indicar tipo de respuesta
+    @http_context<"response/output">:"binary"
+    //Asignar la respuesa de salida
+    @http_context<"response/binary*">: file.rbytes(filepath) //Lee y devuelve el array de bytes del archivo
+}

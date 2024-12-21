@@ -2,21 +2,28 @@
 #!
 module ":conteo"
 {
+    ref lib_csv = _import_library("devkron.serialize.csv.dll")
+    do _map_function(lib_csv,"devkron.serialize.csv.csvHelper","CsvRead","CsvRead","System.String,System.String","*")
+    do _map_function(lib_csv,"devkron.serialize.csv.csvHelper","CsvWrite","CsvWrite","System.String,*System.Object","void")
+
+    #include "../movimientos.dkh"
+
     @list_query="SELECT
                 c.sys_pk,
                 c.cerrado,
                 c.conclusion,
-                c.inicio,
+                date_format(c.inicio,'%Y-%m-%d')inicio,
                 c.nombre,
                 c.notas,
                 c.parcial,
-                ifnull(c.saldofisico,0)saldofisico,
-                ifnull(c.saldoteorico,0)saldoteorico,
+                ROUND(ifnull(c.saldofisico,0),2)saldofisico,
+                ROUND(ifnull(c.saldoteorico,0),2)saldoteorico,
                 c.sincronizado
             From
                 cfconteo c
             Order BY
-                c.inicio;"
+                c.sys_dtcreated
+            DESC;"
 
     @table_name="cfconteo"
     ImportExist::&db,&params
@@ -54,9 +61,9 @@ module ":conteo"
 
         if @@(params,"#linea")> 0{sql=sql + " AND producto.ilinea=@linea "}
         if @@(params,"#marca")> 0{sql=sql + " AND producto.imarca=@marca "}
-        if @@(params,"#departamento")> 0{sql=sql + " AND producto.IDepartamento=@linea "}
+        if @@(params,"#departamento")> 0{sql=sql + " AND producto.idepartamento=@departamento "}
 
-        if @@(params,"#random"){sql=sql + " ORDER BY RAND() LIMIT ifnull(@limit,1)"}
+        if @@(params,"#random"){sql=sql + " ORDER BY RAND() LIMIT @limit "}
 
         ref productos=dbr.list(db,sql,params)
         for i = 0; i < @count(productos)
@@ -79,7 +86,7 @@ module ":conteo"
             sql="select
                     almacen.sys_pk as pkalmacen,
                     existencias.existencia as existencia,
-                    (existencias.existencia * ifnull(producto.costopromedio,1)) as saldo,
+                    (ifnull(sum(ifnull(existencias.existencia,0)),0) * ifnull(producto.costopromedio,0)) as saldo,
                     existencias.saldo as saldo1
                 from
                     almacen
@@ -94,13 +101,19 @@ module ":conteo"
 
             ref existencia=dbr.rec(db,sql,params)
             
-            costopromedio=round(div((@@(existencia,"#saldo") * @@(params,"#ptc")) , @@(existencia,"#existencia")),4)
+            costo_promedio= 0
+            module "calc_costo_promedio"
+            {
+                costo_promedio=erp.inventario.calc_costo_promedio(db,@@(params,"#ppk"))
+                exception{costo_promedio= 0}
+            }
+
             new cfexist
             {
-                @"costopromedio":costopromedio
+                @"costopromedio":round(costo_promedio,2)
                 @"exist_fisico": 0
                 @"exist_teorico": round(@@(existencia,"#existencia"),6)
-                @"ialmacen":@@(existencia,"#pkalmacen")
+                @"ialmacen":@@(params,"#almacen")
                 @"iproducto":@@(params,"#ppk")
                 @"iconteo":@@(params,"#pk_conteo")
             }
@@ -118,7 +131,6 @@ module ":conteo"
     {
         using data
         {
-            // @"almacenes*":dbr.list(db,"SELECT a.sys_pk,CONCAT(a.codigo,' - ',a.descripcion)descripcion FROM almacen a WHERE IFNULL(a.sys_deleted,0)=0",@null)
             @"lineas*":dbr.list(db,"select l.sys_pk,concat(l.codigo,' - ',l.descripcion)descripcion from linea l where IFNULL(l.sys_deleted,0)=0 and (clase = 1 Or clase=4 Or Clase=3 or Clase = 2) Order By descripcion",@null)
             @"departamentos*":dbr.list(db,"SELECT d.sys_pk,CONCAT(d.codigo,' - ',d.descripcion)descripcion FROM departamento d WHERE IFNULL(d.sys_deleted,0)=0",@null)
             @"marcas*":dbr.list(db,"SELECT m.sys_pk,CONCAT(m.codigo,' - ',m.descripcion)descripcion FROM marca m WHERE IFNULL(m.sys_deleted,0)=0",@null)
@@ -226,12 +238,103 @@ module ":conteo"
     }
     cerrar::&db,&params,&data
     {
-        do rise_error(0,"cerrar")
-        do dbr.execute(db,"UPDATE cfConteo SET cerrado= 1 WHERE sys_pk=@_entity_id",params)
+        do dbr.execute(db,"UPDATE cfconteo SET cerrado= 1 WHERE sys_pk=@_entity_id",params)
     }
     sincronizar::&db,&params,&data
     {
-        do rise_error(0,"*_* pendiente")
+        ref conteo=dbr.rec(db,"select sys_pk,sys_guid,nombre from cfconteo 
+        where sys_pk=@_entity_id
+        and ifnull(saldofisico,0) <> ifnull(saldoteorico,0)",params)
+
+        if isnull(conteo){do rise_error(500,"No hay diferencias para sincronizar")}
+        
+        sql="select
+                cfexist.sys_pk,
+                cfexist.sys_guid,
+                cfexist.ialmacen as ialmacen,
+                cfexist.iproducto as iproducto,
+                cfexist.costopromedio / divisa.tcambio as costopromedio,
+                cfexist.exist_fisico,
+                cfexist.exist_teorico,
+                producto.costoultimo
+            from
+                (
+                    cfexist
+                    inner join producto on cfexist.iproducto = producto.sys_pk
+                )
+                inner join divisa on producto.idivisa = divisa.sys_pk
+            where
+                cfexist.exist_fisico <> cfexist.exist_teorico
+                and cfexist.iconteo =@_entity_id"
+        
+        ref cfexists=dbr.list(db,ftext(sql),params)
+        
+        ref categoria=dbr.rec(db,"SELECT sys_pk,sys_guid,codigo,descripcion FROM categoria c WHERE c.tipo=3
+        AND IFNULL(c.sys_deleted,0)=0 LIMIT 1",@null)
+
+        do dbr.begin(db)
+            for i = 0; i < @count(cfexists)
+            {
+                ref exist=@item(cfexists,i)
+                new dtcardex
+                {
+                    @"descripcion":"AJUSTE POR CONTEO FISICO | " + @@(conteo,"$nombre") +" | "+@@(conteo,"$sys_guid")
+                    @"icategoria":@@(categoria,"#sys_pk")
+                    @"referencia":@@(conteo,"$sys_guid")+"|"+@@(exist,"$sys_guid")
+                    @"fecha*":now()
+                }
+                ref cardex=dbr.save(db,"cardex",dtcardex)
+
+                new dcardex
+                {
+                    @"ialmacen":@@(exist,"#ialmacen")
+                    @"iproducto":@@(exist,"#iproducto")
+                    @"referencia":cut(@@(exist,"$sys_guid"),30)
+                    @"fk_cardex_movimientos":@@(cardex,"#sys_pk")
+                }
+                isentrada=@false
+                if @@(exist,"#exist_fisico") > @@(exist,"#exist_teorico")
+                {
+                    //entrada
+                    if @@(exist,"#costopromedio") > 0{dcardex<"cargos">:@@(exist,"#costopromedio") * (@@(exist,"#exist_fisico") - @@(exist,"#exist_teorico"))}
+                    else{dcardex<"cargos">:@@(exist,"#costoultimo") * (@@(exist,"#exist_fisico") - @@(exist,"#exist_teorico"))}
+
+                    dcardex<"entradas">:@@(exist,"#exist_fisico") - @@(exist,"#exist_teorico")
+                    isentrada=@true
+                }
+                else 
+                {
+                    //  Salida
+                    //  Se validan y calculan las cantidades a salir...
+                    cantidad= 0
+                    if @@(exist,"#exist_fisico") > 0
+                    {
+                        cantidad= @@(exist,"#exist_teorico") - @@(exist,"#exist_fisico") 
+                    }
+                    else 
+                    {
+                        if (@@(exist,"#exist_teorico") + @@(exist,"#exist_fisico") )== 0
+                        {
+                            cantidad= @@(exist,"#exist_teorico") 
+                        }
+                        else{cantidad=@@(exist,"#exist_fisico") * (-1) }
+                    }
+                    dcardex<"salidas">:cantidad
+                }
+                do dbr.save(db,"dcardex",dcardex)
+
+                do erp.inventario.aplicar_mov(db,@@(cardex,"#sys_pk"),isentrada)
+            }
+
+            do dbr.rec(db,"update cfconteo set cerrado=1,sincronizado=1 where sys_pk=@_entity_id",params)
+        do dbr.commit(db)
+        
+        exception
+        {
+            if dbr.in_transaction(db){do dbr.rollback(db)}
+            do rise_error(last_error_code(),last_error())
+        }
+        
     }
     search.almacen::&db,&params
     {
@@ -248,6 +351,352 @@ module ":conteo"
     }
     details::&db,&params
     {
-        return list.create()
+        sql="SELECT 
+            a.sys_pk id_almacen,
+            p.sys_pk id_producto,
+            l.sys_pk id_linea,
+            m.sys_pk id_marca,
+            ce.sys_pk id_conteo,
+            p.codigo cod_prod,
+            CONCAT(a.codigo,' - ',a.descripcion)almacen,
+            CONCAT(p.codigo,' - ',p.descripcion)producto,
+            CONCAT(l.codigo,' - ',p.descripcion)linea,
+            CONCAT_WS(' - ',m.codigo,m.descripcion)marca,
+            ce.costopromedio,
+            ce.exist_fisico,
+            ce.exist_teorico,
+            p.unidad,
+            if(IFNULL(ce.exist_fisico,0)>0,
+                    IFNULL(ce.exist_fisico,0) - IFNULL(ce.exist_teorico,0),
+                IFNULL(ce.exist_teorico,0)
+                )
+                diferencia,
+            @valorfisico :=     ROUND(IFNULL(ce.costopromedio,0) * IFNULL(ce.exist_fisico,0),2)valorfisico,
+            @valorteorico :=    ROUND(IFNULL(ce.costopromedio,0) * IFNULL(ce.exist_teorico,0),2)valorteorico,
+            if(@valorfisico>0,
+                @valorfisico - @valorteorico,
+            @valorteorico)diferenciavalor
+            FROM cfexist ce 
+                INNER JOIN producto p ON ce.iproducto=p.sys_pk
+                INNER JOIN almacen a ON ce.ialmacen=a.sys_pk
+                INNER JOIN linea l ON p.ilinea=l.sys_pk
+                LEFT JOIN marca m ON p.imarca=m.sys_pk
+            WHERE 
+                ifnull(ce.sys_deleted,0)=0
+            AND IF(IFNULL(@fil_almacen,'*')='*',true,ce.ialmacen=@fil_almacen)
+            AND ce.iconteo=@_entity_id
+            LIMIT #<@default_max_rows>
+            "
+        
+        ref conteo=dbr.rec(db,"select c.sys_pk,
+                c.cerrado,
+                c.conclusion,
+                date_format(c.inicio,'%Y-%m-%d')inicio,
+                c.nombre,
+                c.notas,
+                c.parcial,
+                ROUND(ifnull(c.saldofisico,0),2)saldofisico,
+                ROUND(ifnull(c.saldoteorico,0),2)saldoteorico,
+                c.sincronizado from cfconteo c where c.sys_pk=@_entity_id",params)
+        
+        if @@(conteo,"#parcial"){conteo<"tipo">:"Parcial"}
+        else{conteo<"tipo">:"Completo"}
+
+        if @@(conteo,"#cerrado")
+        {
+            conteo<"status">:"Abierto"
+            conteo<"conclusion">:"En proceso"
+
+            if @@(conteo,"#sincronizado")
+            {
+                conteo<"status">:"Sincronizado"
+            }
+            else{conteo<"status">:"Cerrado"}
+        }
+        else 
+        {
+            conteo<"status">:"Abierto"
+            conteo<"conclusion">:"En proceso"
+        }
+
+        ref almacenes=dbr.list(db,"SELECT a.sys_pk,CONCAT(a.codigo,' - ',a.descripcion)descripcion FROM almacen a WHERE IFNULL(a.sys_deleted,0)=0",@null)
+        new entity{}
+
+        entity.conteo       := ref conteo
+        entity.data         := ref dbr.list(db,ftext(sql),params)
+        entity.almacenes    := ref almacenes
+
+        return entity
+    }
+    registrar::&db,&params,&data
+    {
+        ref producto=@@(data,"&producto")
+        new cfcaptura
+        {
+            @"cantidad":@@(data,"#cantidad")
+            @"ialmacen":@@(data,"#almacen")
+            @"iproducto":@@(producto,"#sys_pk")
+            @"notas":@@(data,"$notas")
+            @"referencia":@@(data,"$referencia")
+            @"iconteo":@@(params,"#_entity_id")
+            @"usuario":@@(@http_context,"$session/user/uid")
+        }
+        do dbr.begin(db)
+            do dbr.execute(db,"update cfconteo set saldofisico=ifnull(saldofisico,0) + @cantidad where sys_pk=@iconteo",cfcaptura)
+            do dbr.execute(db,"update cfexist set exist_fisico=ifnull(exist_fisico,0) + @cantidad 
+                        where iconteo=@iconteo
+                        AND ialmacen=@ialmacen
+                        AND iproducto=@iproducto",cfcaptura)
+
+            ref captura=dbr.save(db,"cfcaptura",cfcaptura)
+            captura<"sfisico">:dbr.num(db,"select ROUND(sum(ifnull(saldofisico,0)),2) from cfconteo where sys_pk=@iconteo",cfcaptura)
+            captura<"cant_row_captura">:dbr.num(db,"SELECT ifnull(SUM(IFNULL(c.cantidad,0)),0) FROM cfcaptura c WHERE c.iconteo=@iconteo AND c.ialmacen=@ialmacen",cfcaptura)
+        do dbr.commit(db)
+        
+        return captura
+        exception
+        {
+            if dbr.in_transaction(db){do dbr.rollback(db)}
+            do rise_error(last_error_code(),last_error())
+        }
+        
+    }
+    export.e.import::&db,&params,&data
+    {
+        do errordet(@false)
+
+        ref conteo=dbr.rec(db,"select sys_pk,sys_guid,nombre from cfconteo where sys_pk=@_entity_id",params)
+        if isnull(conteo){do rise_error(500,"No se encontró datos del conteo indicado")}
+
+        switch @@(data,"$type")
+        {
+            case "html"
+            {
+                path=export.html(data,@@(conteo,"$sys_guid")+".html")
+                break
+            }
+            case "csv"
+            {
+                path=export.csv(data,@@(conteo,"$sys_guid")+".csv")
+                break
+            }
+            case "import"
+            {
+                path=import.text(db,params,"Error_"+@@(conteo,"$sys_guid")+".log")
+                break
+            }
+            default
+            {
+                path=export.text(data,@@(conteo,"$sys_guid")+".txt")
+                break
+            }
+        }
+        
+        new record{ }
+
+        if path!=""
+        {
+            using record{@"url":replace(@URL_DOWNLOAD,"@path",url_encode(path))}
+        }
+        
+        return record
+    }
+
+    export.file::body,filename
+    {
+        path="data/"+@@(@http_context,"$session/idp/qname")+"/inventario/conteo_fisico/"
+        do dir.ensure(path)
+
+        path=path + filename
+        do file.wtext(path,body)
+
+        return path
+    }
+    export.text::&array,filename
+    {
+        ref data=@@(array,"&data")
+        title="Almacen	Codigo	Descripcion	Linea	Marca	Unidad	CostoPromedio	Exist_Fisico	Exist_Teorico	Diferencia	ValorFisico	ValorTeorico	Diferencia_Valor"
+
+        body=""
+        for i = 0; i < @count(data)
+        {
+            ref dt=@item(data,i)
+            body=body + @@(dt,"$almacen")+"\t"
+            body=body + @@(dt,"$cod_prod")+"\t"
+            body=body + @@(dt,"$producto")+"\t"
+            body=body + @@(dt,"$linea")+"\t"
+            body=body + @@(dt,"$marca")+"\t"
+            body=body + @@(dt,"$unidad")+"\t"
+            body=body + @@(dt,"$costopromedio")+"\t"
+            body=body + @@(dt,"$exist_fisico")+"\t"
+            body=body + @@(dt,"$exist_teorico")+"\t"
+            body=body + @@(dt,"$diferencia")+"\t"
+            body=body + @@(dt,"$valorfisico")+"\t"
+            body=body + @@(dt,"$valorteorico")+"\t"
+            body=body + @@(dt,"$diferenciavalor")+"\t"
+            body=body + "\r\n"
+        }
+        
+        return export.file(title+"\r\n"+body,filename)
+    }
+    export.html::&array,filename
+    {
+        ref data=@@(array,"&data")
+
+        html='<table width="100%" border="0" cellspacing="0" cellpadding="0" bgcolor="#ffffff">'
+        html=html + '<tr>' 
+        html=html + '<td>'
+            //tablas
+            html=html + '<table width="100%" border="1" cellspacing="0" cellpadding="0" background="">'
+            html=html + '<td class="s0" colspan="120">almacen</td>
+                        <td class="s0" colspan="60">codigo</td>
+                        <td class="s0" colspan="120">descripción</td>
+                        <td class="s0" colspan="116">línea</td>
+                        <td class="s0" colspan="42">marca</td>
+                        <td class="s0" colspan="46">unidad</td>
+                        <td class="s0" colspan="83">costopromedio</td>
+                        <td class="s0" colspan="67">exist_fisico</td>
+                        <td class="s0" colspan="76">exist_teorico</td>
+                        <td class="s0" colspan="69">diferencia</td>
+                        <td class="s0" colspan="63">valorfisico</td>
+                        <td class="s0" colspan="90">valorteorico</td>
+                        <td class="s0" colspan="90">diferencia_valor</td>'
+
+            for i = 0; i < @count(data)
+            {
+                ref dt=@item(data,i)
+                html=html + '<tr>'
+                    html=html + '<td class="s1" colspan="120">'+@@(dt,"$almacen")+'</td>'
+                    html=html + '<td class="s1" colspan="60">'+@@(dt,"$cod_prod")+'</td>'
+                    html=html + '<td class="s1" colspan="120">'+@@(dt,"$producto")+'</td>'
+                    html=html + '<td class="s1" colspan="116">'+@@(dt,"$linea")+'</td>'
+                    html=html + '<td class="s1" colspan="42">'+@@(dt,"$marca")+'</td>'
+                    html=html + '<td class="s1" colspan="46">'+@@(dt,"$unidad")+'</td>'
+                    html=html + '<td class="s2" colspan="83">'+@@(dt,"$costopromedio")+'</td>'
+                    html=html + '<td class="s2" colspan="67">'+@@(dt,"$exist_fisico")+'</td>'
+                    html=html + '<td class="s2" colspan="76">'+@@(dt,"$exist_teorico")+'</td>'
+                    html=html + '<td class="s2" colspan="69">'+@@(dt,"$diferencia")+'</td>'
+                    html=html + '<td class="s2" colspan="63">'+@@(dt,"$valorfisico")+'</td>'
+                    html=html + '<td class="s2" colspan="90">'+@@(dt,"$valorteorico")+'</td>'
+                    html=html + '<td class="s2" colspan="90">'+@@(dt,"$diferenciavalor")+'</td>'
+                html=html + '</tr>'
+            }
+            html=html + '<tr>'
+            html=html + '<td class="s2" colspan="799">&nbsp;</td>'
+            html=html + '<td class="s2" colspan="63">'+@@(data,"$totales/vfisico")+'</td>'
+            html=html + '<td class="s2" colspan="90">'+@@(data,"$totales/vteorico")+'</td>'
+            html=html + '<td class="s2" colspan="90">'+@@(data,"$totales/vdiferencia")+'</td>'
+            html=html + '</tr>'
+            html=html + '</table>'
+        html=html + '<td>' 
+        html=html + '</tr>'
+        html=html + '</table>'
+
+        return export.file(html,filename)
+    }
+    export.csv::&array,filename
+    {
+        path= export.file("Almacen,Codigo,Descripcion,Linea,Marca,Unidad,CostoPromedio,Exist_Fisico,Exist_Teorico,Diferencia,ValorFisico,ValorTeorico,Diferencia_Valor",filename)
+        ref data=@@(array,"&data")
+
+        ref l=list.create()
+        for i = 0; i < @count(data)
+        {
+            ref dt=@item(data,i)
+            new obj
+            {
+                @"Almacen":@@(dt,"$almacen")
+                @"Codigo":@@(dt,"$cod_prod")
+                @"Descripcion":@@(dt,"$producto")
+                @"Linea":@@(dt,"$linea")
+                @"Marca":@@(dt,"$marca")
+                @"Unidad":@@(dt,"$unidad")
+                @"CostoPromedio":@@(dt,"$costopromedio")
+                @"Exist_Fisico":@@(dt,"$exist_fisico")
+                @"Exist_Teorico":@@(dt,"$exist_teorico")
+                @"Diferencia":@@(dt,"$diferencia")
+                @"ValorFisico":@@(dt,"$valorfisico")
+                @"ValorTeorico":@@(dt,"$valorteorico")
+                @"Diferencia_Valor":@@(dt,"$diferenciavalor")
+            }
+            do list.add(l,obj)
+        }
+        do CsvWrite(path,l)
+        return path
+    }   
+    import.text::&db,&params,filename
+    {
+        ref files = @@(@http_context,"&request/files")
+        if @count(files) < 1 { return @null}
+        
+        ref conteo=dbr.rec(db,"select sys_pk,sys_guid,nombre from cfconteo where sys_pk=@_entity_id",params)
+        if isnull(conteo){do rise_error(500,"No se encontró datos del conteo indicado")}
+
+        txt_file=""
+        for i = 0; i < @count(files)
+        {
+            ref file = @item(files,i)
+            if file.exists(@@(file,"$temp_file")) && @@(file,"$filename")!="" && @@(file,"#size")>0
+            {
+                txt_file=file.rtext(@@(file,"$temp_file"))
+                break
+            }
+        }
+        ref data_file=split(trim(txt_file),"\r\n")
+        if @count(data_file) < 1{do rise_error(500,"No hay datos para importar")}
+
+        logs=""
+        
+        for i = 0; i < @count(data_file)
+        {
+            ref lines=split(trim(list.str(data_file,i)),"\t")
+
+            if @count(lines)< 4{do rise_error(500,"Algunas filas les hace falta datos")}
+            params<"_almacen">:trim(list.str(lines,0))
+            params<"_producto">:trim(list.str(lines,1))
+
+            almacen=dbr.num(db,"select sys_pk from almacen where codigo=@_almacen",params)
+            if almacen< 1{do rise_error(500,"No se encontró el almacén indicado")}
+
+            params<"almacen">:almacen
+            ref producto=dbr.rec(db,"SELECT sys_pk,codigo,descripcion,unidad FROM producto p WHERE p.codbar1=@_producto OR p.codbar2=@_producto OR p.codbar3=@_producto ",params)
+            if isnull(producto){do rise_error(500,"No se encontró el producto indicado")}
+
+            if @count(lines)>4{unidad=trim(list.str(lines,5))}
+            else{unidad=@@(producto,"$unidad")}
+
+            new capture
+            {
+                @"cantidad":trim(list.str(lines,2))
+                @"ialmacen":almacen
+                @"producto*":producto
+                @"notas":"Importación"
+                @"referencia":trim(list.str(lines,3))
+                @"iconteo":@@(params,"#_entity_id")
+                @"unidad":unidad
+            }
+
+            do registrar(db,params,capture)
+
+            exception
+            {
+                new obj_error
+                {
+                    @"fila":to.json(lines)
+                    @"error":last_error()
+                    @"linea":i + 1
+                }
+                logs=logs + to.json(obj_error) +"\r\n\r\n"
+            }
+        }
+
+        
+        path=""
+        if logs!=""
+        {
+            path=export.file(logs,filename)
+        }
+
+        return path
     }
 }
