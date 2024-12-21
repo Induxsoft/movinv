@@ -7,6 +7,7 @@ module ":conteo"
     do _map_function(lib_csv,"devkron.serialize.csv.csvHelper","CsvWrite","CsvWrite","System.String,*System.Object","void")
 
     #include "../movimientos.dkh"
+    @default_max_rows= 500
 
     @list_query="SELECT
                 c.sys_pk,
@@ -21,6 +22,8 @@ module ":conteo"
                 c.sincronizado
             From
                 cfconteo c
+            WHERE
+                if(ifnull(@s,'')='',true,concat_ws('',c.inicio,c.nombre,c.notas,c.parcial) like concat('%',@s,'%') )
             Order BY
                 c.sys_dtcreated
             DESC;"
@@ -39,7 +42,7 @@ module ":conteo"
                     producto
                     inner join divisa on divisa.sys_pk = producto.idivisa
                 where
-                    producto.itipo = 2"
+                    producto.itipo = 2 "
         }
         else 
         {
@@ -56,7 +59,7 @@ module ":conteo"
                     inner join grupoproductos_producto_ on producto.sys_pk = grupoproductos_producto_.iproductos
                 where
                     producto.itipo = 2
-                    and grupoproductos_producto_.igrupos = @grupo"
+                    and grupoproductos_producto_.igrupos = @grupo "
         }
 
         if @@(params,"#linea")> 0{sql=sql + " AND producto.ilinea=@linea "}
@@ -151,28 +154,28 @@ module ":conteo"
     }
     create::&db,&params,&data
     {
-        @use_transaction=@false
-
-        using params
-        {
-            @"linea":@@(data,"#sel_linea")
-            @"almacen":@@(data,"#uf_almacen")
-            @"departamento":@@(data,"#sel_departamento")
-            @"marca":@@(data,"#sel_marca")
-            @"grupo":@@(data,"#sel_grupo")
-            @"random":parse.bool(@@(data,"random"))
-            @"limit":if(@@(data,"#articulos")> 0,@@(data,"#articulos"),1)
-        }
-        data<"parcial">: 0
-        if @@(data,"#sel_linea")> 0 || @@(data,"#sel_departamento") > 0 || @@(data,"#sel_marca")> 0 || @@(data,"#sel_grupo")> 0{data<"parcial">: 1}
-        
-        data<"inicio*">:now()
-        @create_fields="cerrado,conclusion,inicio,nombre,notas,parcial,saldofisico,saldoteorico,sincronizado"
-
-        ref almacenes=from.json(@@(data,"$uf_almacen"))
-
+        @use_transaction = @false
+            do dbr.apps.action.pre("GE41")
         do dbr.begin(db)
+        
+            using params
+            {
+                @"linea":@@(data,"#sel_linea")
+                @"almacen":@@(data,"#uf_almacen")
+                @"departamento":@@(data,"#sel_departamento")
+                @"marca":@@(data,"#sel_marca")
+                @"grupo":@@(data,"#sel_grupo")
+                @"random":parse.bool(@@(data,"random"))
+                @"limit":if(@@(data,"#articulos")> 0,@@(data,"#articulos"),1)
+            }
+            data<"parcial">: 0
+            if @@(data,"#sel_linea")> 0 || @@(data,"#sel_departamento") > 0 || @@(data,"#sel_marca")> 0 || @@(data,"#sel_grupo")> 0{data<"parcial">: 1}
             
+            data<"inicio*">:now()
+            @create_fields="cerrado,conclusion,inicio,nombre,notas,parcial,saldofisico,saldoteorico,sincronizado"
+
+            ref almacenes=from.json(@@(data,"$uf_almacen"))
+
             ref entity=entity.create(db,params,data)
             params<"pk_conteo">:@@(entity,"#sys_pk")
 
@@ -182,19 +185,25 @@ module ":conteo"
                 params<"almacen">:@@(almacen,"#sys_pk")
                 do ImportExist(db,params)   
             }
+
+            do dbr.apps.action.pos(entity)
         do dbr.commit(db)
+            do dbr.apps.action.ext(entity)
+
+        return entity
         
         exception
         {
-            if dbr.in_transaction(db){do dbr.rollback(db)}
+            if dbr.in_transaction(db){ do dbr.rollback(db) }
+            do dbr.apps.action.log()
             do rise_error(last_error_code(),last_error())
         }
-        
     
-        return entity
     }
     list::&db,&params
     {
+        do dbr.apps.action.grant("GE40")
+
        ref entity= entity.list(db,params)
        for i = 0; i < @count(entity)
        {
@@ -231,17 +240,22 @@ module ":conteo"
     
     delete::&db,&params
     {
-        do rise_error(0,"delete")
+        do dbr.apps.action.grant("GE43")
+
         do dbr.execute(db,"DELETE FROM cfCaptura WHERE IConteo=@_entity_id",params)
         do dbr.execute(db,"DELETE FROM cfExist WHERE IConteo=@_entity_id",params)
         do dbr.execute(db,"DELETE FROM cfConteo WHERE Sys_PK=@_entity_id",params)
     }
     cerrar::&db,&params,&data
     {
+        do dbr.apps.action.grant("GE45")
+
         do dbr.execute(db,"UPDATE cfconteo SET cerrado= 1 WHERE sys_pk=@_entity_id",params)
     }
     sincronizar::&db,&params,&data
     {
+        do dbr.apps.action.grant("GE46")
+
         ref conteo=dbr.rec(db,"select sys_pk,sys_guid,nombre from cfconteo 
         where sys_pk=@_entity_id
         and ifnull(saldofisico,0) <> ifnull(saldoteorico,0)",params)
@@ -351,6 +365,8 @@ module ":conteo"
     }
     details::&db,&params
     {
+        do dbr.apps.action.grant("GE42")
+
         sql="SELECT 
             a.sys_pk id_almacen,
             p.sys_pk id_producto,
@@ -360,7 +376,7 @@ module ":conteo"
             p.codigo cod_prod,
             CONCAT(a.codigo,' - ',a.descripcion)almacen,
             CONCAT(p.codigo,' - ',p.descripcion)producto,
-            CONCAT(l.codigo,' - ',p.descripcion)linea,
+            CONCAT(l.codigo,' - ',l.descripcion)linea,
             CONCAT_WS(' - ',m.codigo,m.descripcion)marca,
             ce.costopromedio,
             ce.exist_fisico,
@@ -385,6 +401,7 @@ module ":conteo"
                 ifnull(ce.sys_deleted,0)=0
             AND IF(IFNULL(@fil_almacen,'*')='*',true,ce.ialmacen=@fil_almacen)
             AND ce.iconteo=@_entity_id
+            AND if(ifnull(@s,'')='',true, concat_ws('',a.codigo,p.codigo,l.codigo,a.descripcion,l.descripcion,p.descripcion,p.unidad) like concat('%',@s,'%') )
             LIMIT #<@default_max_rows>
             "
         
@@ -430,6 +447,10 @@ module ":conteo"
     }
     registrar::&db,&params,&data
     {
+        @use_transaction = @false
+            do dbr.apps.action.pre("GE44")
+        do dbr.begin(db)
+        
         ref producto=@@(data,"&producto")
         new cfcaptura
         {
@@ -441,8 +462,8 @@ module ":conteo"
             @"iconteo":@@(params,"#_entity_id")
             @"usuario":@@(@http_context,"$session/user/uid")
         }
-        do dbr.begin(db)
-            do dbr.execute(db,"update cfconteo set saldofisico=ifnull(saldofisico,0) + @cantidad where sys_pk=@iconteo",cfcaptura)
+
+         do dbr.execute(db,"update cfconteo set saldofisico=ifnull(saldofisico,0) + @cantidad where sys_pk=@iconteo",cfcaptura)
             do dbr.execute(db,"update cfexist set exist_fisico=ifnull(exist_fisico,0) + @cantidad 
                         where iconteo=@iconteo
                         AND ialmacen=@ialmacen
@@ -451,15 +472,19 @@ module ":conteo"
             ref captura=dbr.save(db,"cfcaptura",cfcaptura)
             captura<"sfisico">:dbr.num(db,"select ROUND(sum(ifnull(saldofisico,0)),2) from cfconteo where sys_pk=@iconteo",cfcaptura)
             captura<"cant_row_captura">:dbr.num(db,"SELECT ifnull(SUM(IFNULL(c.cantidad,0)),0) FROM cfcaptura c WHERE c.iconteo=@iconteo AND c.ialmacen=@ialmacen",cfcaptura)
+        
+            do dbr.apps.action.pos(captura)
         do dbr.commit(db)
+            do dbr.apps.action.ext(captura)
         
         return captura
+
         exception
         {
-            if dbr.in_transaction(db){do dbr.rollback(db)}
+            if dbr.in_transaction(db){ do dbr.rollback(db) }
+            do dbr.apps.action.log()
             do rise_error(last_error_code(),last_error())
         }
-        
     }
     export.e.import::&db,&params,&data
     {
@@ -581,11 +606,12 @@ module ":conteo"
                     html=html + '<td class="s2" colspan="90">'+@@(dt,"$diferenciavalor")+'</td>'
                 html=html + '</tr>'
             }
+            
             html=html + '<tr>'
             html=html + '<td class="s2" colspan="799">&nbsp;</td>'
-            html=html + '<td class="s2" colspan="63">'+@@(data,"$totales/vfisico")+'</td>'
-            html=html + '<td class="s2" colspan="90">'+@@(data,"$totales/vteorico")+'</td>'
-            html=html + '<td class="s2" colspan="90">'+@@(data,"$totales/vdiferencia")+'</td>'
+            html=html + '<td class="s2" colspan="63">'+@@(array,"$totales/vfisico")+'</td>'
+            html=html + '<td class="s2" colspan="90">'+@@(array,"$totales/vteorico")+'</td>'
+            html=html + '<td class="s2" colspan="90">'+@@(array,"$totales/vdiferencia")+'</td>'
             html=html + '</tr>'
             html=html + '</table>'
         html=html + '<td>' 
@@ -629,6 +655,8 @@ module ":conteo"
         ref files = @@(@http_context,"&request/files")
         if @count(files) < 1 { return @null}
         
+        do dbr.apps.action.grant("GE44")
+
         ref conteo=dbr.rec(db,"select sys_pk,sys_guid,nombre from cfconteo where sys_pk=@_entity_id",params)
         if isnull(conteo){do rise_error(500,"No se encontró datos del conteo indicado")}
 

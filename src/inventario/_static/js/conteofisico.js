@@ -330,7 +330,7 @@ var conteo=
             
             if(!row || Object.keys(row).length<1)
             {
-                let res=confirm("El producto indicado no se encuentra en la lista de detalle del conteo físico ¿Desea continuar?");
+                let res=confirm("El producto indicado no se encuentra en la lista de detalle ¿Desea continuar?");
                 if(!res)return;
             }
             

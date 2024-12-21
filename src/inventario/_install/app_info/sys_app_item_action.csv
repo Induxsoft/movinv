@@ -22,10 +22,10 @@ GE3D,Informe de exitencias debajo del mínimo o el punto de reorden,Existencias,
 GE3E,Vales de entrada,Existencias,,/!/inventario/reports/vales-de-entrada/,0,inventario.reports,DET077,0,report
 GE3F,Vales de salida,Existencias,,/!/inventario/reports/vales-de-salida/,0,inventario.reports,DET077,0,report
 
-GE40,Conteo físico,Conteo,,/!/inventario/conteo-fisico/,0,inventario.conteo_fisico,DET077,0,action
-GE41,Agregar Conteo físico,Conteo,,/!/inventario/conteo-fisico/_new/,0,inventario.conteo_fisico,DET077,0,action
-GE42,Editar Conteo físico,Conteo,,/!/inventario/conteo-fisico/@_src_context_item_id/,0,inventario.conteo_fisico,DET077,1,action
-GE43,Eliminar Conteo físico,Conteo,,""/,0,inventario.conteo_fisico,DET077,1,action
-GE44,Capturar Conteo físico,Conteo,,/!/inventario/conteo-fisico/@_src_context_item_id/,0,inventario.conteo_fisico,DET077,1,action
-GE45,Cerrar Conteo físico,Conteo,,/!/inventario/conteo-fisico/@_src_context_item_id/,0,inventario.conteo_fisico,DET077,1,action
-GE46,Sincronizar Conteo físico,Conteo,,/!/inventario/conteo-fisico/@_src_context_item_id/,0,inventario.conteo_fisico,DET077,1,action
+GE40,Conteo físico,Conteo,,/!/inventario/conteo-fisico/,0,inventario.conteo_fisico,DET0A4,0,action
+GE41,Agregar Conteo físico,Conteo,,/!/inventario/conteo-fisico/_new/,0,inventario.conteo_fisico,DET0A4,0,action
+GE42,Ver detalle Conteo físico,Conteo,,/!/inventario/conteo-fisico/@_src_context_item_id/,0,inventario.conteo_fisico,DET0A4,1,action
+GE43,Eliminar Conteo físico,Conteo,,"",0,inventario.conteo_fisico,DET0A4,1,action
+GE44,Capturar Conteo físico,Conteo,,/!/inventario/conteo-fisico/@_src_context_item_id/,0,inventario.conteo_fisico,DET0A5,1,action
+GE45,Cerrar Conteo físico,Conteo,,/!/inventario/conteo-fisico/@_src_context_item_id/,0,inventario.conteo_fisico,DET0A4,1,action
+GE46,Sincronizar Conteo físico,Conteo,,/!/inventario/conteo-fisico/@_src_context_item_id/,0,inventario.conteo_fisico,DET0A4,1,action

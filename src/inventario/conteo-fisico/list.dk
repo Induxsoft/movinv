@@ -72,6 +72,25 @@ module ""
             #!
             do uie.printV12FormBar(nav_config)
             #$
+            form(action="./" method="GET" id="form_filter" class="no-print mb-1")
+            {
+                div(class="py-1 w-100 d-flex gap-2 flex-wrap align-items-center")
+                {
+                    div(class="flex-grow-1")
+                    {
+                        "filter-text"(
+                            "id"="micontrol10"
+                            "text-field"="s"
+                            "placeholder"="Buscar por Nombre, Inicio, Notas"
+                            "form"="#form_filter"
+                            "value"="#<@('$parameters/s')>"
+                            "auto-submit"="true"
+                            "class"="w-100"
+                        ){$""}
+                    }
+                }
+                
+            }
         }
         section(id="work_area")
         {

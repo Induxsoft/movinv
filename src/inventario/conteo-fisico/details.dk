@@ -19,7 +19,7 @@ module ""
         @"id": "fil_almacen"
         new member "attributes"
         {
-            @"class": "form-select form-select-sm rounded-0"
+            @"class": "form-select rounded-0"
             @"name": "fil_almacen"
             @"onchange":"document.getElementById('form_filter_detail').submit()"
         }
@@ -172,14 +172,26 @@ module ""
             {
                 div(class="row")
                 {
-                    div(class="col-md-6")
+                    div(class="col-md-3")
                     {
                         label{"Almacén:"}
                         #!
                         do uie.dbSelect(fil_almacen)
                         #$
                     }
-                    div(class="col-md-6")
+                    div(class="col-md-6 mt-4")
+                    {
+                        "filter-text"(
+                            "id"="micontrol10"
+                            "text-field"="s"
+                            "placeholder"="Buscar por Producto, Almacén, Línea, Unidad"
+                            "form"="#form_filter_detail"
+                            "value"="#<@('$parameters/s')>"
+                            "auto-submit"="true"
+                            "class"="w-100"
+                        ){$""}
+                    }
+                    div(class="col-md-3")
                     {
                         div(class="d-flex justify-content-end  mt-4")
                         {
