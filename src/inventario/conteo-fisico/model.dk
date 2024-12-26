@@ -7,28 +7,33 @@ module ":conteo"
     do _map_function(lib_csv,"devkron.serialize.csv.csvHelper","CsvWrite","CsvWrite","System.String,*System.Object","void")
 
     #include "../movimientos.dkh"
+    
     @default_max_rows= 500
-
-    @list_query="SELECT
-                c.sys_pk,
-                c.cerrado,
-                c.conclusion,
-                date_format(c.inicio,'%Y-%m-%d')inicio,
-                c.nombre,
-                c.notas,
-                c.parcial,
-                ROUND(ifnull(c.saldofisico,0),2)saldofisico,
-                ROUND(ifnull(c.saldoteorico,0),2)saldoteorico,
-                c.sincronizado
-            From
-                cfconteo c
-            WHERE
-                if(ifnull(@s,'')='',true,concat_ws('',c.inicio,c.nombre,c.notas,c.parcial) like concat('%',@s,'%') )
-            Order BY
-                c.sys_dtcreated
-            DESC;"
-
     @table_name="cfconteo"
+
+    @list_query="
+    SELECT
+        c.sys_pk,
+        c.cerrado,
+        DATE_FORMAT(c.conclusion,'%Y-%m-%d') conclusion,
+        DATE_FORMAT(c.inicio,'%Y-%m-%d') inicio,
+        c.nombre,
+        c.notas,
+        c.parcial,
+        ROUND(IFNULL(c.saldofisico,0),2) saldofisico,
+        ROUND(IFNULL(c.saldoteorico,0),2) saldoteorico,
+        c.sincronizado
+    FROM
+        cfconteo c
+        #<joins>
+    WHERE
+        NOT IFNULL(c.sys_deleted,0)
+        #<conditions>
+        AND IF(IFNULL(@s,'')='', TRUE, CONCAT_WS(';',c.nombre,c.notas) LIKE CONCAT('%',@s,'%'))
+    ORDER BY
+        c.sys_dtcreated DESC;
+    "
+    
     ImportExist::&db,&params
     {
         if @@(params,"#grupo") < 1
@@ -200,42 +205,108 @@ module ":conteo"
         }
     
     }
+
+    evaluateFilters::&params
+    {
+        // Establecer filtros predeterminados
+        if not(field.exist(params,"alm")) { params<"alm"> : -1 }
+        if not(field.exist(params,"stt")) { params<"stt"> : 1 }
+
+        curr_ndt = ndatetime.now()
+        curr_year = ndatetime.year(curr_ndt)
+        curr_month = ndatetime.month(curr_ndt)
+        curr_day = ndatetime.day(curr_ndt)
+
+        // fdr_init
+        using params
+        {
+            @"fdr_field": field.dnum(params,"fdr_field",1)
+            @"fdr_mode": field.dstr(params,"fdr_mode","lastdays")
+            // [month]
+            @"fdr_year": field.dnum(params,"fdr_year",curr_year)
+            @"fdr_month": field.dnum(params,"fdr_month",curr_month)
+            // [lastdays]
+            @"fdr_range": field.dnum(params,"fdr_range",30)
+            // [range]
+            @"fdr_from": field.dstr(params,"fdr_from",date_str(now(),"yyyy-MM-01"))
+            @"fdr_to": field.dstr(params,"fdr_to",date_str(now(),"yyyy-MM-dd"))
+        }
+
+        // Preparar consulta
+        new date_fields
+        {
+            @"1": "c.inicio"
+            @"2": "c.conclusion"
+        }
+        fdr_field = field.str(date_fields, @@(params,"#fdr_field"))
+        status = @@(params,"#stt")
+        joins = ""
+        conditions = ""
+
+        if @@(params,"#alm") > 0
+        {
+            joins = "INNER JOIN cfcaptura cap ON cap.iconteo = c.sys_pk"
+            conditions = "AND cap.ialmacen = @alm"
+        }
+
+        if status == 1 { conditions = conditions + " AND NOT IFNULL(c.cerrado,0) AND NOT IFNULL(c.sincronizado,0)" }
+        else if status == 2 { conditions = conditions + " AND IFNULL(c.cerrado,0) AND NOT IFNULL(c.sincronizado,0)" }
+        else if status == 3 { conditions = conditions + " AND IFNULL(c.cerrado,0) AND IFNULL(c.sincronizado,0)" }
+
+        conditions = conditions + "
+        AND (
+            CASE @fdr_mode
+                WHEN 'month' THEN (YEAR(#<fdr_field>) = @fdr_year AND MONTH(#<fdr_field>) = @fdr_month)
+                WHEN 'lastdays' THEN (DATE(#<fdr_field>) BETWEEN ADDDATE(DATE(NOW()), INTERVAL -@fdr_range DAY) AND DATE(NOW()))
+                WHEN 'range' THEN (
+                    CASE
+                        WHEN @fdr_from != '' && @fdr_to != '' THEN (DATE(#<fdr_field>) BETWEEN @fdr_from AND @fdr_to)
+                        WHEN @fdr_from != '' && @fdr_to = '' THEN (DATE(#<fdr_field>) >= @fdr_from)
+                        WHEN @fdr_from = '' && @fdr_to != '' THEN (DATE(#<fdr_field>) <= @fdr_to)
+                        ELSE TRUE
+                    END
+                )
+                ELSE TRUE
+            END
+        )
+        "
+
+        // Parsear consulta
+        conditions = ftext(conditions)
+        @list_query = ftext(@list_query)
+    }
+
     list::&db,&params
     {
         do dbr.apps.action.grant("GE40")
 
-       ref entity= entity.list(db,params)
-       for i = 0; i < @count(entity)
-       {
+        do evaluateFilters(params)
+        ref entity = entity.list(db,params)
+
+        for i = 0; i < @count(entity)
+        {
             ref item=@item(entity,i)
             
             if @@(item,"#parcial"){item<"tipo">:"Parcial"}
             else{item<"tipo">:"Completo"}
 
-            if @@(item,"#cerrado")
+            if @@(item,"#sincronizado"){ item<"status"> : "Sincronizado" }
+            else if @@(item,"#cerrado"){ item<"status"> : "Cerrado" }
+            else
             {
-                item<"status">:"Abierto"
-                item<"conclusion">:"En proceso"
+                item<"status"> : "Abierto"
+                item<"conclusion"> : "En proceso"
+            }
 
-                if @@(item,"#sincronizado")
-                {
-                    item<"status">:"Sincronizado"
-                }
-                else{item<"status">:"Cerrado"}
-            }
-            else 
-            {
-                item<"status">:"Abierto"
-                item<"conclusion">:"En proceso"
-            }
             item<"diferencia">:@@(item,"#saldofisico") - @@(item,"#saldoteorico")
-       }
+        }
 
-       new data
-       {
-            @"data*":entity
-       }
-       return data
+        new data
+        {
+            @"data*": entity
+            @"almacenes*": dbr.list(db,"select sys_pk, codigo, descripcion from almacen where not ifnull(sys_deleted,0)",@null)
+        }
+        return data
     }
     
     delete::&db,&params
@@ -250,7 +321,7 @@ module ":conteo"
     {
         do dbr.apps.action.grant("GE45")
 
-        do dbr.execute(db,"UPDATE cfconteo SET cerrado= 1 WHERE sys_pk=@_entity_id",params)
+        do dbr.execute(db,"UPDATE cfconteo SET cerrado = 1, conclusion = now() WHERE sys_pk=@_entity_id",params)
     }
     sincronizar::&db,&params,&data
     {
@@ -340,7 +411,7 @@ module ":conteo"
                 do erp.inventario.aplicar_mov(db,@@(cardex,"#sys_pk"),isentrada)
             }
 
-            do dbr.rec(db,"update cfconteo set cerrado=1,sincronizado=1 where sys_pk=@_entity_id",params)
+            do dbr.execute(db,"update cfconteo set cerrado=1, sincronizado=1, conclusion=now() where sys_pk=@_entity_id",params)
         do dbr.commit(db)
         
         exception

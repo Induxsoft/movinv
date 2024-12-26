@@ -74,7 +74,7 @@ module "Funciones de propósito general :lib"
         return list
     }
 
-     function number_format(value)
+    function number_format(value)
     {
         number = parse.num(value)
         format = "#"+@THOUSANDS_SEPARATOR+"0"+@DECIMAL_SEPARATOR+padright("",@DECIMAL_PRECISION,"0")
