@@ -13,6 +13,9 @@ module ""
     ref entity = ifnull(@("&./conteo"),record.create())
     ref detail = ifnull(@("&./data"),list.create())
 
+    money_decs = field.dnum(@("&."),"m_decs",2)
+    volum_decs = field.dnum(@("&."),"v_decs",2)
+
     new fil_almacen
     {
         @"datatable*": ifnull(@("&./almacenes"),list.create())
@@ -32,7 +35,7 @@ module ""
     new table_definition
     {
         @"datatable*": detail
-        @"table_footer": "Mostrando los primeros # clientes ordenados por código"
+        @"table_footer": "Mostrando los primeros # registros"
         @"tableheight": "96%"
         member @"columns"
         {
@@ -41,57 +44,65 @@ module ""
             member @"linea" { @"caption":"Línea" }
             member @"marca" { @"caption":"Marca" }
             member @"unidad" { @"caption":"Unidad" }
-            member @"costopromedio" { @"caption":"Costo promedio" }
+            member @"costopromedio"
+            {
+                @"caption":"Costo promedio"
+                prefix          :=  "$ " 
+                textalign       := "end" 
+                format          := "true" 
+                thousandssep    := "true" 
+                decs            := money_decs
+            }
             member @"exist_fisico" 
             { 
                 @"caption":"Existencia físico" 
-                textalign       :="end" 
-                format          :="true" 
-                thousandssep    :="true" 
-                decs            :="2"
+                textalign       := "end" 
+                format          := "true" 
+                thousandssep    := "true" 
+                decs            := volum_decs
             }
             member @"exist_teorico" 
             { 
                 @"caption":"Existencia teorico" 
-                textalign       :="end" 
-                format          :="true" 
-                thousandssep    :="true" 
-                decs            :="2"
+                textalign       := "end" 
+                format          := "true" 
+                thousandssep    := "true" 
+                decs            := volum_decs
             }
             member @"diferencia" 
             { 
                 @"caption":"Diferencia"  
-                textalign       :="end" 
-                format          :="true" 
-                thousandssep    :="true" 
-                decs            :="2"
+                textalign       := "end" 
+                format          := "true" 
+                thousandssep    := "true" 
+                decs            := volum_decs
             }
             member @"valorfisico" 
             { 
                 @"caption":"Valor físico" 
-                prefix          := "$ " 
-                textalign       :="end" 
-                format          :="true" 
-                thousandssep    :="true" 
-                decs            :="2"
+                prefix          :=  "$ " 
+                textalign       := "end" 
+                format          := "true" 
+                thousandssep    := "true" 
+                decs            := money_decs
             }
             member @"valorteorico" 
             { 
                 @"caption":"Valor teorico" 
-                prefix          := "$ " 
-                textalign       :="end" 
-                format          :="true" 
-                thousandssep    :="true" 
-                decs            :="2"
+                prefix          :=  "$ " 
+                textalign       := "end" 
+                format          := "true" 
+                thousandssep    := "true" 
+                decs            := money_decs
             }
             member @"diferenciavalor" 
             { 
                 @"caption":"Diferencia valor" 
-                prefix          := "$ " 
-                textalign       :="end" 
-                format          :="true" 
-                thousandssep    :="true" 
-                decs            :="2"
+                prefix          :=  "$ " 
+                textalign       := "end" 
+                format          := "true" 
+                thousandssep    := "true" 
+                decs            := money_decs
             }
         }
     }

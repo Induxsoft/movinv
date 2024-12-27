@@ -12,7 +12,7 @@ module ":conteo"
     @table_name="cfconteo"
 
     @list_query="
-    SELECT
+    SELECT distinct
         c.sys_pk,
         c.cerrado,
         DATE_FORMAT(c.conclusion,'%Y-%m-%d') conclusion,
@@ -36,9 +36,10 @@ module ":conteo"
     
     ImportExist::&db,&params
     {
+        join=""
         if @@(params,"#grupo") < 1
         {
-            sql="select
+            sql="SELECT DISTINCT
                     producto.sys_pk as pk,
                     producto.reqlote as lote,
                     producto.reqserie as serie,
@@ -46,6 +47,7 @@ module ":conteo"
                 from
                     producto
                     inner join divisa on divisa.sys_pk = producto.idivisa
+                    #<join>
                 where
                     producto.itipo = 2 "
         }
@@ -62,9 +64,21 @@ module ":conteo"
                         inner join divisa on divisa.sys_pk = producto.idivisa
                     )
                     inner join grupoproductos_producto_ on producto.sys_pk = grupoproductos_producto_.iproductos
+                    #<join>
                 where
                     producto.itipo = 2
-                    and grupoproductos_producto_.igrupos = @grupo "
+                    and grupoproductos_producto_.igrupos = @grupo"
+
+        }
+        if @@(params,"#exc_prod")
+        {
+            join="INNER join existencias e on producto.sys_pk=e.fk_producto_iexistencias"
+        }
+
+        if @@(params,"#exc_other_alm")
+        {
+            join="INNER join existencias e on producto.sys_pk=e.fk_producto_iexistencias"
+            sql=sql +" AND e.ialmacen=@almacen "
         }
 
         if @@(params,"#linea")> 0{sql=sql + " AND producto.ilinea=@linea "}
@@ -73,7 +87,7 @@ module ":conteo"
 
         if @@(params,"#random"){sql=sql + " ORDER BY RAND() LIMIT @limit "}
 
-        ref productos=dbr.list(db,sql,params)
+        ref productos=dbr.list(db,ftext(sql),params)
         for i = 0; i < @count(productos)
         {
             ref producto=@item(productos,i)
@@ -95,7 +109,8 @@ module ":conteo"
                     almacen.sys_pk as pkalmacen,
                     existencias.existencia as existencia,
                     (ifnull(sum(ifnull(existencias.existencia,0)),0) * ifnull(producto.costopromedio,0)) as saldo,
-                    existencias.saldo as saldo1
+                    existencias.saldo as saldo_teorica,
+                    producto.costoultimo
                 from
                     almacen
                     inner join (
@@ -108,31 +123,38 @@ module ":conteo"
                 LIMIT 1"
 
             ref existencia=dbr.rec(db,sql,params)
+            if not(isnull(existencia))
+            {
+                costo_promedio= 0
+                exist_teorico=round(@@(existencia,"#existencia"),6)
+
+                module "calc_costo_promedio"
+                {
+                    if exist_teorico < 1 {costo_promedio=@@(existencia,"#costoultimo")}
+                    else{costo_promedio=div(@@(existencia,"#saldo_teorica"),exist_teorico) }//erp.inventario.calc_costo_promedio(db,@@(params,"#ppk"))
+                    
+                    exception{costo_promedio= 0}
+                }
+                
+                new cfexist
+                {
+                    @"costopromedio":round(costo_promedio,2)
+                    @"exist_fisico": 0
+                    @"exist_teorico": exist_teorico
+                    @"ialmacen":@@(params,"#almacen")
+                    @"iproducto":@@(params,"#ppk")
+                    @"iconteo":@@(params,"#pk_conteo")
+                }
+
+                do dbr.save(db,"cfexist",cfexist)
+
+                params<"exist_teorico">:@@(cfexist,"#exist_teorico") * @@(cfexist,"#costopromedio")
+
+                sql="UPDATE cfConteo SET saldoteorico=ifnull(saldoteorico,0) + @exist_teorico WHERE sys_pk=@pk_conteo"
+
+                do dbr.execute(db,sql,params)
+            }
             
-            costo_promedio= 0
-            module "calc_costo_promedio"
-            {
-                costo_promedio=erp.inventario.calc_costo_promedio(db,@@(params,"#ppk"))
-                exception{costo_promedio= 0}
-            }
-
-            new cfexist
-            {
-                @"costopromedio":round(costo_promedio,2)
-                @"exist_fisico": 0
-                @"exist_teorico": round(@@(existencia,"#existencia"),6)
-                @"ialmacen":@@(params,"#almacen")
-                @"iproducto":@@(params,"#ppk")
-                @"iconteo":@@(params,"#pk_conteo")
-            }
-
-            do dbr.save(db,"cfexist",cfexist)
-
-            params<"exist_teorico">:@@(cfexist,"#exist_teorico") * @@(cfexist,"#costopromedio")
-
-            sql="UPDATE cfConteo SET saldoteorico=ifnull(saldoteorico,0) + @exist_teorico WHERE sys_pk=@pk_conteo"
-
-            do dbr.execute(db,sql,params)
         }
     }
     prepareView::&db,&params,&data
@@ -171,6 +193,8 @@ module ":conteo"
                 @"marca":@@(data,"#sel_marca")
                 @"grupo":@@(data,"#sel_grupo")
                 @"random":parse.bool(@@(data,"random"))
+                @"exc_prod":parse.bool(@@(data,"exc_prod"))
+                @"exc_other_alm":parse.bool(@@(data,"exc_other_alm"))
                 @"limit":if(@@(data,"#articulos")> 0,@@(data,"#articulos"),1)
             }
             data<"parcial">: 0
@@ -245,7 +269,7 @@ module ":conteo"
 
         if @@(params,"#alm") > 0
         {
-            joins = "INNER JOIN cfcaptura cap ON cap.iconteo = c.sys_pk"
+            joins = "INNER JOIN cfexist cap ON cap.iconteo = c.sys_pk"
             conditions = "AND cap.ialmacen = @alm"
         }
 
@@ -353,19 +377,26 @@ module ":conteo"
                 and cfexist.iconteo =@_entity_id"
         
         ref cfexists=dbr.list(db,ftext(sql),params)
-        
-        ref categoria=dbr.rec(db,"SELECT sys_pk,sys_guid,codigo,descripcion FROM categoria c WHERE c.tipo=3
-        AND IFNULL(c.sys_deleted,0)=0 LIMIT 1",@null)
+    
 
+        categoria=parse.num(dbr.vars.get(db,"cf_categoria"))
+        //replaces
+        macro_desc=dbr.vars.get(db,"plantilla_cardex")
+        macro_desc=replace(macro_desc,"@cf_nombre",@@(conteo,"$nombre"))
+        macro_desc=replace(macro_desc,"@cf_conteo",@@(conteo,"$sys_guid"))
+
+        macro_ref=dbr.vars.get(db,"referencia_cardex")
+        macro_ref=replace(macro_ref,"@cf_conteo",@@(conteo,"$sys_guid"))
         do dbr.begin(db)
             for i = 0; i < @count(cfexists)
             {
                 ref exist=@item(cfexists,i)
+                ref @LAST_DCARDEX=@null
                 new dtcardex
                 {
-                    @"descripcion":"AJUSTE POR CONTEO FISICO | " + @@(conteo,"$nombre") +" | "+@@(conteo,"$sys_guid")
-                    @"icategoria":@@(categoria,"#sys_pk")
-                    @"referencia":@@(conteo,"$sys_guid")+"|"+@@(exist,"$sys_guid")
+                    @"descripcion":macro_desc
+                    @"icategoria":categoria
+                    @"referencia":replace(macro_ref,"@cfe_id",@@(exist,"$sys_guid"))
                     @"fecha*":now()
                 }
                 ref cardex=dbr.save(db,"cardex",dtcardex)
@@ -392,7 +423,7 @@ module ":conteo"
                     //  Salida
                     //  Se validan y calculan las cantidades a salir...
                     cantidad= 0
-                    if @@(exist,"#exist_fisico") > 0
+                    if @@(exist,"#exist_fisico") >= 0
                     {
                         cantidad= @@(exist,"#exist_teorico") - @@(exist,"#exist_fisico") 
                     }
@@ -402,13 +433,24 @@ module ":conteo"
                         {
                             cantidad= @@(exist,"#exist_teorico") 
                         }
-                        else{cantidad=@@(exist,"#exist_fisico") * (-1) }
+                        else
+                        {
+                            cantidad=@@(exist,"#exist_fisico") * (-1) 
+                        }
                     }
+                    
+                    if @@(exist,"#costopromedio") > 0{dcardex<"abonos">:@@(exist,"#costopromedio") * cantidad}
+                    else{dcardex<"abonos">:@@(exist,"#costoultimo") * cantidad }
+
                     dcardex<"salidas">:cantidad
                 }
-                do dbr.save(db,"dcardex",dcardex)
+                
+                if @@(dcardex,"#entradas")!= 0 || @@(dcardex,"#salidas")!= 0
+                {
+                    do dbr.save(db,"dcardex",dcardex)
 
-                do erp.inventario.aplicar_mov(db,@@(cardex,"#sys_pk"),isentrada)
+                    do erp.inventario.aplicar_mov(db,@@(cardex,"#sys_pk"),isentrada)
+                }
             }
 
             do dbr.execute(db,"update cfconteo set cerrado=1, sincronizado=1, conclusion=now() where sys_pk=@_entity_id",params)
@@ -417,7 +459,14 @@ module ":conteo"
         exception
         {
             if dbr.in_transaction(db){do dbr.rollback(db)}
-            do rise_error(last_error_code(),last_error())
+            error=last_error()
+
+            if isset("@LAST_DCARDEX") && not(isnull(@LAST_DCARDEX)) && not(contains(trim(error),trim(@@(@LAST_DCARDEX,"$cod_prod"))))
+            {
+                error=error + "\r\nProducto: "+@@(@LAST_DCARDEX,"$cod_prod")+" - "+@@(@LAST_DCARDEX,"$desc_prod")
+            }
+
+            do rise_error(last_error_code(),error)
         }
         
     }
@@ -437,55 +486,55 @@ module ":conteo"
     details::&db,&params
     {
         do dbr.apps.action.grant("GE42")
-
-        sql="SELECT 
+            
+        sql = "
+        SELECT 
             a.sys_pk id_almacen,
             p.sys_pk id_producto,
             l.sys_pk id_linea,
             m.sys_pk id_marca,
             ce.sys_pk id_conteo,
             p.codigo cod_prod,
-            CONCAT(a.codigo,' - ',a.descripcion)almacen,
-            CONCAT(p.codigo,' - ',p.descripcion)producto,
-            CONCAT(l.codigo,' - ',l.descripcion)linea,
-            CONCAT_WS(' - ',m.codigo,m.descripcion)marca,
-            ce.costopromedio,
+            CONCAT(a.codigo,' - ',a.descripcion) almacen,
+            CONCAT(p.codigo,' - ',p.descripcion) producto,
+            CONCAT(l.codigo,' - ',l.descripcion) linea,
+            CONCAT(m.codigo,' - ',m.descripcion) marca,
+            @costopromedio := ifnull(ce.costopromedio,0) costopromedio,
             ce.exist_fisico,
             ce.exist_teorico,
             p.unidad,
-            if(IFNULL(ce.exist_fisico,0)>0,
-                    IFNULL(ce.exist_fisico,0) - IFNULL(ce.exist_teorico,0),
-                IFNULL(ce.exist_teorico,0)
-                )
-                diferencia,
-            @valorfisico :=     ROUND(IFNULL(ce.costopromedio,0) * IFNULL(ce.exist_fisico,0),2)valorfisico,
-            @valorteorico :=    ROUND(IFNULL(ce.costopromedio,0) * IFNULL(ce.exist_teorico,0),2)valorteorico,
-            if(@valorfisico>0,
-                @valorfisico - @valorteorico,
-            @valorteorico)diferenciavalor
-            FROM cfexist ce 
-                INNER JOIN producto p ON ce.iproducto=p.sys_pk
-                INNER JOIN almacen a ON ce.ialmacen=a.sys_pk
-                INNER JOIN linea l ON p.ilinea=l.sys_pk
-                LEFT JOIN marca m ON p.imarca=m.sys_pk
-            WHERE 
-                ifnull(ce.sys_deleted,0)=0
-            AND IF(IFNULL(@fil_almacen,'*')='*',true,ce.ialmacen=@fil_almacen)
+            IFNULL(ce.exist_fisico,0) - IFNULL(ce.exist_teorico,0) AS diferencia,
+            @valorfisico    := ROUND(IFNULL(@costopromedio,0) * IFNULL(ce.exist_fisico,0),4) valorfisico,
+            @valorteorico   := ROUND(IFNULL(@costopromedio,0) * IFNULL(ce.exist_teorico,0),4) valorteorico,
+            (@valorfisico - @valorteorico) diferenciavalor
+        FROM cfexist ce 
+            INNER JOIN producto p ON ce.iproducto=p.sys_pk
+            INNER JOIN almacen a ON ce.ialmacen=a.sys_pk
+            INNER JOIN linea l ON p.ilinea=l.sys_pk
+            LEFT JOIN marca m ON p.imarca=m.sys_pk
+        WHERE
+            NOT IFNULL(ce.sys_deleted,0)
             AND ce.iconteo=@_entity_id
-            AND if(ifnull(@s,'')='',true, concat_ws('',a.codigo,p.codigo,l.codigo,a.descripcion,l.descripcion,p.descripcion,p.unidad) like concat('%',@s,'%') )
-            LIMIT #<@default_max_rows>
-            "
+            AND IF(IFNULL(@fil_almacen,'*')='*',true,ce.ialmacen=@fil_almacen)
+            AND IF(ifnull(@s,'')='',true, concat_ws(';',a.codigo,p.codigo,l.codigo,a.descripcion,l.descripcion,p.descripcion,p.unidad) like concat('%',@s,'%'))
+        LIMIT #<@default_max_rows>
+        "
         
-        ref conteo=dbr.rec(db,"select c.sys_pk,
+        ref conteo = dbr.rec(db,"
+            select
+                c.sys_pk,
                 c.cerrado,
                 c.conclusion,
-                date_format(c.inicio,'%Y-%m-%d')inicio,
+                date_format(c.inicio,'%Y-%m-%d') inicio,
                 c.nombre,
                 c.notas,
                 c.parcial,
-                ROUND(ifnull(c.saldofisico,0),2)saldofisico,
-                ROUND(ifnull(c.saldoteorico,0),2)saldoteorico,
-                c.sincronizado from cfconteo c where c.sys_pk=@_entity_id",params)
+                ROUND(ifnull(c.saldofisico,0),2) saldofisico,
+                ROUND(ifnull(c.saldoteorico,0),2) saldoteorico,
+                c.sincronizado
+            from cfconteo c
+            where c.sys_pk = @_entity_id
+        ",params)
         
         if @@(conteo,"#parcial"){conteo<"tipo">:"Parcial"}
         else{conteo<"tipo">:"Completo"}
@@ -513,9 +562,12 @@ module ":conteo"
         entity.conteo       := ref conteo
         entity.data         := ref dbr.list(db,ftext(sql),params)
         entity.almacenes    := ref almacenes
+        entity.m_decs     := parse.num(dbr.vars.get(db,"FXCA001"))
+        entity.v_decs     := parse.num(dbr.vars.get(db,"FXCA002"))
 
         return entity
     }
+
     registrar::&db,&params,&data
     {
         @use_transaction = @false
@@ -542,7 +594,12 @@ module ":conteo"
 
             ref captura=dbr.save(db,"cfcaptura",cfcaptura)
             captura<"sfisico">:dbr.num(db,"select ROUND(sum(ifnull(saldofisico,0)),2) from cfconteo where sys_pk=@iconteo",cfcaptura)
-            captura<"cant_row_captura">:dbr.num(db,"SELECT ifnull(SUM(IFNULL(c.cantidad,0)),0) FROM cfcaptura c WHERE c.iconteo=@iconteo AND c.ialmacen=@ialmacen",cfcaptura)
+            captura<"cant_row_captura">:dbr.num(db,"SELECT ifnull(SUM(IFNULL(c.cantidad,0)),0) 
+            FROM cfcaptura c 
+            WHERE c.iconteo=@iconteo 
+            AND c.ialmacen=@ialmacen
+            AND C.iproducto=@iproducto
+            ",cfcaptura)
         
             do dbr.apps.action.pos(captura)
         do dbr.commit(db)

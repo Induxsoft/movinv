@@ -43,7 +43,8 @@ module "Controller configs"
 	do crudl.routes.entity("/conteo-fisico/","conteo-fisico")
 
 	do crudl.routes.entity("/reports/","reports")
-
+	do errordet(@false)
+	
 	@dbmvc_path="crudl/"
 	
 	@auto_crud=@true

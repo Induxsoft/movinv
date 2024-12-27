@@ -144,20 +144,36 @@ module ""
                         label{"Notas:"}
                         textarea(class="induxsoft-form-control" name="notas" maxlength="2048"){"#<@('$./notas')>"}
                     }
-                    div(class="col-md-6 mt-2")
+                    div(class="col-md-12 mt-2")
                     {
                         div(class="row")
                         {
-                            div(class="col-md-2")
+                            div(class="col-md-1")
                             {
-                                label{input(type="checkbox" name="random" id="aleatorio")" Aleatorio"}
+                                label(class="form-check-label"){input(type="checkbox" name="random" id="aleatorio" class="form-check-input")" Aleatorio"}
                             }
-                            div(class="col-md-8")
+                            div(class="col-md-2")
                             {
                                 div(class="d-flex")
                                 {
-                                    input(type="number" name="articulos" id="articulos" class="form-control form-control-sm w-25 rounded-0 me-2" disabled="true")
+                                    input(type="number" name="articulos" id="articulos" class="form-control form-control-sm w-50 rounded-0 me-2" disabled="true")
                                     label{" artículos"}
+                                }
+                            }
+                            div(class="col-md-4")
+                            {
+                                div(class="d-flex")
+                                {
+                                    input(type="checkbox" name="exc_prod" id="exc_prod" class="me-2 form-check-input")
+                                    label("for"="exc_prod" class="form-check-label"){" Excluir productos que nunca han tenido movimiento en el almacén."}
+                                }
+                            }
+                            div(class="col-md-4")
+                            {
+                                div(class="d-flex")
+                                {
+                                    input(type="checkbox" name="exc_other_alm" id="exc_other_alm" class="me-2 form-check-input")
+                                    label("for"="exc_other_alm" class="form-check-label"){" Excluir productos de otros almacénes."}
                                 }
                             }
                         }

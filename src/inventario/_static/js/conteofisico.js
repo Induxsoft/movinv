@@ -275,8 +275,10 @@ var conteo=
                         codigo:row_selected.cod_prod,
                         sys_pk:row_selected.id_producto,
                         descripcion:row_selected.producto,
-                        unidad:row_selected.unidad
+                        unidad:row_selected.unidad,
+                        almacen:row_selected.id_almacen
                     }
+                    this.modal_fil_almacen.value=row_selected.id_almacen;
                     if(this.ik_producto)this.ik_producto.setValue(ndp);
                 }
             }
@@ -325,6 +327,7 @@ var conteo=
                 alert("Debe colocar una cantidad");
                 return;
             }
+
             producto["almacen"]=Number(this.modal_fil_almacen.value);
             var row=this.ExistRowProd(producto);
             
@@ -352,10 +355,11 @@ var conteo=
                         row["exist_fisico"]=data.cant_row_captura??0;
                         row["valorfisico"]=Number(row.exist_fisico??0) * Number(row.costopromedio??0);
                         row["diferenciavalor"]=Number(row.valorfisico) - Number(row.valorteorico);
-                        
+                        row["diferencia"]=Number(row.exist_fisico??0) - Number(row.exist_teorico??0);
+
                         conteo.detail.tbl_detail_conteo_fisico._printRows();
                     }
-                    alert("Proceso capturado correctamente");
+                    // alert("Proceso capturado correctamente");
                     conteo.detail.CleanModal();
                     conteo.detail.setSummary();
                 },

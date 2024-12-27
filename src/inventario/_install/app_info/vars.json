@@ -1,0 +1,44 @@
+[
+    {
+        "id": "inventario",
+        "caption": "Inventario",
+        "help": "Variables del paquete: Inventario.",
+        "vars":
+        [
+            {
+                "varname": "cf_categoria",
+                "vardefault": "2",
+                "varvalue": "2",
+                "varcaption": "Categoría por ajuste de conteo físico.",
+                "vartype": "string",
+                "varinput": 
+                {
+                    "control": "select",
+                    "source":
+                    {
+                        "type":"query",
+                        "query":"SELECT sys_pk,codigo,descripcion FROM categoria WHERE tipo=3",
+                        "keyfield":"sys_pk",
+                        "showfield":"descripcion"
+                    }
+                }
+            },
+            {
+                "varname": "plantilla_cardex",
+                "vardefault": "AJUSTE POR CONTEO FÍSICO|@cf_nombre|@cf_conteo",
+                "varvalue": "AJUSTE POR CONTEO FÍSICO|@cf_nombre|@cf_conteo",
+                "varcaption": "Plantilla para la descripción del cardex",
+                "vartype": "string",
+                "varinput": { "control": "text" }
+            },
+            {
+                "varname": "referencia_cardex",
+                "vardefault": "@cf_conteo|@cfe_id",
+                "varvalue": "@cf_conteo|@cfe_id",
+                "varcaption": "Referencia para el cardex",
+                "vartype": "string",
+                "varinput": { "control": "text" }
+            }
+        ]
+    }
+]

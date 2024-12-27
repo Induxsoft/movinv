@@ -189,7 +189,7 @@ module ":erp.inventario"
      - valuar. Valor booleano (@true) que indica si tratándose de una salida, 
      se realizará la valuación conforme al método correspondiente.
     */
-
+    ref @LAST_DCARDEX=@null
     aplicar_mov::&db,mov_sys_pk, valuar
     {
         namespace "erp.inventario"
@@ -199,7 +199,9 @@ module ":erp.inventario"
         new p { @"mov_sys_pk": mov_sys_pk }
         ref cardex=dbr.rec(db,"select * from cardex where sys_pk=@mov_sys_pk and not ifnull(aplicado,0);",p)
         if isnull(cardex) { do rise_error(0,"El movimiento no existe o ya ha sido aplicado")}
-        ref detalle=dbr.list(db,"select dc.*, p.reqlote, p.reqserie,p.metodovaluacion from dcardex dc inner join producto p on p.sys_pk=dc.iproducto where dc.fk_cardex_movimientos=@mov_sys_pk",p)
+        ref detalle=dbr.list(db,"select dc.*, p.reqlote, p.reqserie,p.metodovaluacion,p.codigo cod_prod,p.descripcion desc_prod 
+        from dcardex dc inner join 
+        producto p on p.sys_pk=dc.iproducto where dc.fk_cardex_movimientos=@mov_sys_pk",p)
 
         if not(dbr.in_transaction(db)) 
         { 
@@ -210,7 +212,8 @@ module ":erp.inventario"
         for i=0;i<@count(detalle)
         {
             ref dcardex=@item(detalle,i)
-
+            ref @LAST_DCARDEX=dcardex
+            
             using p
             {
                 @"divisa_decs":@inventario_divisa_decs
