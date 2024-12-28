@@ -3,7 +3,10 @@ document.addEventListener("DOMContentLoaded",()=>
     conteo.init();
     conteo.detail.init();
 });
-
+document.addEventListener("keydown",(e)=>
+{
+    // conteo.KeyDown(e);
+});
 var conteo=
 {
     init()
@@ -28,9 +31,29 @@ var conteo=
     {
         return (this.tbl_almacenes?.DataArray??[]).filter((row) => { return Object.keys(row??{}).length >= this.tbl_almacenes.Columns.length });
     },
+    KeyDown(e)
+    {
+        var keyCode = e.keyCode;
+        // console.log(keyCode);
+        switch(keyCode)
+        {
+            case 113://f2
+            conteo.detail.btn_new_captura.click();
+            break;
+            case 114://f3
+            conteo.detail.btn_captura.click();
+            break;
+            // case 115://f4
+            // conteo.detail.btn_cerrar_conteo.click();
+            // break;
+            // case 117://f6
+            // conteo.detail.btn_sincronizar.click();
+            // break;
+        }
+    },
     CerrarConteo(sys_pk)
     {
-        let res=confirm("¿Seguro desea cerra el conteo físico (no podrá continuar capturando la existencia física)?");
+        let res=confirm("¿Seguro desea cerrar el conteo físico (no podrá continuar capturando la existencia física)?");
         if(!res)return;
 
         let url="";
@@ -228,17 +251,55 @@ var conteo=
             //
             this.file_import=document.getElementById("file_import");
 
-            if(this.btn_regis_capture)this.btn_regis_capture.addEventListener("click",()=>{conteo.detail.Registrar();});
-            if(this.modal_fil_almacen)this.modal_fil_almacen.addEventListener("change",()=>{conteo.detail.AddDataSourceProd();});
+            //buttons details
+            this.btn_new_captura=document.getElementById("btn_new_captura");
+            this.btn_captura=document.getElementById("btn_captura");
+            this.btn_cerrar_conteo=document.getElementById("btn_cerrar_conteo");
+            this.btn_sincronizar=document.getElementById("btn_sincronizar");
+
+            this.SetFieldsModal("modal_captura");
+        },
+        setEvents()
+        {
+            if(this.btn_regis_capture)this.btn_regis_capture.setAttribute("onclick",'conteo.detail.Registrar();');
+            if(this.modal_fil_almacen)this.modal_fil_almacen.setAttribute("onchange",'conteo.detail.AddDataSourceProd();');
+
             if(conteo.detail.url_producto && this.modal_fil_almacen)
             {
                 this.AddDataSourceProd();
             }
             setTimeout(() => 
             {
-                conteo.detail.setSummary();    
+                conteo.detail.setSummary();  
             }, 200);
             if(this.ik_producto)this.ik_producto.addEventListener("change",()=>{conteo.detail.changeProducto()});
+        },
+        SetFieldsModal(idmodal)
+        {
+            var modal=document.getElementById(idmodal);
+            if(!modal)return;
+
+            this.ik_producto=modal.querySelector("#ik_producto");
+            this.cantidad=modal.querySelector("#cantidad");
+            this.referencia=modal.querySelector("#referencia");
+            this.notas=modal.querySelector("#notas");
+            this.modal_fil_almacen=modal.querySelector("#modal_fil_almacen");
+            this.mod_text_prod=modal.querySelector("#mod_text_prod");
+            this.btn_regis_capture=modal.querySelector("#btn_regis_capture");
+
+            this.setEvents();
+        },
+        Capturas()
+        {
+            var row=this.tbl_detail_conteo_fisico.DataArray[this.tbl_detail_conteo_fisico.CurrentRowIndex()];
+            if(!row || Object.keys(row).length<1)
+            {
+                alert("Debe seleccionar un elemento de la tabla");
+                return;
+            }
+
+            let url=conteo.detail.url_report_captura.replaceAll("@alm",row.id_almacen??0).replaceAll("@prod",row.id_producto??0);
+            window.location.href=url;
         },
         changeProducto()
         {
@@ -251,23 +312,48 @@ var conteo=
             let producto= row ? row.producto:prod.descripcion;
             let exist_teorico=row ? (row.exist_teorico??0):0;
             let exist_fisico=row ? (row.exist_fisico??0):0;
+            
+            if(this.mod_text_prod)this.mod_text_prod.innerHTML=producto+" <br> Existencia teórica: "+exist_teorico+". Existencia física: "+exist_fisico;
 
-            if(this.mod_text_prod)this.mod_text_prod.innerHTML=producto+" <br> Existencia teórica: "+exist_teorico+". Existencia física: "+exist_fisico
+            if(this.referencia && this.referencia.value=="")this.referencia.value=(prod.codigo??"").trim().replaceAll(" ","");
+            if(this.notas && this.notas.value=="")this.notas.value=producto??"";
+
+            if(this.cantidad)this.cantidad.select();
         },
         AddDataSourceProd()
         {
             this.ik_producto.setAttribute("data-source",conteo.detail.url_producto.replaceAll("@almacen",this.modal_fil_almacen.value));
         },
-        showModal()
+        ismodalblank:false,
+        showModal(idmodal="modal_captura")
         {
+            this.SetFieldsModal(idmodal);
             this.CleanModal();
-            
-            if(this.tbl_detail_conteo_fisico)
+
+            if(this.ik_producto)this.ik_producto.removeAttribute("disabled");
+            if(this.modal_fil_almacen)
             {
-                var row_selected=this.tbl_detail_conteo_fisico.DataArray[this.tbl_detail_conteo_fisico.CurrentRowIndex()];
+                this.modal_fil_almacen.disabled=false;
+            }
+            
+            var row_selected=null;
+            if(idmodal=="modal_captura")
+            {
+                row_selected=this.tbl_detail_conteo_fisico.DataArray[this.tbl_detail_conteo_fisico.CurrentRowIndex()];
+                if(this.ik_producto)this.ik_producto.setAttribute("disabled",true);
+                if(this.modal_fil_almacen)this.modal_fil_almacen.disabled=true;
+                if(!row_selected)
+                {
+                    alert("Debe selecciona un elemento de la tabla");
+                    return;
+                }
+            }else{this.ismodalblank=true;}
+
+            if(this.tbl_detail_conteo_fisico && idmodal=="modal_captura")
+            {
                 if(row_selected && Object.keys(row_selected).length>0)
                 {
-                    this.referencia.value="REF_"+row_selected.cod_prod.trim().replaceAll(" ","");
+                    this.referencia.value=row_selected.cod_prod.trim().replaceAll(" ","");
                     this.notas.value=row_selected.producto;
 
                     var ndp=
@@ -282,7 +368,18 @@ var conteo=
                     if(this.ik_producto)this.ik_producto.setValue(ndp);
                 }
             }
-            if(this.modal_captura)tools.showModal("modal_captura");
+            tools.showModal(idmodal);
+
+            setTimeout(() => {
+                if(this.ismodalblank && this.modal_fil_almacen)
+                {
+                    this.modal_fil_almacen.focus();
+                } 
+                else if(this.cantidad)
+                {
+                    this.cantidad.focus();
+                }
+            }, 400);
         },
         CleanModal()
         {
@@ -303,12 +400,12 @@ var conteo=
         },
         Registrar()
         {
-            if(!this.referencia || this.referencia.value.trim()=="")
-            {
-                alert("Debe colocar un areferencia");
-                this.referencia.focus();
-                return;
-            }
+            // if(!this.referencia || this.referencia.value.trim()=="")
+            // {
+            //     alert("Debe colocar un areferencia");
+            //     this.referencia.focus();
+            //     return;
+            // }
             if(!this.ik_producto)
             {
                 console.warn("No hay un elemento producto");
@@ -331,11 +428,11 @@ var conteo=
             producto["almacen"]=Number(this.modal_fil_almacen.value);
             var row=this.ExistRowProd(producto);
             
-            if(!row || Object.keys(row).length<1)
-            {
-                let res=confirm("El producto indicado no se encuentra en la lista de detalle ¿Desea continuar?");
-                if(!res)return;
-            }
+            // if(!row || Object.keys(row).length<1)
+            // {
+            //     let res=confirm("El producto indicado no se encuentra en la lista de detalle ¿Desea continuar?");
+            //     if(!res)return;
+            // }
             
             var data=
             {
@@ -349,6 +446,8 @@ var conteo=
             InduxsoftCrudlModel.InvokeService(`${conteo.detail.url_conteo}${this.id_conteo}/regitrar-capture/`, data,
                 function (data) 
                 {
+                    // alert("Proceso capturado correctamente");
+                    
                     if(this.td_saldo_fisico)this.td_saldo_fisico.textContent=data.sfisico;
                     if(row)
                     {
@@ -359,7 +458,19 @@ var conteo=
 
                         conteo.detail.tbl_detail_conteo_fisico._printRows();
                     }
-                    // alert("Proceso capturado correctamente");
+                    setTimeout(() => 
+                    {
+                        if(conteo.detail.ismodalblank)
+                        {
+                            conteo.detail.modal_fil_almacen.focus();
+                        }
+                    }, 300);
+
+                    if(!conteo.detail.ismodalblank)
+                    {
+                        tools.hideModal('modal_captura');
+                    }
+                    
                     conteo.detail.CleanModal();
                     conteo.detail.setSummary();
                 },
@@ -385,9 +496,9 @@ var conteo=
                 vteorico+=Number(row.valorteorico);
             }
             let diferencia=(vfisico - vteorico);
-            this.summary_vfisico.textContent="$ " + vfisico;
-            this.summary_vteorico.textContent="$ " + vteorico;
-            this.summary_vdiferencia.textContent="$  "+ (diferencia>0 ? diferencia:vteorico);
+            this.summary_vfisico.textContent="$ " + Math.RoundTo(vfisico,2);
+            this.summary_vteorico.textContent="$ " + Math.RoundTo(vteorico,2);
+            this.summary_vdiferencia.textContent="$  "+ Math.RoundTo(diferencia,2);
         }
     }
     

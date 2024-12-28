@@ -160,20 +160,28 @@ module ""
                                     label{" artículos"}
                                 }
                             }
-                            div(class="col-md-4")
+                            div(class="col-md-12")
                             {
                                 div(class="d-flex")
                                 {
-                                    input(type="checkbox" name="exc_prod" id="exc_prod" class="me-2 form-check-input")
-                                    label("for"="exc_prod" class="form-check-label"){" Excluir productos que nunca han tenido movimiento en el almacén."}
+                                    input(type="radio" name="exc_prod" id="exc_prod_a" class="me-2 form-check-input" checked="true" value="a")
+                                    label("for"="exc_prod" class="form-check-label"){" Incluir todos los productos ."}
                                 }
                             }
-                            div(class="col-md-4")
+                            div(class="col-md-12")
                             {
                                 div(class="d-flex")
                                 {
-                                    input(type="checkbox" name="exc_other_alm" id="exc_other_alm" class="me-2 form-check-input")
-                                    label("for"="exc_other_alm" class="form-check-label"){" Excluir productos de otros almacénes."}
+                                    input(type="radio" name="exc_prod" id="exc_prod_b" class="me-2 form-check-input" value="b")
+                                    label("for"="exc_prod" class="form-check-label"){" Excluir productos que nunca han tenido movimientos en ningún almacén."}
+                                }
+                            }
+                            div(class="col-md-12")
+                            {
+                                div(class="d-flex")
+                                {
+                                    input(type="radio" name="exc_prod" id="exc_prod_c" class="me-2 form-check-input" value="c")
+                                    label("for"="exc_other_alm" class="form-check-label"){" Incluir únicamente productos que  alguna vez han tenido movimientos en los almacenes elegidos."}
                                 }
                             }
                         }

@@ -1,0 +1,19 @@
+[
+    {
+        "id": "inventario",
+        "title": "inventario",
+        "queries": [
+            {
+                "actid":"GE47",
+                "id":"inv.sql001",
+                "title":"Detalle de captura",
+                "qry":"SELECT c.sys_pk,\r\nc.cantidad,\r\nCONCAT_WS(' - ',p.codigo,p.descripcion) producto,\r\nCONCAT_WS(' - ',a.codigo,a.descripcion)almacen,\r\nct.nombre,\r\nc.usuario,\r\nc.notas,\r\nc.referencia\r\nFROM cfcaptura c\r\nINNER JOIN almacen a ON c.ialmacen=a.sys_pk\r\nINNER JOIN producto p ON c.iproducto=p.sys_pk\r\nINNER JOIN cfconteo ct ON c.iconteo=ct.sys_pk\r\nWHERE \r\n\tp.sys_pk=@prod\r\n\tAND a.sys_pk=@alm\r\n\tAND ct.sys_pk=@cf",
+                "properties":{"layout":"document"},
+                "parameters":{"alm":{"default":"1","id":"alm","name":"alm","caption":"Almac\u00E9n:","control":"Select","required":false,"readonly":false,"disabled":false,"wrp_attr":{"class":"col-md-4"},"source":{"first_value":"","first_text":"","type":"query","query":"SELECT a.sys_pk,CONCAT(a.codigo,' - ',a.descripcion)descripcion FROM almacen a WHERE IFNULL(a.sys_deleted,0)=0","keyfield":"sys_pk","showfield":"descripcion"}},"prod":{"default":"","id":"prod","name":"prod","caption":null,"control":"Text","required":false,"readonly":false,"disabled":false,"wrp_attr":{"class":"d-none"}},"cf":{"default":"","id":"cf","name":"cf","caption":null,"control":"Text","required":false,"readonly":false,"disabled":false,"wrp_attr":{"class":"d-none"}}},
+                "design":{"show_summary":false,"summary_group":false,"group_by":"","id":"","attributes":{"class":"table"},"rows_attributes":{"header":{},"begin_group":{},"detail":{},"summary_group":{},"summary":{}},"columns":{"referencia":{"caption":"referencia","format":"","summary":"none","attributes":{},"anchor":{},"visible":true},"producto":{"caption":"producto","format":"","summary":"none","attributes":{},"anchor":{},"visible":true},"almacen":{"caption":"almacen","format":"","summary":"none","attributes":{},"anchor":{},"visible":true},"cantidad":{"caption":"cantidad","format":"#,#.00","summary":"none","attributes":{},"anchor":{},"visible":true},"nombre":{"caption":"Conteo f\u00EDsico","format":"","summary":"none","attributes":{},"anchor":{},"visible":true},"usuario":{"caption":"usuario","format":"","summary":"none","attributes":{},"anchor":{},"visible":true},"notas":{"caption":"notas","format":"","summary":"none","attributes":{},"anchor":{},"visible":true},"sys_pk":{"caption":"sys_pk","format":"","summary":"none","attributes":{},"anchor":{},"visible":false}}},
+                "app":"inventario.conteo_fisico",
+                "det":"DET0A4"
+            }
+        ]
+    }
+]
