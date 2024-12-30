@@ -148,7 +148,7 @@ module ""
                     {
                         div(class="row")
                         {
-                            div(class="col-md-1")
+                            div(class="col-md-1 col-xs-4")
                             {
                                 label(class="form-check-label"){input(type="checkbox" name="random" id="aleatorio" class="form-check-input")" Aleatorio"}
                             }

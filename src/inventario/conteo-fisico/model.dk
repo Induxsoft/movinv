@@ -20,8 +20,10 @@ module ":conteo"
         c.nombre,
         c.notas,
         c.parcial,
-        ROUND(IFNULL(c.saldofisico,0),2) saldofisico,
-        ROUND(IFNULL(c.saldoteorico,0),2) saldoteorico,
+        @sf :=ROUND(IFNULL(c.saldofisico,0),2)sf,
+        @st := ROUND(IFNULL(c.saldoteorico,0),2) st,
+        @sf saldofisico,
+        @st saldoteorico,
         c.sincronizado
     FROM
         cfconteo c
@@ -326,7 +328,13 @@ module ":conteo"
                 item<"conclusion"> : "En proceso"
             }
 
-            item<"diferencia">:@@(item,"#saldofisico") - @@(item,"#saldoteorico")
+            item<"diferencia">:format(@@(item,"#saldofisico") - @@(item,"#saldoteorico"),"$ #,#.00")
+
+            using item
+            {
+                saldofisico := format(@@(item,"#saldofisico"),"$ #,#.00")
+                saldoteorico := format(@@(item,"#saldoteorico"),"$ #,#.00")
+            }
         }
 
         new data
@@ -566,8 +574,8 @@ module ":conteo"
         entity.conteo       := ref conteo
         entity.data         := ref dbr.list(db,ftext(sql),params)
         entity.almacenes    := ref almacenes
-        entity.m_decs     := parse.num(dbr.vars.get(db,"FXCA001"))
-        entity.v_decs     := parse.num(dbr.vars.get(db,"FXCA002"))
+        entity.m_decs     := 2 //parse.num(dbr.vars.get(db,"FXCA001"))
+        entity.v_decs     := 2 //parse.num(dbr.vars.get(db,"FXCA002"))
 
         return entity
     }
@@ -581,7 +589,7 @@ module ":conteo"
         ref producto=@@(data,"&producto")
         new cfcaptura
         {
-            @"cantidad":@@(data,"#cantidad")
+            @"cantidad":round(@@(data,"#cantidad"),6)
             @"ialmacen":@@(data,"#almacen")
             @"iproducto":@@(producto,"#sys_pk")
             @"notas":@@(data,"$notas")

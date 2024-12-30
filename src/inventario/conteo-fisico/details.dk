@@ -16,6 +16,7 @@ module ""
 
     money_decs = field.dnum(@("&."),"m_decs",2)
     volum_decs = field.dnum(@("&."),"v_decs",2)
+    
     url_current=lib.curr_url()
 
     new fil_almacen
