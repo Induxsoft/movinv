@@ -298,7 +298,9 @@ var conteo=
                 return;
             }
 
-            let url=conteo.detail.url_report_captura.replaceAll("@alm",row.id_almacen??0).replaceAll("@prod",row.id_producto??0);
+            let title=(row.producto??"") + " - "+(conteo.data.nombre??"")
+            let url=conteo.detail.url_report_captura.replaceAll("@alm",row.id_almacen??0).replaceAll("@prod",row.id_producto??0).replaceAll("@title",tools.url_encode(title));
+            url=url.replaceAll("@url_exit",tools.url_encode(conteo.current_url));
             window.location.href=url;
         },
         changeProducto()

@@ -7,6 +7,7 @@ module ""
     #include "uielements.v12.dkl"
     #include "uielements.dkl"
     #include "../config.dk"
+    #include "../_lib/lib2.dk"
 
     do @context.begin(@crud_context)
 
@@ -15,6 +16,7 @@ module ""
 
     money_decs = field.dnum(@("&."),"m_decs",2)
     volum_decs = field.dnum(@("&."),"v_decs",2)
+    url_current=lib.curr_url()
 
     new fil_almacen
     {
@@ -119,8 +121,8 @@ module ""
         {
             #$
             button(class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" id="btn_new_captura" onclick="conteo.detail.showModal('modal_captura_blank');"){"Nueva captura"}
-            button(class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" id="btn_captura" onclick="conteo.detail.Capturas();"){"Capturas"}
             button(class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" id="btn_captura" onclick="conteo.detail.showModal();"){"Ajuste"}
+            button(class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" id="btn_captura" onclick="conteo.detail.Capturas();"){"Capturas"}
             button(class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" id="btn_cerrar_conteo" onclick="conteo.CerrarConteo(#<@('#./conteo/sys_pk')>)"){"Cerrar conteo"}
             #!
         }
@@ -280,6 +282,8 @@ module ""
             conteo.detail.id_conteo=#<@@(entity,"#sys_pk")>;
             conteo.detail.url_producto="#<@URL_BUSCAR_PRODUCTO_CONTEO>";//&fil_almacen=@almacen
             conteo.detail.url_report_captura="#<@URL_REPORT_CAPTURA>";
+            conteo.data=#<to.json(entity)>;
+            conteo.current_url="#<url_current>";
             '
         }
     }
