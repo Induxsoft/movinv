@@ -39,7 +39,7 @@ module "existencias.dk"
 
             cell<"text"> : ftext('
                 <a href="#<ver_cardex_link>" style="#<btn_style>">Cardex</a>
-                <a href="#<edt_maxmin_link>" style="#<btn_style>" title="Editar máximo, mínimo, p. Re-orden">MaxMin</a>
+                <a href="#<edt_maxmin_link>" style="#<btn_style>" title="Editar máximo, mínimo, p. reorden">MaxMin</a>
             ')
         }
     }
@@ -73,7 +73,7 @@ module "existencias.dk"
             }
             member @"preorden"
             {
-                @"caption": "P. Re-orden"
+                @"caption": "P. Reorden"
                 @"format": "#,0.0000"
             }
             member @"existencia"
@@ -176,7 +176,7 @@ module "existencias.dk"
 
                 span{ small(class="fw-bold"){$"Mínimo: "} $"#<format(@@(producto,'#minimo'),'#,0.0000')>" }
                 span{ small(class="fw-bold"){$"Máximo: "} $"#<format(@@(producto,'#maximo'),'#,0.0000')>" }
-                span{ small(class="fw-bold"){$"P. Re-orden: "} $"#<format(@@(producto,'#preorden'),'#,0.0000')>" }
+                span{ small(class="fw-bold"){$"P. Reorden: "} $"#<format(@@(producto,'#preorden'),'#,0.0000')>" }
             }
 
             div(class="table-container my-2")

@@ -85,7 +85,7 @@ module "Máximo, Mínimo, Punto de re-orden. :maxmin"
             conditions = conditions + "
             AND (
                 alm.codigo LIKE CONCAT('%',@fil_text,'%')
-                alm.descripcion LIKE CONCAT('%',@fil_text,'%')
+                OR alm.descripcion LIKE CONCAT('%',@fil_text,'%')
                 OR prod.codigo LIKE CONCAT('%',@fil_text,'%')
                 OR prod.descripcion LIKE CONCAT('%',@fil_text,'%')
             )"

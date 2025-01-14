@@ -146,7 +146,7 @@ module "form.dk"
             {
                 div(class="d-flex justify-content-end flex-wrap gap-3 mb-1")
                 {
-                    span(class="flex-grow-1 fw-bold"){$"#<@@(producto,'$dproducto')>"}
+                    span(class="flex-grow-1 fw-bold"){$"#<@@(producto,'$dproducto')> (#<@@(producto,'$cdivisa')>)"}
 
                     span{ small(class="fw-bold"){$"Existencia y saldo: "} $"#<format(@@(producto,'#existencia'),'#,0.0000')>" }
                     span{ small(class="fw-bold"){$""} $"#<@@(producto,'$unidad')>" }

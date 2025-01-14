@@ -78,7 +78,7 @@ module "form.dk"
                     }
                     div(class="col-lg-4 col-md-4 col-sm-4")
                     {
-                        label(class="form-label" "for"="txt_reorden"){$"Punto de re-orden:"}
+                        label(class="form-label" "for"="txt_reorden"){$"Punto de reorden:"}
                         input(class="form-control rounded-0" type="number" name="uf_preorden" value="#<lib.form('uf_preorden','nm',entity)>" id="txt_reorden" min="0" max="9999999999.99999999" step="0.00000001")
                     }
                 }

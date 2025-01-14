@@ -25,7 +25,7 @@ module "list.dk"
         member @"columns"
         {
             member @"dproducto" { @"caption": "Producto" }
-            member @"dalmacen" { @"caption": "Almacen" }
+            member @"dalmacen" { @"caption": "Almacén" }
 			member @"minimo"
             {
                 @"caption": "Mínimo"
@@ -44,7 +44,7 @@ module "list.dk"
             }
             member @"preorden"
             {
-                @"caption": "Punto de re-orden"
+                @"caption": "Punto de reorden"
                 @"align": "center"
                 @"format": @true
                 @"thousandssep": @true
@@ -66,7 +66,7 @@ module "list.dk"
 
     new nav_config
     {
-        @"title": "Máximos, Mínimos, Punto de re-orden"
+        @"title": "Máximos, Mínimos, Punto de reorden"
         @"buttons*": @null
         @"urlexit": @INVENTARIO
         @"main": "GE00,GE21"
