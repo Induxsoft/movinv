@@ -43,3 +43,4 @@ GE43,Eliminar Conteo físico,inventario.conteofisico
 GE44,Capturar Conteo físico,inventario.conteofisico
 GE45,Cerrar Conteo físico,inventario.conteofisico
 GE46,Sincronizar Conteo físico,inventario.conteofisico
+GE47,Detalle de captura,inventario.conteofisico
