@@ -23,6 +23,9 @@ module "model"
             AND IF(IFNULL(@almc,'-1')='-1', TRUE, ex.ialmacen = @almc)
         "
 
+        if not(field.exist(params,"year")){params<"year">:date_str(now(),"yyyy")}
+        if not(field.exist(params,"month")){params<"month">:date_str(now(),"MM")}
+
         sql_product_movs = "
         SELECT
             alm.descripcion AS dalmacen,
