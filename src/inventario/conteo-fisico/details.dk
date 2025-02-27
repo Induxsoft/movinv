@@ -285,6 +285,7 @@ module ""
             conteo.detail.url_report_captura="#<@URL_REPORT_CAPTURA>";
             conteo.data=#<to.json(entity)>;
             conteo.current_url="#<url_current>";
+            conteo.url_almacen="#<@URL_CONTEO_BUSCAR_ALMACEN>";
             '
         }
     }

@@ -108,6 +108,8 @@ module ""
                 {
                     label(style="color:red" id="lbl_alert_interchat" class="d-flex"){""}
 
+                    label{input(type="checkbox" id="all_almacen" name="all_almacen")" Todos los almacenes"}
+
                     #!
                     if isset("fil_almacen")
                     {

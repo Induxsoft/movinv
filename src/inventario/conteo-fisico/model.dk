@@ -485,15 +485,27 @@ module ":conteo"
     search.almacen::&db,&params
     {
         sql="SELECT 
-            a.sys_pk,
-            a.codigo,
-            a.descripcion
-        FROM almacen a 
-        WHERE IFNULL(a.sys_deleted,0)=0
-        AND CONCAT_WS('',a.codigo,a.descripcion) like concat('%',@s,'%')
-        ORDER BY a.codigo desc"
+                a.sys_pk,
+                a.codigo,
+                CONCAT(a.codigo,' - ',a.descripcion) descripcion
+            FROM almacen a 
+            WHERE IFNULL(a.sys_deleted,0)=0
+            AND CONCAT_WS('',a.codigo,a.descripcion) like concat('%',@s,'%')
+            ORDER BY a.codigo desc limit 200"
 
-        return dbr.list(db,sql,params)
+        if not(parse.bool(@@(params,"$_by_entity")))
+        {
+            return dbr.list(db,sql,params)
+        }
+        else 
+        {
+           return dbr.list(db,"SELECT distinct a.sys_pk,CONCAT(a.codigo,' - ',a.descripcion)descripcion 
+                        FROM almacen a 
+                        INNER JOIN cfexist c ON a.sys_pk=c.ialmacen
+                        WHERE IFNULL(a.sys_deleted,0)=0
+                        AND c.iconteo=@_entity_id",params)
+        }
+        
     }
     details::&db,&params
     {
@@ -567,8 +579,9 @@ module ":conteo"
             conteo<"status">:"Abierto"
             conteo<"conclusion">:"En proceso"
         }
+        params._by_entity := @true
+        ref almacenes=search.almacen(db,params)
 
-        ref almacenes=dbr.list(db,"SELECT a.sys_pk,CONCAT(a.codigo,' - ',a.descripcion)descripcion FROM almacen a WHERE IFNULL(a.sys_deleted,0)=0",@null)
         new entity{}
 
         entity.conteo       := ref conteo

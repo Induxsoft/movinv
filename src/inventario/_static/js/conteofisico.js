@@ -9,6 +9,7 @@ document.addEventListener("keydown",(e)=>
 });
 var conteo=
 {
+    url_almacen:"",
     init()
     {
         this.ip_uf_almacen=document.getElementById("ip_uf_almacen");
@@ -17,9 +18,8 @@ var conteo=
         this.aleatorio=document.getElementById("aleatorio");
         this.articulos=document.getElementById("articulos");
 
-
         if(this.ip_uf_almacen)this.ip_uf_almacen.addEventListener("change",(data)=>{conteo.AddDataTable(data);});
-        if(this.aleatorio)this.aleatorio.addEventListener("change",()=>{conteo.enabledArticulos();})
+        if(this.aleatorio)this.aleatorio.addEventListener("change",()=>{conteo.enabledArticulos();});
     },
     enabledArticulos()
     {
@@ -256,10 +256,69 @@ var conteo=
             this.btn_captura=document.getElementById("btn_captura");
             this.btn_cerrar_conteo=document.getElementById("btn_cerrar_conteo");
             this.btn_sincronizar=document.getElementById("btn_sincronizar");
-
+            
+            this.all_almacen=document.getElementById("all_almacen");
+            if(this.all_almacen)this.all_almacen.addEventListener("change",()=>{this.GetAlmacenes();});
+            
             this.SetFieldsModal("modal_captura");
         },
-        setEvents()
+        GetAlmacenes()
+        {
+            if(conteo.url_almacen.trim()=="")return;
+            
+            let url="";
+            if(this.all_almacen.checked)url=conteo.url_almacen.replace("@search","%");
+            else url=conteo.url_almacen.replace("@search","%").replace("false",true);
+
+            url=url.replace("@id",this.id_conteo);
+
+            InduxsoftCrudlModel.InvokeService(url, null,
+                function (data) 
+                {
+                    conteo.detail.LoadOptionsSelect(conteo.detail.modal_fil_almacen,data);
+                },
+                function (error) 
+                {
+                    if (error.message) alert(error.message);
+                    else console.error(error);
+                }, "GET", false, false
+            );
+        },
+        LoadOptionsSelect(select,data,key="sys_pk",value="descripcion")
+        {
+            if(!select || !data)return;
+            
+            var html="";
+            for (let i = 0; i < data.length; i++) 
+            {
+                const item = data[i];
+                html+=`<option value="${eval("item."+key)}">${eval("item."+value)}</option>`;
+            }
+            select.innerHTML=html;
+        },
+        TabsById(idOrName,id_container_elements)
+        {
+            if(id_container_elements.trim()=="")return;
+
+            var element=document.getElementById(id_container_elements);
+            if(!element)return;
+            
+            var elements=element.querySelectorAll("button,input,select,textarea,input-key");
+            
+            for (let i = 0; i < elements.length; i++) 
+            {
+                const alm = elements[i];
+                if(alm)
+                {
+                    if((alm.id??"").trim()==idOrName.trim() || (alm.name??"").trim()==idOrName.trim())
+                    {
+                        var elm_tab=elements[i+1];
+                        if(elm_tab)elm_tab.focus();
+                    }
+                }
+            }
+        },  
+        setEvents(idcontainer_modal="")
         {
             if(this.btn_regis_capture)this.btn_regis_capture.setAttribute("onclick",'conteo.detail.Registrar();');
             if(this.modal_fil_almacen)this.modal_fil_almacen.setAttribute("onchange",'conteo.detail.AddDataSourceProd();');
@@ -273,11 +332,20 @@ var conteo=
                 conteo.detail.setSummary();  
             }, 200);
             if(this.ik_producto)this.ik_producto.addEventListener("change",()=>{conteo.detail.changeProducto()});
+
+            if(this.cantidad)this.cantidad.addEventListener("keypress",(e)=>
+            {
+                if (e.key === "Enter") 
+                {
+                    conteo.detail.TabsById(this.cantidad.id,idcontainer_modal);
+                }
+            });
         },
         SetFieldsModal(idmodal)
         {
             var modal=document.getElementById(idmodal);
             if(!modal)return;
+            this.modal_fil_almacen=null;
 
             this.ik_producto=modal.querySelector("#ik_producto");
             this.cantidad=modal.querySelector("#cantidad");
@@ -287,7 +355,7 @@ var conteo=
             this.mod_text_prod=modal.querySelector("#mod_text_prod");
             this.btn_regis_capture=modal.querySelector("#btn_regis_capture");
 
-            this.setEvents();
+            this.setEvents(idmodal);
         },
         Capturas()
         {
@@ -415,7 +483,8 @@ var conteo=
             }
             
             var producto=this.ik_producto.getValue();
-            if(!producto || Object.keys(producto).length <1)
+            
+            if(!producto || Object.keys(producto).length <1 || (producto.sys_pk??0)<1)
             {
                 alert("Debe seleccionar un producto");
                 return;

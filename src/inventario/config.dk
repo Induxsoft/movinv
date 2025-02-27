@@ -54,6 +54,8 @@ module "config.dk"
     @INV_NEW_MAXMIN = "/!/inventario/maxmin/_new/"
 
     @URL_CONTEO_FISICO="/!/inventario/conteo-fisico/"
+    @URL_CONTEO_BUSCAR_ALMACEN="/!/inventario/conteo-fisico/@id/search-almacen/?s=@search&_by_entity=false"
+
     @URL_REPORT_CAPTURA="/!/dbext/query/inv.sql001/?alm=@alm&prod=@prod&cf=@cf&title_encode=@title&_from_url_e=@url_exit"
 
     @default_max_rows= 250
