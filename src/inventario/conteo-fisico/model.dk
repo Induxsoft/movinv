@@ -592,7 +592,22 @@ module ":conteo"
 
         return entity
     }
+    prod_cardex::&db,&params
+    {
+        new data{@"success":@true}
 
+        sql="SELECT COUNT(*) FROM dcardex d WHERE d.iproducto=@prod"
+        if not(parse.bool(@@(params,"$fromchange"))) && dbr.num(db,sql,params) < 1 
+        {
+            data<"message">:"El producto no ha tenido movimientos de inventario. ¿Desea continuar?"
+            return data
+        }
+
+        sql="SELECT COUNT(*) FROM dcardex d WHERE d.ialmacen=@alm and d.iproducto=@prod"
+        if dbr.num(db,sql,params) < 1{data<"message">:"El producto no ha tenido movimientos de inventario en el almacén seleccionado. ¿Desea continuar?"}
+
+        return data
+    }
     registrar::&db,&params,&data
     {
         @use_transaction = @false

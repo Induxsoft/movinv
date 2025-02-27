@@ -90,7 +90,7 @@ module ""
         }		
     }
     //modal nuevo
-    div(class="modal fade" id="modal_captura_blank" tabindex="-1" role="dialog" "aria-bs-labelledby"="modalforms" "aria-bs-hidden"="true" "data-bs-backdrop"="false")
+    div(class="modal fade" id="modal_captura_blank" tabindex="-1" role="dialog" "aria-bs-labelledby"="modalforms" "aria-bs-hidden"="undefined" "data-bs-backdrop"="false")
     {
         div(class= "modal-dialog modal-lg" role ="document")
         {
@@ -101,7 +101,7 @@ module ""
                     h5(class="modal-title" id="textomdl"){"Nuevo captura"}
                     button(type="button" class="close border-0" "data-bs-dismiss"="modal" "aria-bs-label"="Close")
                     {
-                        span ("aria-bs-hidden"="true") {$"&times;"}
+                        span ("aria-bs-hidden"="undefined") {$"&times;"}
                     }
                 }
                 div(class="modal-body" id="bdymsg")

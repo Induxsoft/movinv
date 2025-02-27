@@ -258,7 +258,10 @@ var conteo=
             this.btn_sincronizar=document.getElementById("btn_sincronizar");
             
             this.all_almacen=document.getElementById("all_almacen");
-            if(this.all_almacen)this.all_almacen.addEventListener("change",()=>{this.GetAlmacenes();});
+            if(this.all_almacen)
+            {
+                this.all_almacen.addEventListener("change",()=>{this.GetAlmacenes();});
+            }
             
             this.SetFieldsModal("modal_captura");
         },
@@ -271,11 +274,13 @@ var conteo=
             else url=conteo.url_almacen.replace("@search","%").replace("false",true);
 
             url=url.replace("@id",this.id_conteo);
+            let almacen_currente=conteo.detail.modal_fil_almacen.value;
 
             InduxsoftCrudlModel.InvokeService(url, null,
                 function (data) 
                 {
                     conteo.detail.LoadOptionsSelect(conteo.detail.modal_fil_almacen,data);
+                    if(almacen_currente!=conteo.detail.modal_fil_almacen.value)tools.trigger(conteo.detail.modal_fil_almacen,"change");
                 },
                 function (error) 
                 {
@@ -321,7 +326,11 @@ var conteo=
         setEvents(idcontainer_modal="")
         {
             if(this.btn_regis_capture)this.btn_regis_capture.setAttribute("onclick",'conteo.detail.Registrar();');
-            if(this.modal_fil_almacen)this.modal_fil_almacen.setAttribute("onchange",'conteo.detail.AddDataSourceProd();');
+            if(this.modal_fil_almacen)
+            {
+                this.modal_fil_almacen.setAttribute("onchange",'conteo.detail.AddDataSourceProd();');
+                this.modal_fil_almacen.addEventListener("change",()=>{conteo.detail.changeProducto(true);});
+            }
 
             if(conteo.detail.url_producto && this.modal_fil_almacen)
             {
@@ -331,21 +340,16 @@ var conteo=
             {
                 conteo.detail.setSummary();  
             }, 200);
-            if(this.ik_producto)this.ik_producto.addEventListener("change",()=>{conteo.detail.changeProducto()});
+            if(this.ik_producto)this.ik_producto.addEventListener("change",()=>{conteo.detail.changeProducto();});
 
-            if(this.cantidad)this.cantidad.addEventListener("keypress",(e)=>
-            {
-                if (e.key === "Enter") 
-                {
-                    conteo.detail.TabsById(this.cantidad.id,idcontainer_modal);
-                }
-            });
+            if(this.cantidad)this.cantidad.addEventListener("keypress",(e)=>{if (e.key === "Enter") conteo.detail.TabsById(this.cantidad.id,idcontainer_modal);});
+            if(this.referencia)this.referencia.addEventListener("keypress",(e)=>{if(e.key==="Enter")conteo.detail.TabsById(this.referencia.id,idcontainer_modal);});
+
         },
         SetFieldsModal(idmodal)
         {
             var modal=document.getElementById(idmodal);
             if(!modal)return;
-            this.modal_fil_almacen=null;
 
             this.ik_producto=modal.querySelector("#ik_producto");
             this.cantidad=modal.querySelector("#cantidad");
@@ -354,6 +358,7 @@ var conteo=
             this.modal_fil_almacen=modal.querySelector("#modal_fil_almacen");
             this.mod_text_prod=modal.querySelector("#mod_text_prod");
             this.btn_regis_capture=modal.querySelector("#btn_regis_capture");
+            if(this.all_almacen)this.all_almacen.checked=false;
 
             this.setEvents(idmodal);
         },
@@ -371,24 +376,58 @@ var conteo=
             url=url.replaceAll("@url_exit",tools.url_encode(conteo.current_url));
             window.location.href=url;
         },
-        changeProducto()
+        changeProducto(fromchange=false)
         {
+            this.mod_text_prod.innerHTML="";
             var prod=this.ik_producto.getValue();
-            if(!prod || !this.mod_text_prod)return;
+            if(!prod || Object.keys(prod).length<1 || !this.mod_text_prod)return;
 
             prod["almacen"]=this.modal_fil_almacen.value;
-            
-            var row=this.ExistRowProd(prod);
-            let producto= row ? row.producto:prod.descripcion;
-            let exist_teorico=row ? (row.exist_teorico??0):0;
-            let exist_fisico=row ? (row.exist_fisico??0):0;
-            
-            if(this.mod_text_prod)this.mod_text_prod.innerHTML=producto+" <br> Existencia teórica: "+exist_teorico+". Existencia física: "+exist_fisico;
 
-            if(this.referencia && this.referencia.value=="")this.referencia.value=(prod.codigo??"").trim().replaceAll(" ","");
-            if(this.notas && this.notas.value=="")this.notas.value=producto??"";
+            var prd=JSON.parse(JSON.stringify(prod));
+            prd["fromchange"]=fromchange;
 
-            if(this.cantidad)this.cantidad.select();
+            this.CheckProdCardex(prd,
+            (data)=>
+            {
+                let res=true;
+                if((data.message??"")!="")res=confirm(data.message);
+
+                if(!res)
+                {
+                    this.ik_producto.setValue({});
+                    this.ik_producto.input_search_container.focus();
+                    return;
+                }
+
+                var row=this.ExistRowProd(prod);
+                let producto= row ? row.producto:prod.descripcion;
+                let exist_teorico=row ? (row.exist_teorico??0):0;
+                let exist_fisico=row ? (row.exist_fisico??0):0;
+                
+                if(this.mod_text_prod)this.mod_text_prod.innerHTML=producto+" <br> Existencia teórica: "+exist_teorico+". Existencia física: "+exist_fisico;
+
+                if(this.referencia && this.referencia.value=="")this.referencia.value=(prod.codigo??"").trim().replaceAll(" ","");
+                if(this.notas && this.notas.value=="")this.notas.value=producto??"";
+
+                if(this.cantidad)this.cantidad.select();
+            });
+        },
+        CheckProdCardex(prod,call_back=null)
+        {
+            if(!prod)return;
+
+            let url=`../prod-cardex/?prod=${prod.sys_pk}&alm=${prod.almacen}&fromchange=${prod.fromchange}`;
+            InduxsoftCrudlModel.InvokeService(url, null,
+                function (data) 
+                {
+                    if(call_back)call_back(data);
+                },
+                function (error) 
+                {
+                    alert(error.message??JSON.stringify(error));
+                }, "GET", false, false
+            );
         },
         AddDataSourceProd()
         {

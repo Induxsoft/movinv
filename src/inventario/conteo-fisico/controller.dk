@@ -49,5 +49,10 @@ module ""
             point @list to conteo.obtenerProductos
             break
         }
+        case "prod-cardex"
+        {
+            point @read to conteo.prod_cardex
+            break
+        }
     }
 }
