@@ -24,7 +24,7 @@ model "movinv"
     entity "cardex" : "TableModel"
     {
         @"aplicado" bool
-        @"descripcion" string(8192)
+        @"descripcion" memo
         @"fecha" date
         @"referencia" string(255) unique required
         @"valuado" bool
@@ -95,7 +95,7 @@ model "movinv"
     {
         @"fentrada" date 
         @"fventa" date 
-        @"notas" string(4096) 
+        @"notas" memo
         @"numero" string(50) unique required
         @"status" ref:"cstatusseries" required
         @"ilote" ref:"lote"
@@ -289,21 +289,21 @@ model "movinv"
         @"comision4" decimal(18,8)
         @"comision5" decimal(18,8)
         @"descripcion" string(50) unique required
-        @"notas" string(4096)
+        @"notas" memo
         @"visible" bool
-        @"uf_indicaciones" string(4096)
+        @"uf_indicaciones" memo
     }
 
     entity "cfgimpuesto" : "TableModel"
     {
-        @"i1compra" string(4096)
-        @"i1venta" string(4096)
-        @"i2compra" string(4096)
-        @"i2venta" string(4096)
-        @"i3compra" string(4096)
-        @"i3venta" string(4096)
-        @"i4compra" string(4096)
-        @"i4venta" string(4096)
+        @"i1compra" string(128)
+        @"i1venta" string(128)
+        @"i2compra" string(128)
+        @"i2venta" string(128)
+        @"i3compra" string(128)
+        @"i3venta" string(128)
+        @"i4compra" string(128)
+        @"i4venta" string(128)
         @"nombre" string(25) unique required
         @"uf_tipoi1" string(25)
         @"uf_tipoi2" string(25)
