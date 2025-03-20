@@ -150,10 +150,10 @@ module "Reportes de movimiento de inventario. :Report"
             LEFT JOIN existencias AS ex ON ex.fk_producto_iexistencias = p.sys_pk
         WHERE NOT IFNULL(p.sys_deleted,0)
             #<conditions>
-        GROUP BY p.codigo
+        GROUP BY p.codigo,p.sys_pk,p.descripcion,p.unidad,mm.iproducto,p.minimo,p.puntoro,mm.uf_minimo,mm.uf_preorden
 		ORDER BY p.codigo ASC
         "
-
+    
         if not(field.exist(params,"fil_almacen")){ params<"fil_almacen"> : -1 }
         if not(field.exist(params,"fil_clase")){ params<"fil_clase"> : -1 }
         if not(field.exist(params,"fil_linea")){ params<"fil_linea"> : -1 }
@@ -396,7 +396,18 @@ module "Reportes de movimiento de inventario. :Report"
                 inner join divisa m on p.idivisa=m.sys_pk
                 inner join categoria cat on cat.sys_pk=c.icategoria
             where ifnull(c.aplicado,0) and #<filter>
-            group by c.sys_pk
+            group by c.sys_pk,
+                    c.sys_dtcreated,
+                    c.sys_timestamp,
+                    c.fecha,
+                    cat.codigo,
+                    cat.descripcion,
+                    c.referencia,
+                    c.descripcion,
+                    m.codigo,
+                    m.descripcion,
+                    a.codigo,
+                    a.descripcion
             order by m.codigo, a.descripcion, c.sys_timestamp, c.referencia;
         ")
         
