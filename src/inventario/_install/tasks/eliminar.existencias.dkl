@@ -6,6 +6,10 @@ program "Eliminar existencias (dcardex)"
     #include "serialize.dkh"
     #include "dbr.dkh"
     #include "batch.v12.dkl"
+    #include "dbr.apps.dkl"
+	#include "dbr.vars.dkl"
+	#include "dbr.security.dkl"
+	#include "dbr.events.dkl"
 
     do @context.begin(@batch_context)
 
