@@ -14,6 +14,7 @@ module ":conteo"
     @list_query="
     SELECT distinct
         c.sys_pk,
+		c.sys_dtcreated,
         c.cerrado,
         DATE_FORMAT(c.conclusion,'%Y-%m-%d') conclusion,
         DATE_FORMAT(c.inicio,'%Y-%m-%d') inicio,
