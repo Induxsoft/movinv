@@ -626,6 +626,30 @@ module ":conteo"
             @"iconteo":@@(params,"#_entity_id")
             @"usuario":@@(@http_context,"$session/user/uid")
         }
+
+        //validar existencia teórica contra la existen física negativa
+        if @@(cfcaptura,"#cantidad") < 0
+        {
+            existencia_teorica_prod=dbr.num(db,"select ifnull(sum(ifnull(exist_teorico,0)),0) from cfexist where ialmacen=@ialmacen
+                        AND iproducto=@iproducto",cfcaptura)
+
+            sql="SELECT ifnull(SUM(IFNULL(c.cantidad,0)),0) FROM cfcaptura c
+                                    INNER JOIN cfconteo co ON c.iconteo=co.sys_pk
+                                    WHERE IFNULL(co.sincronizado,FALSE)=FALSE
+                                    and c.iproducto=@iproducto
+                                    AND c.ialmacen=@ialmacen"
+
+            cant_otros_conteos=dbr.num(db,sql,cfcaptura)
+
+            if cant_otros_conteos < 0{existencia_teorica_prod=existencia_teorica_prod - (cant_otros_conteos * -1) }
+            else{existencia_teorica_prod=existencia_teorica_prod - cant_otros_conteos}
+            
+            if(existencia_teorica_prod - (@@(cfcaptura,"#cantidad") * -1)) < 0
+            {
+                message="La existencia física acumulada de manera negativa sobrepasa la existencia teórica de este producto, verifique los datos capturados."
+                do rise_error(500,message)
+            }
+        }
         if trim(@@(cfcaptura,"$referencia"))!=""
         {
             cod_almacen=dbr.str(db,"select codigo from almacen where sys_pk=@ialmacen",cfcaptura)
