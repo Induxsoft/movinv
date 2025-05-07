@@ -106,13 +106,20 @@ module ":conteo"
             }
         }
     }
-    ImportProducto::&db,&params
+    caculateCostoPromedio::&existencia
     {
-        sql="select sys_pk from almacen where sys_pk=@almacen"
-        ref almacen=dbr.rec(db,sql,params)
-        if not(isnull(almacen))
+        exist_teorico=round(@@(existencia,"#existencia"),6)
+        costo_promedio= 0
+        module "calc_costo_promedio"
         {
-            sql="select
+            if exist_teorico <= 0 {costo_promedio=@@(existencia,"#costoultimo")}
+            else{costo_promedio=div(@@(existencia,"#saldo_teorica"),exist_teorico) }//erp.inventario.calc_costo_promedio(db,@@(params,"#ppk"))
+            
+            exception{costo_promedio= 0}
+        }
+        return costo_promedio
+    }
+    @__sql_existencia="select
                     almacen.sys_pk as pkalmacen,
                     existencias.existencia as existencia,
                     (ifnull(sum(ifnull(existencias.existencia,0)),0) * ifnull(producto.costopromedio,0)) as saldo,
@@ -128,21 +135,21 @@ module ":conteo"
                     existencias.fk_producto_iexistencias =@ppk
                     and existencias.ialmacen =@almacen
                 LIMIT 1"
+    ImportProducto::&db,&params
+    {
+        sql="select sys_pk from almacen where sys_pk=@almacen"
+        ref almacen=dbr.rec(db,sql,params)
+        if not(isnull(almacen))
+        {
+            sql=@__sql_existencia
 
             ref existencia=dbr.rec(db,sql,params)
             if not(isnull(existencia))
             {
-                costo_promedio= 0
-                exist_teorico=round(@@(existencia,"#existencia"),6)
-
-                module "calc_costo_promedio"
-                {
-                    if exist_teorico <= 0 {costo_promedio=@@(existencia,"#costoultimo")}
-                    else{costo_promedio=div(@@(existencia,"#saldo_teorica"),exist_teorico) }//erp.inventario.calc_costo_promedio(db,@@(params,"#ppk"))
-                    
-                    exception{costo_promedio= 0}
-                }
                 
+                exist_teorico=round(@@(existencia,"#existencia"),6)
+                costo_promedio=caculateCostoPromedio(existencia)
+
                 new cfexist
                 {
                     @"costopromedio":round(costo_promedio,2)
@@ -661,6 +668,24 @@ module ":conteo"
                         AND ialmacen=@ialmacen
                         AND iproducto=@iproducto",cfcaptura)
 
+        if costopromedio < 1
+        {
+            new e
+            {
+                @"almacen":@@(cfcaptura,"#ialmacen")
+                @"ppk":@@(cfcaptura,"#iproducto")
+            }
+            ref ext=dbr.rec(db,@__sql_existencia,e)
+            costopromedio=caculateCostoPromedio(ext)
+            
+            if costopromedio > 0
+            {
+                do dbr.execute(db,"update cfexist set costopromedio="+str(costopromedio)+"
+                        where iconteo=@iconteo
+                        AND ialmacen=@ialmacen
+                        AND iproducto=@iproducto",cfcaptura)
+            }
+        }
         do dbr.execute(db,"update cfconteo set saldofisico=ifnull(saldofisico,0) + (@cantidad * "+str(costopromedio)+") where sys_pk=@iconteo",cfcaptura)
         do dbr.execute(db,"update cfexist set exist_fisico=ifnull(exist_fisico,0) + @cantidad 
                         where iconteo=@iconteo
