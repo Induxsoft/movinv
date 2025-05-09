@@ -507,14 +507,8 @@ var conteo=
             }
             return row;
         },
-        Registrar()
+        Registrar(show_msg=true)
         {
-            // if(!this.referencia || this.referencia.value.trim()=="")
-            // {
-            //     alert("Debe colocar un areferencia");
-            //     this.referencia.focus();
-            //     return;
-            // }
             if(!this.ik_producto)
             {
                 console.warn("No hay un elemento producto");
@@ -538,26 +532,28 @@ var conteo=
             producto["almacen"]=Number(this.modal_fil_almacen.value);
             var row=this.ExistRowProd(producto);
             
-            // if(!row || Object.keys(row).length<1)
-            // {
-            //     let res=confirm("El producto indicado no se encuentra en la lista de detalle ¿Desea continuar?");
-            //     if(!res)return;
-            // }
-            
             var data=
             {
                 producto:producto,
                 cantidad:Number(this.cantidad.value??0),
                 notas:this.notas.value??"",
                 referencia:this.referencia.value.trim(),
-                almacen:Number(this.modal_fil_almacen.value)
+                almacen:Number(this.modal_fil_almacen.value),
+                show_msg:show_msg
             }
 
             InduxsoftCrudlModel.InvokeService(`${conteo.detail.url_conteo}${this.id_conteo}/regitrar-capture/`, data,
                 function (data) 
                 {
-                    // alert("Proceso capturado correctamente");
-                    
+                    if((data.execute??false))
+                    {
+                        let res=confirm(data.message);
+                        if(!res)return;
+                        
+                        conteo.detail.Registrar(false);
+                        return;
+                    }   
+                    this.show_msg=true;
                     if(this.td_saldo_fisico)this.td_saldo_fisico.textContent=data.sfisico;
                     if(row)
                     {
@@ -568,13 +564,13 @@ var conteo=
 
                         conteo.detail.tbl_detail_conteo_fisico._printRows();
                     }
-                    setTimeout(() => 
-                    {
-                        if(conteo.detail.ismodalblank)
-                        {
-                            conteo.detail.modal_fil_almacen.focus();
-                        }
-                    }, 300);
+                    // setTimeout(() => 
+                    // {
+                    //     if(conteo.detail.ismodalblank)
+                    //     {
+                    //         conteo.detail.modal_fil_almacen.focus();
+                    //     }
+                    // }, 300);
 
                     if(!conteo.detail.ismodalblank)
                     {
@@ -583,6 +579,7 @@ var conteo=
                     
                     conteo.detail.CleanModal();
                     conteo.detail.setSummary();
+                    if(conteo.detail.ik_producto.input_search_container)conteo.detail.ik_producto.input_search_container.focus();
                 },
                 function (error) 
                 {
