@@ -25,7 +25,8 @@ module ":conteo"
         @st := ROUND(IFNULL(c.saldoteorico,0),2) st,
         @sf saldofisico,
         @st saldoteorico,
-        c.sincronizado
+        c.sincronizado,
+        c.sys_dtcreated
     FROM
         cfconteo c
         #<joins>
