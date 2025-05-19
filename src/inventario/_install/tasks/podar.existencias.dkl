@@ -1,0 +1,18 @@
+#include "dkli.dkh"
+#!
+program "Podar movimientos del inventario"
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "dbr.dkh"
+    #include "dbr.apps.dkl"
+    #include "dbr.security.dkl"
+    #include "batch.v12.dkl"
+
+    do @context.begin(@batch_context)
+
+    do batch.v12.grant("GEF0") //GEF0 - Podar movimientos del inventario
+    #include "r5.limpiar.inventariov20.dkl"
+
+    do @context.end()
+}

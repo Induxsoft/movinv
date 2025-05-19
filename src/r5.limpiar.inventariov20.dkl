@@ -1,0 +1,230 @@
+﻿#include "dkli.dkh"
+#!
+program
+{
+	if not(isset("@batch_context")) {
+		#include "functions.dkh"
+		#include "serialize.dkh"
+		#include "dbr.dkh"
+	}
+
+	module "Constantes"
+	{
+		//#region >CONSTANTES
+		do errordet(@false)
+
+		@cantidad_minima=0.001 //Cantidad mínima significativa de mercancía
+	}
+	module "Funciones"
+	{
+		//#region >FUNCIONES
+		function print_error(error)
+        {
+            do print("")
+            do print("-  ERROR -")
+            do print(error)
+            do print("------------------------------------------------------------")
+            do print("")
+            do print("- USO DE LA HERRAMIENTA -")
+            do print("./dkl r5.limpiar.inventariov20.dkl -bd:miconexion@grupoapps -f=yyyy-MM-dd")
+            do print("")
+            do print("Donde:")
+            do print("-bd=Nombre cualificado de conexión a la base de datos.")
+            do print("-f=Fecha final hasta donde se eliminarán los movimientos.")
+            do print("------------------------------------------------------------")
+        }
+
+        function Log(text)
+        {
+            if isset("@batch_context") { do batch.saveLog(@("$job/token"),text) }
+            else { do print(text) }
+        }
+
+        function UpdatePercent(value)
+        {
+            if not(isset("@batch_context")) { return }
+
+            new params
+            {
+                @"token":@("$job/token")
+            }
+            new data
+            {
+                @"percentage":value
+                @"progress_type":2
+            }
+            do dbr.update(batch.openDB(),"job",data,"sys_guid=@token",params)
+        }
+
+		obt_categoria_inventario::&db
+		{
+			return 4	//Clave primaria de categoría predeterminada (Movimientos extraordinarios)
+		}
+
+		LimpiarInventarioFecha::&db,f
+		{
+			new params
+			{
+				@"fecha":f
+				@"categoria":obt_categoria_inventario(db)
+			}
+
+			ref movs = dbr.table(db,"
+				SELECT 
+					dc.IProducto,dc.IAlmacen,
+					SUM(dc.Entradas-dc.Salidas) existencia,
+					SUM(dc.Cargos- dc.Abonos) saldo  
+				FROM dcardex dc
+					INNER JOIN cardex c ON c.Sys_PK=dc.FK_Cardex_Movimientos 
+				WHERE c.Fecha<=@fecha AND IFNULL(c.aplicado,0)=1 AND IFNULL(c.valuado,0)=1
+				GROUP BY dc.IProducto, dc.IAlmacen;
+			",params)
+
+			movs_count = @count(movs)
+			progress = (100 / movs_count)
+			percent = 0
+
+			if movs_count < 1 {
+				do Log("Nada para procesar.")
+				do UpdatePercent(100)
+			}
+
+			for i = 0; i < movs_count
+			{
+				do Log("Resumiendo producto "+ str(i+1) +" de "+ str(movs_count))
+				ref fila=@item(movs,i)
+
+				params<"IProducto">:@@(fila,"IProducto")
+				params<"IAlmacen">:@@(fila,"IAlmacen")
+				params<"existencia">:@@(fila,"existencia")
+				params<"saldo">:@@(fila,"saldo")
+				
+				do dbr.begin(db)
+
+					do dbr.execute(db,"DELETE dcapa.* 
+										FROM dcapa INNER JOIN dcardex ON dcardex.Sys_PK=dcapa.FK_DCardex_Capas INNER JOIN cardex ON cardex.Sys_PK=dcardex.FK_Cardex_Movimientos
+										WHERE cardex.Fecha<=@fecha and ifnull(cardex.aplicado,0)=1 and ifnull(cardex.valuado,0)=1 AND dcardex.IProducto=@IProducto AND dcardex.ialmacen=@IAlmacen;",params)
+					
+					do dbr.execute(db,"UPDATE cardex,dcardex SET cardex.Sys_Info='DELETE' 
+										WHERE cardex.Sys_PK=dcardex.FK_Cardex_Movimientos and 
+										cardex.Fecha<=@fecha  and ifnull(cardex.aplicado,0)=1 and ifnull(cardex.valuado,0)=1 AND dcardex.IProducto=@IProducto AND dcardex.ialmacen=@IAlmacen;",params)
+
+					do dbr.execute(db,"DELETE dcardex.* 
+										FROM dcardex inner join cardex on cardex.Sys_PK=dcardex.FK_Cardex_Movimientos 
+										WHERE cardex.Fecha<=@fecha  and ifnull(cardex.aplicado,0)=1 and ifnull(cardex.valuado,0)=1 AND dcardex.IProducto=@IProducto AND dcardex.ialmacen=@IAlmacen;",params)
+
+					do dbr.execute(db,"DELETE 
+										FROM cardex  
+										WHERE sys_info='DELETE'",params)
+
+					if @@(params,"existencia")>@cantidad_minima
+					{
+						uuid_cardex=UUID()
+
+						using cardex
+						{
+							@"sys_pk":0
+							@"sys_recver":0
+							@"sys_timestamp*":dbr.sql("now()")
+							@"sys_Guid":uuid_cardex
+							@"aplicado":1
+							@"descripcion":"Generado automáticamente "
+							@"referencia": uuid_cardex
+							@"valuado":1
+							@"Fecha*": dbr.sql("date(now())")
+							@"icategoria":@@(params,"categoria")
+						}
+						
+						do dbr.insert(db,"cardex",cardex)
+
+						pkcardex=dbr.num(db, "select sys_pk from cardex where sys_guid=@sys_guid",cardex)
+						uuid_dcardex=cut(UUID(),30)
+						using dcardex
+						{
+							@"sys_pk":0
+							@"sys_recver":0
+							@"sys_timestamp*":dbr.sql("now()")
+							@"sys_Guid":UUID()
+							@"abonos":0
+							@"auditado":0
+							@"cargos":@@(params,"saldo")
+							@"contabilizado":0
+							@"cpromedio": (@@(params,"saldo")/@@(params,"existencia"))
+							@"entradas":@@(params,"existencia")
+							@"referencia":uuid_dcardex
+							@"resto":@@(params,"existencia")
+							@"salidas":0
+							@"tipocambio":1
+							@"valuado":1
+							@"IAlmacen":@@(params,"IAlmacen")
+							@"IProducto":@@(params,"IProducto")
+							@"FK_Cardex_Movimientos":pkcardex
+						
+						}
+
+						do dbr.insert(db,"dcardex",dcardex)
+					}
+
+					do dbr.execute(db,"
+						UPDATE producto p
+							INNER JOIN (select fk_producto_iexistencias, sum(existencia) existencia, sum(saldo) saldo from existencias where fk_producto_iexistencias = p.sys_pk group by fk_producto_iexistencias) ex ON p.sys_pk = ex.fk_producto_iexistencias
+						SET
+							p.existencia = ex.existencia,
+							p.saldo = ex.saldo
+						WHERE p.sys_pk = @IProducto
+					",params)
+
+				percent = percent + progress
+				do dbr.commit(db)
+				do UpdatePercent(percent)
+
+				exception
+				{
+					do Log(last_error())
+					do dbr.rollback(db)
+				}
+			}
+
+			do Log("**Operación completada")
+		}
+	}
+	module "Ejecución"
+	{
+		//#region >EJECUCIÓN
+		if isset("@batch_context")
+		{
+			ref args = @("&params")
+			ref db = @("&database")
+
+			ff = @@(args,"$ff")
+			if ff == "" { do rise_error(511,"Debe indicar la fecha de corte.") }
+		}
+		else
+		{
+			qn=field.dstr(commandline(":"),"-bd","")
+			ff=field.dstr(commandline("="),"-f","")
+
+			if qn == "" { do rise_error(99,"Hace falta su conexión a la base de datos") }
+			if ff == "" { do rise_error(99,"Hace falta la fecha de corte") }
+
+			ref db=dbr.open(qn)
+		}
+
+		do LimpiarInventarioFecha(db,ff)
+
+		exception
+        {
+            code = last_error_code()
+            error = last_error()
+
+            if isset("db")
+            {
+                if dbr.in_transaction(db){ do dbr.rollback(db) }
+                if not(isset("@batch_context")) { do dbr.close(db) }
+            }
+            
+            if not(isset("@batch_context")) { do print_error(error) }
+            else { do rise_error(code,error) }
+        }
+	}
+}

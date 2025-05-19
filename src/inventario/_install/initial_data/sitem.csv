@@ -18,6 +18,7 @@ GE17,Recepción de transferencia,inventario.movimiento
 GE18,Importar movimientos,inventario.movimiento
 GE19,Eliminar existencias,inventario.movimiento
 GE1A,Indicar ubicación por almacén,inventario.movimiento
+GEF0,Podar existencias,inventario.movimiento
 inventario.reports,Informes de inventario,inventario
 GE31,Diario de almacén,inventario.reports
 GE32,Movimiento,inventario.reports
@@ -34,7 +35,6 @@ GE3C,Valor del inventario,inventario.reports
 GE3D,Informe de exitencias debajo del mínimo o el punto de reorden,inventario.reports
 GE3E,Vales de entrada,inventario.reports
 GE3F,Vales de salida,inventario.reports
-
 inventario.conteofisico,"Conteo físico",inventario
 GE40,Conteo físico,inventario.conteofisico
 GE41,Agregar Conteo físico,inventario.conteofisico
