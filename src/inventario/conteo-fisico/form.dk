@@ -83,7 +83,7 @@ module ""
 
     new nav_config
     {
-        @"title": "Nuevo conteo físico de invetarios"
+        @"title": "Nuevo conteo físico de inventarios"
         @"buttons*": buttons
         @"urlexit": ".."
     }

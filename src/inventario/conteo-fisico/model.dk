@@ -135,6 +135,7 @@ module ":conteo"
                 where
                     existencias.fk_producto_iexistencias =@ppk
                     and existencias.ialmacen =@almacen
+                GROUP  BY almacen.sys_pk,existencias.existencia,producto.costopromedio,producto.costoultimo
                 LIMIT 1"
     ImportProducto::&db,&params
     {
@@ -145,6 +146,7 @@ module ":conteo"
             sql=@__sql_existencia
 
             ref existencia=dbr.rec(db,sql,params)
+        
             if not(isnull(existencia))
             {
                 
