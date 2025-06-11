@@ -167,7 +167,7 @@ program
 
 					do dbr.execute(db,"
 						UPDATE producto p
-							INNER JOIN (select fk_producto_iexistencias, sum(existencia) existencia, sum(saldo) saldo from existencias where fk_producto_iexistencias = p.sys_pk group by fk_producto_iexistencias) ex ON p.sys_pk = ex.fk_producto_iexistencias
+							INNER JOIN (select fk_producto_iexistencias, sum(existencia) existencia, sum(saldo) saldo from existencias group by fk_producto_iexistencias) ex ON p.sys_pk = ex.fk_producto_iexistencias
 						SET
 							p.existencia = ex.existencia,
 							p.saldo = ex.saldo
@@ -197,6 +197,9 @@ program
 			ref db = @("&database")
 
 			ff = @@(args,"$ff")
+			confirmed = parse.bool(@@(args,"$confirm_GEF0"))
+
+			if not(confirmed) { do rise_error(0,"No se confirmo la acción.") }
 			if ff == "" { do rise_error(511,"Debe indicar la fecha de corte.") }
 		}
 		else

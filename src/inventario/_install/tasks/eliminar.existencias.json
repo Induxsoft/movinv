@@ -1,0 +1,43 @@
+{
+    "ialmacen": {
+        "control":"input-key",
+        "caption":"Filtrar por almacén",
+        "source": {
+            "type":"service",
+            "source":"/!/inventario/movimiento/?_view=almacen&s=@search",
+            "keyfield":"sys_pk",
+            "searchfield":"codigo",
+            "showfield":"descripcion",
+            "columns":"codigo,descripcion",
+            "ccaptions":"Código,Descripción"
+        },
+        "wrp_attr": {
+            "class":"col-lg-6"
+        }
+    },
+    "iproducto": {
+        "control":"input-key",
+        "caption":"Filtrar por producto",
+        "source": {
+            "type":"service",
+            "source":"/!/inventario/movimiento/?_view=producto&tipo=2&s=@search",
+            "keyfield":"sys_pk",
+            "searchfield":"codigo",
+            "showfield":"descripcion",
+            "columns":"codigo,descripcion",
+            "ccaptions":"Código,Descripción"
+        },
+        "wrp_attr": {
+            "class":"col-lg-6"
+        }
+    },
+    "confirm": {
+        "control":"bool",
+        "name":"confirm_GE19",
+        "required":"true",
+        "caption":"Confirmo y entiendo que al ejecutar esta tarea los datos no se podrán recuperar.",
+        "wrp_attr": {
+            "class":"form-check ms-3"
+        }
+    }
+}

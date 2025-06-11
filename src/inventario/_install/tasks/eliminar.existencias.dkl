@@ -5,73 +5,259 @@ program "Eliminar existencias (dcardex)"
     #include "functions.dkh"
     #include "serialize.dkh"
     #include "dbr.dkh"
-    #include "batch.v12.dkl"
     #include "dbr.apps.dkl"
-	#include "dbr.vars.dkl"
 	#include "dbr.security.dkl"
-	#include "dbr.events.dkl"
+	#include "batch.v12.dkl"
 
     do @context.begin(@batch_context)
 
-    //* PREPARACIÓN DE VARIABLES
+    //#region >CONSTANTES
+    do errordet(@false)
+    
+    @qname = @("$qname")
+    @token = @("$job/token")
+    //#endregion
+
+    //#region >FUNCIONES
+    function Log(text)
+    {
+        do batch.saveLog(@("$job/token"),text)
+    }
+
+    function UpdatePercent(value)
+    {
+        new params
+        {
+            @"token":@("$job/token")
+        }
+        new data
+        {
+            @"percentage":value
+            @"progress_type":2
+        }
+        do dbr.update(batch.openDB(),"job",data,"sys_guid=@token",params)
+    }
+
+    function ObtenerExistencias(&db,&params)
+    {
+        sql = "
+        SELECT
+            e.ialmacen,
+            e.fk_producto_iexistencias AS iproducto,
+            CONCAT(p.codigo,' - ',p.descripcion) AS `producto`,
+            CONCAT(a.codigo,' - ',a.descripcion) AS `almacen`
+        FROM existencias e
+            INNER JOIN producto p ON e.fk_producto_iexistencias = p.sys_pk
+            INNER JOIN almacen a ON e.ialmacen = a.sys_pk
+        WHERE (@ialmacen <= 0 OR e.ialmacen = @ialmacen)
+            AND (@iproducto <= 0 OR e.fk_producto_iexistencias = @iproducto)
+            AND e.existencia > 0
+        GROUP BY
+            e.ialmacen,
+            e.fk_producto_iexistencias,
+            p.codigo,
+            p.descripcion,
+            a.codigo,
+            a.descripcion
+        ORDER BY
+            e.ialmacen,
+            e.fk_producto_iexistencias;
+        "
+        return dbr.list(db,sql,params)
+    }
+
+    function EliminarExistencia(&db,&ex)
+    {
+        do Log(" + Eliminando... 'dcapa'")
+        do dbr.execute(db,"
+            DELETE a
+            FROM dcapa a
+                INNER JOIN dcardex b ON a.fk_dcardex_capas = b.sys_pk
+            WHERE b.ialmacen = @ialmacen
+                AND b.iproducto = @iproducto
+        ",ex)
+
+        do Log(" + Eliminando... 'serie'")
+        do dbr.delete(db,"serie","ialmacen=@ialmacen and iproducto=@iproducto",ex)
+
+        do Log(" + Eliminando... 'clotexalmacen' y 'lote'")
+        do dbr.execute(db,"
+            DELETE a, b
+            FROM clotexalmacen a
+                INNER JOIN lote b ON a.fk_lote_exisxalmacen = b.sys_pk
+            WHERE a.ialmacen = @ialmacen
+                AND b.iproducto = @iproducto
+        ",ex)
+
+        do Log(" + Eliminando... 'inv_orden_tr_faltante'")
+        do dbr.execute(db,"
+            UPDATE inv_orden_tr_faltante tr
+                INNER JOIN inv_orden_traspaso od ON tr.ref_orden = od.sys_pk
+                INNER JOIN dcardex dc ON tr.ref_dcardex = dc.sys_pk
+            SET od.sys_info = 'eliminar'
+            WHERE dc.ialmacen = @ialmacen
+                AND dc.iproducto = @iproducto;
+
+            DELETE a
+            FROM inv_orden_tr_faltante a
+                INNER JOIN dcardex b ON a.ref_dcardex = b.sys_pk
+            WHERE b.ialmacen = @ialmacen
+                AND b.iproducto = @iproducto;
+        ",ex)
+
+        do Log(" + Eliminando... 'inv_orden_traspaso'")
+        ref orden = dbr.list(db,"SELECT sys_pk FROM inv_orden_traspaso WHERE sys_info = 'eliminar'",@null)
+        for i = 0; i < list.count(orden)
+        {
+            ref o = list.obj(orden,i)
+            do dbr.delete(db,"inv_orden_traspaso","sys_pk=@sys_pk",o)
+            exception
+            {
+                do pop_exception()
+                do Log("  * No fue posible eliminar la orden de traspaso")
+            }
+        }
+
+        do Log(" + Eliminando... 'dcardex'")
+        do dbr.execute(db,"
+            UPDATE dcardex d
+                INNER JOIN cardex c ON d.fk_cardex_movimientos = c.sys_pk
+            SET c.sys_info = 'eliminar'
+            WHERE d.ialmacen = @ialmacen
+                AND d.iproducto = @iproducto;
+            
+            DELETE FROM dcardex WHERE ialmacen = @ialmacen AND iproducto = @iproducto;
+        ",ex)
+
+        do Log(" + Eliminando... 'cardex'")
+        ref cardex = dbr.list(db,"SELECT sys_pk, referencia FROM cardex WHERE sys_info = 'eliminar'",@null)
+        for i = 0; i < list.count(cardex)
+        {
+            ref c = list.obj(cardex,i)
+            do dbr.delete(db,"cardex","sys_pk=@sys_pk",c)
+            exception
+            {
+                do pop_exception()
+                do Log("  * No fue posible eliminar el cardex: " + c.referencia)
+            }
+        }
+
+        do Log(" + Actualizar 'existencias'")
+        do dbr.execute(db,"UPDATE existencias SET sys_timestamp = now(), existencia = 0, saldo = 0 WHERE ialmacen = @ialmacen AND fk_producto_iexistencias = @iproducto",ex)
+
+        do Log(" + Actualizar 'producto'")
+        do dbr.execute(db,"
+            UPDATE producto p
+                INNER JOIN (select fk_producto_iexistencias, sum(existencia) existencia, sum(saldo) saldo from existencias group by fk_producto_iexistencias) ex ON p.sys_pk = ex.fk_producto_iexistencias
+            SET
+                p.existencia = ex.existencia,
+                p.saldo = ex.saldo
+            WHERE p.sys_pk = @iproducto
+        ",ex)
+    }
+
+    function LimpiarExistencias(&db,&params)
+    {
+        ref existencias = ObtenerExistencias(db,params)
+        
+        length = list.count(existencias)
+        if length < 1 {
+            do Log("Nada por hacer.")
+            do UpdatePercent(100)
+            return
+        }
+
+        do Log(">> Limpiar existencias <<")
+        progress = (100 / length)
+        affected_rows = 0
+        percent = 0
+        ialmacen = 0
+
+        for i = 0; i < length
+        {
+            ref existencia = list.obj(existencias,i)
+
+            if ialmacen != existencia.ialmacen {
+                do Log("> " + existencia.almacen)
+                ialmacen = existencia.ialmacen
+            }
+            do Log("- " + existencia.producto)
+
+            do dbr.begin(db)
+            do EliminarExistencia(db,existencia)
+            do dbr.commit(db)
+
+            affected_rows = affected_rows + 1
+
+            exception
+            {
+                code = last_error_code()
+                error = last_error()
+                do pop_exception()
+
+                if dbr.in_transaction(db) { do dbr.rollback(db) }
+                if contains(error,"Cannot delete or update a parent row") || contains(error,"DELETE Error") {
+                    code = 589
+                    error = "No fue posible eliminar"
+                }
+
+                if code >= 511 && code <= 589 { do Log(" * " + error) }
+                else { do rise_error(code,error) }
+            }
+
+            percent = percent + progress
+            do UpdatePercent(percent)
+        }
+
+        do Log("** Existencias eliminadas ("+str(affected_rows)+"/"+str(length)+")")
+    }
+    //#endregion
+
+    //#region >INICIO
+    do batch.v12.grant("GE19")
+
     ref params = @("&params")
     ref db = @("&database")
 
-    ref @batchDB = db
-    ref @buffer = text.create()
-    @qname = @("$qname")
-    @token = @("$job/token")
+    ialmacen = @@(params,"#ialmacen")
+    iproducto = @@(params,"#iproducto")
+    confirmed = parse.bool(@@(params,"$confirm_GE19"))
 
-    //* ======================================= [ VALIDAR PERMISO ]
-    UserIDS = dbr.str(db,"SELECT ss.sys_guid FROM job jb INNER JOIN tuser tu ON tu.userid = jb.sys_user INNER JOIN sys_session ss ON ss.iuser = tu.sys_pk WHERE jb.sys_guid = @token AND NOT IFNULL(ss.sys_deleted,0) LIMIT 1;",@("&job"))
-    if UserIDS != "" { ref db:dbr.reconnect(@qname,UserIDS) }
-    // Emular estructura @http_context necesaria para validar la acción
-    new @http_context
-    {
-        member "request"
-        {
-            @"get*": params
-            @"post*": record.create()
-            @"post_string": "{}"
-        }
-        member "session"
-        {
-            member "idp"
-            {
-                @"name": "db_idp_v12"
-                @"qname": @qname
-                @"database*": db
-            }
-        }
+    if not(confirmed) { do rise_error(0,"No se confirmo la acción.") }
+
+    if (ialmacen + iproducto) > 0 {
+        params<"ialmacen"> : ialmacen
+        params<"iproducto"> : iproducto
+
+        do LimpiarExistencias(db,params)
     }
-    do dbr.apps.action.grant("GE19")
-
-    //* ======================================== [ EJECUCIÓN DEL PROGRAMA ]
-    do dbr.begin(db)
+    else
+    {
+        do dbr.begin(db)
     
-    do dbr.execute(db,"DELETE FROM dcapa;",@null)
-    do dbr.execute(db,"DELETE FROM clotexalmacen;",@null)
-    do dbr.execute(db,"DELETE FROM inv_orden_tr_faltante;",@null)
-    do dbr.execute(db,"DELETE FROM inv_orden_traspaso;",@null)
-    do dbr.execute(db,"DELETE FROM dcardex;",@null)
-    do dbr.execute(db,"DELETE FROM cardex;",@null)
-    do dbr.execute(db,"DELETE FROM serie;",@null)
-    do dbr.execute(db,"DELETE FROM lote;",@null)
-    do dbr.execute(db,"UPDATE existencias SET existencia = 0, saldo = 0;",@null)
-    do dbr.execute(db,"UPDATE producto SET existencia = 0, saldo = 0;",@null)
+        do dbr.execute(db,"DELETE FROM dcapa;",@null)
+        do dbr.execute(db,"DELETE FROM clotexalmacen;",@null)
+        do dbr.execute(db,"DELETE FROM inv_orden_tr_faltante;",@null)
+        do dbr.execute(db,"DELETE FROM inv_orden_traspaso;",@null)
+        do dbr.execute(db,"DELETE FROM dcardex;",@null)
+        do dbr.execute(db,"DELETE FROM cardex;",@null)
+        do dbr.execute(db,"DELETE FROM serie;",@null)
+        do dbr.execute(db,"DELETE FROM lote;",@null)
+        do dbr.execute(db,"UPDATE existencias SET existencia = 0, saldo = 0;",@null)
+        do dbr.execute(db,"UPDATE producto SET existencia = 0, saldo = 0;",@null)
 
-    // do rise_error(200,"success")
-    do dbr.commit(db)
+        do dbr.commit(db)
+    }
 
     exception
     {
-        do errordet(@false)
         code = last_error_code()
         error = last_error()
 
         if dbr.in_transaction(db) { do dbr.rollback(db) }
         do rise_error(code,error)
     }
+    //#endregion
 
     do @context.end()
 }
