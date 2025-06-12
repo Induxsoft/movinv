@@ -2,7 +2,7 @@
 #!
 module "Diario de productos"
 {
-#include "functions.dkh"
+    #include "functions.dkh"
     #include "serialize.dkh"
     #include "uielements.v12.dkl"
     #include "inventario/config.dk"
@@ -10,8 +10,6 @@ module "Diario de productos"
     #include "dbr.vars.dkl"
     #include "dbr.localize.dkl"
 
-
-    
     do @context.begin(@crud_context)
 
     ref data = ifnull(@("&./data"),list.create())
@@ -145,80 +143,79 @@ module "Diario de productos"
                     point bre to before_rowgroup
                     //do rise_error(0,to.json(@("&./detail")))
                     new tdetail
-                {
-                    @"datatable*":@("&./detail")
-                    @"group_by":"agrupacion"
-                    @"before_cell*":bce
-                    @"before_row*":bre
-
-                    member @"columns"
                     {
-                        member @"aplicacion"
-                        {
-                            caption:="F. operación"
-                        }
+                        @"datatable*":@("&./detail")
+                        @"group_by":"agrupacion"
+                        @"before_cell*":bce
+                        @"before_row*":bre
 
-                        member @"cod_producto"
+                        member @"columns"
                         {
-                            caption:="Código"
-                        }
-                        
-                        member @"producto"
-                        {
-                            caption:="Descripción"
-                        }
-                        member @"unidad"
-                        {
-                            caption:="Unidad"
-                        }
-                        member @"entradas"
-                        {
-                            caption:="Entradas"
-                            member @"attributes"
+                            member @"aplicacion"
                             {
-                                class:="text-center"
+                                caption:="F. operación"
                             }
-                        }
-                        member @"cargos"
-                        {
-                            caption:="Cargos"
-                            summary:="sum"
-                            member @"attributes"
-                            {
-                                class:="text-end"
-                            }
-                        }
-                        member @"salidas"
-                        {
-                            caption:="Salidas"
-                            member @"attributes"
-                            {
-                                class:="text-center"
-                            }
-                        }
-                        member @"abonos"
-                        {
-                            caption:="Abonos"
-                            summary:="sum"
-                            member @"attributes"
-                            {
-                                class:="text-end"
-                            }
-                        }
-                        
-                    }
-                    show_summary_group:=@true
-                    show_summary:=@false
-                    
-                    member @"attributes"
-                    {
-                        class:="table table-sm table-bordered my-2"
-                    }
-                }
 
-                do uie.dbTable(tdetail)
+                            member @"cod_producto"
+                            {
+                                caption:="Código"
+                            }
+                            
+                            member @"producto"
+                            {
+                                caption:="Descripción"
+                            }
+                            member @"unidad"
+                            {
+                                caption:="Unidad"
+                            }
+                            member @"entradas"
+                            {
+                                caption:="Entradas"
+                                member @"attributes"
+                                {
+                                    class:="text-center"
+                                }
+                            }
+                            member @"cargos"
+                            {
+                                caption:="Cargos"
+                                summary:="sum"
+                                member @"attributes"
+                                {
+                                    class:="text-end"
+                                }
+                            }
+                            member @"salidas"
+                            {
+                                caption:="Salidas"
+                                member @"attributes"
+                                {
+                                    class:="text-center"
+                                }
+                            }
+                            member @"abonos"
+                            {
+                                caption:="Abonos"
+                                summary:="sum"
+                                member @"attributes"
+                                {
+                                    class:="text-end"
+                                }
+                            }
+                            
+                        }
+                        show_summary_group:=@true
+                        show_summary:=@false
+                        
+                        member @"attributes"
+                        {
+                            class:="table table-sm table-bordered my-2"
+                        }
+                    }
+
+                    do uie.dbTable(tdetail)
                     #$
-
                     p(class="text-center mb-0"){$"#<@@(titles,'$footer')>"}
                 }
             }

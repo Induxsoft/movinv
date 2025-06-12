@@ -52,6 +52,11 @@ module "Valor del inventario"
             #$
             style
             {$'
+                #table-details tr[uielement="row_summary"] td:nth-child(2)::before {
+                    content: "Total en almacén";
+                    text-align: right;
+                }
+
                 tr th { font-size:.9rem; outline:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; -o-text-overflow:ellipsis; }
                 tr td { font-size:.8rem; }
             '}
@@ -98,6 +103,7 @@ module "Valor del inventario"
                     
                     new tsummary
                     {
+                        @"id":"table-summary"
                         @"datatable*":@("&./summary")
                         @"group_by":"divisa"
                         @"before_cell*":bce
@@ -128,9 +134,17 @@ module "Valor del inventario"
                                 caption:="Divisa"
                             }
                         }
+
                         show_summary_group:=@true
                         show_summary:=@false
                         
+                        member @"rows_attributes"
+                        {
+                            member @"summary_group"
+                            {
+                                @"class":"fw-bold"
+                            }
+                        }
                         member @"attributes"
                         {
                             class:="table table-sm table-bordered my-2"
@@ -139,10 +153,12 @@ module "Valor del inventario"
 
                     new tdetails
                     {
+                        @"id":"table-details"
                         @"datatable*":@("&./detail")
                         @"group_by":"agrupacion"
                         @"before_cell*":bce
                         @"before_row*":bre
+
                         member @"columns"
                         {
                             member @"cod_linea"
@@ -169,6 +185,13 @@ module "Valor del inventario"
                         show_summary_group:=@true
                         show_summary:=@false
                         
+                        member @"rows_attributes"
+                        {
+                            member @"summary_group"
+                            {
+                                @"class":"fw-bold"
+                            }
+                        }
                         member @"attributes"
                         {
                             class:="table table-sm table-bordered my-2"

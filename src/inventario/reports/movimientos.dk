@@ -150,12 +150,14 @@ module "Movimiento"
                     #!
                     point bce to before_cell
                     point bre to before_rowgroup
+                    
                     new tdetails
                     {
                         @"datatable*":@("&./detail")
                         @"group_by":"almacen_divisa"
                         @"before_cell*":bce
                         @"before_row*":bre
+
                         member @"columns"
                         {
                             member @"cod_prod"
@@ -210,9 +212,17 @@ module "Movimiento"
                             }*/
 
                         }
+
                         show_summary_group:=@true
                         show_summary:=@false
                         
+                        member @"rows_attributes"
+                        {
+                            member @"summary_group"
+                            {
+                                @"class":"fw-bold"
+                            }
+                        }
                         member @"attributes"
                         {
                             class:="table table-sm table-bordered my-2"

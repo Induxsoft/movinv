@@ -442,7 +442,7 @@ module "Reportes de movimiento de inventario. :Report"
                 concat(a.codigo, ' ', a.descripcion,' (',m.codigo, ') ', m.descripcion, ' ') agrupacion,
                 a.codigo cod_almacen,
                 a.descripcion almacen,
-                date(dc.sys_timestamp) aplicacion,
+                date_format(dc.sys_timestamp,'%d-%m-%Y') aplicacion,
                 p.codigo cod_producto,
                 p.descripcion producto,
                 p.unidad,
@@ -458,7 +458,8 @@ module "Reportes de movimiento de inventario. :Report"
                 inner join divisa m on p.idivisa=m.sys_pk
                 inner join almacen a on dc.ialmacen=a.sys_pk
             where ifnull(c.aplicado,0) and #<filter>
-            group by a.sys_pk, p.sys_pk, date(dc.sys_timestamp);
+            group by a.sys_pk, p.sys_pk, date(dc.sys_timestamp)
+            order by date(dc.sys_timestamp), p.descripcion;
         ")
 
         new data
