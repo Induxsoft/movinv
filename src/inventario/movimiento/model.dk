@@ -176,7 +176,7 @@ module "model"
 			{
 				selects = ",
 				(
-					SELECT SUM(IFNULL(ex1.existencia, 0))
+					SELECT IFNULL(SUM(IFNULL(ex1.existencia,0)),0)
 					FROM existencias ex1
 					WHERE ex1.fk_producto_iexistencias = p.sys_pk
 					AND ex1.ialmacen = @ialmacen1
@@ -187,7 +187,7 @@ module "model"
 			{
 				selects = selects + ",
 				(
-					SELECT SUM(IFNULL(ex2.existencia, 0))
+					SELECT IFNULL(SUM(IFNULL(ex2.existencia,0)),0)
 					FROM existencias ex2
 					WHERE ex2.fk_producto_iexistencias = p.sys_pk
 					AND ex2.ialmacen = @ialmacen2

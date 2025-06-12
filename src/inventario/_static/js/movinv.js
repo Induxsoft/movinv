@@ -376,14 +376,15 @@ var movinv =
         let row = this.table.CurrentRowIndex();
         if (!this.table.DataArray[row]) this.table.DataArray[row] = {};
 
-        data.cantidad = 1;
+        data.cantidad = 0;
         if (this.movimiento === "entrada") data.nueva_existencia = (data.existencia + 1);
         if (this.movimiento === "salida") data.nueva_existencia = (data.existencia - 1);
         if (this.movimiento === "traspaso")
         {
-            data.exist_origen = Number(data.exist_origen ?? data.existencia);
+            data.exist_origen = Number(data.exist_origen);
+            if (data.exist_origen >= 1) data.cantidad = 1;
             data.nueva_existencia_origen = Math.sub(data.exist_origen,data.cantidad);
-            data.exist_destino = Number(data.exist_destino ?? data.existencia);
+            data.exist_destino = Number(data.exist_destino);
             data.nueva_existencia_destino = Math.add(data.exist_destino,data.cantidad);
         }
 
