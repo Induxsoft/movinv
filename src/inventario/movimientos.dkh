@@ -287,7 +287,7 @@ module ":erp.inventario"
             error=last_error()
             if showerror{do rise_error(500,error)}
         }
-        
+
         new p
         {
             @"costo_promedio":costo_promedio
@@ -299,7 +299,8 @@ module ":erp.inventario"
     calc_costo_promedio::&db,producto
     {
         new p{ @"producto":producto }
-        sql="select sum(ifnull(cargos,0)-ifnull(abonos,0)) saldo, sum(ifnull(entradas,0)-ifnull(salidas,0)) exis from dcardex where (ifnull(valuado,0) or entradas>0) and iproducto=@producto"
+        //sql="select sum(ifnull(cargos,0)-ifnull(abonos,0)) saldo, sum(ifnull(entradas,0)-ifnull(salidas,0)) exis from dcardex where (ifnull(valuado,0) or entradas>0) and iproducto=@producto"
+        sql="select ifnull(saldo,0) saldo, ifnull(existencia,0) exis from producto where sys_pk=@producto limit 1;"
         ref r=dbr.rec(db,sql,p)
         if isnull(r){ return 0 }
         if not(@@(r,"#exis")) { do rise_error(0,"No hay existencias para calcular el costo promedio. "+info_producto(db,producto,0))}
