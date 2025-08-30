@@ -264,7 +264,10 @@ module ":erp.inventario"
         }
 
         do dbr.execute(db,"update cardex set aplicado=@aplicado, valuado=@valuado where sys_pk=@mov_sys_pk",p)
-
+        
+        //calcular costo promedio
+        do ActCostoPromedio(db,@@(dcardex,"#iproducto"),@false)
+        
         if start_transaction { do dbr.commit(db) }
         
         exception
@@ -273,7 +276,26 @@ module ":erp.inventario"
             do rise_error(last_error_code(),last_error())
         }
     }
+    ActCostoPromedio::&db,producto,showerror
+    {
+        costo_promedio=calc_costo_promedio(db,producto)
+        if costo_promedio < 0.01{costo_promedio= 0}
 
+        exception
+        {
+            costo_promedio= 0
+            error=last_error()
+            if showerror{do rise_error(500,error)}
+        }
+        
+        new p
+        {
+            @"costo_promedio":costo_promedio
+            @"producto":producto
+        }
+
+        do dbr.execute(db,"update producto set costopromedio=@costo_promedio where sys_pk=@producto",p)
+    }
     calc_costo_promedio::&db,producto
     {
         new p{ @"producto":producto }
@@ -438,7 +460,7 @@ module ":erp.inventario"
         {
             do rise_error(0,"No se pudo afectar la existencia o saldo global del producto")
         }
-
+        
         if dbr.num(db,"select existencia 
                                 from producto 
                                 where sys_pk=@producto",p)<0 { do rise_error(0,"Existencia global debajo de cero. "+info_producto(db,producto,0)) }
