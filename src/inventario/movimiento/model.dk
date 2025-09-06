@@ -136,6 +136,9 @@ module "model"
 			p.sys_pk,
 			p.codigo,
 			p.descripcion,
+			p.codbar1,
+			p.codbar2,
+			p.codbar3,
 			p.unidad,
 			d.codigo divisa,
 			IFNULL(p.costoultimo,0) costoultimo,
@@ -166,7 +169,7 @@ module "model"
 		if @@(params,"#fil_claseprod") > 0 { conditions = conditions + " AND p.iclase = @fil_claseprod" }
 		if @@(params,"#fil_linea") > 0 { conditions = conditions + " AND p.ilinea = @fil_linea" }
 		
-		if trim(@@(params,"$s")) != "" { conditions = conditions + " AND (p.codigo = @s OR p.descripcion LIKE CONCAT('%',@s,'%'))" }
+		if trim(@@(params,"$s")) != "" { conditions = conditions + " AND (p.codbar1=@s or p.codbar2=@s or p.codbar3=@s) OR (p.codigo = @s OR p.descripcion LIKE CONCAT('%',@s,'%'))" }
 
 		if @@(params,"$_mov") == "traspaso"
 		{
