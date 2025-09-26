@@ -62,7 +62,6 @@ model "movinv"
         @"ref_destino" ref: "almacen" required
         @"completada" bool
         @"cancelada" bool
-
     }
 
     entity "inv_orden_tr_faltante" : "TableModel"

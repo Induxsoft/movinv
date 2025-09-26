@@ -329,7 +329,7 @@ module "model"
 					@"joinfield": "fk_cardex_movimientos"
 					@"keyfield": "sys_pk"
 					@"table": "dcardex"
-					@"select_query": "SELECT TRUE AS success;"
+					@"select_query": "select * from dcardex where fk_cardex_movimientos = @sys_pk"
 					@"fields": "abonos,auditado,cargos,contabilizado,cpromedio,entradas,resto,salidas,tipocambio,valuado,ialmacen,iproducto,ilote,iserie"
 				}
 			}
