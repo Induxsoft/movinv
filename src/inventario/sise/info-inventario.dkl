@@ -10,9 +10,14 @@ module ""
     #include "dbr.vars.dkl"
     #include "./lib.dk"
     
+    @decimals_existencia= 4
+    @decimales_precio= 2
+    @zimpuesto= 1
+
     endpoint="https://search.api.induxsoft.net/#<@inventario_id_engine>/?result=metadata&limit=#<@inventario_limit>"
     ref db=GetDb()
-    ref data=get_payload()
+    ref payload=get_payload()
+    ref data=@@(payload,"&data")
     ref params=params()
 
     //variables globales
@@ -67,24 +72,30 @@ module ""
                 break
             }
         }
+        @sql_exitencia=ftext("ROUND(SUM(e.existencia),#<@decimals_existencia>)")
         sql="SELECT p.sys_pk,p.sys_guid,p.codigo,
         p.descripcion,a.descripcion almacen,p.unidad,
-        SUM(e.existencia)existencia,#<@precio_usar_sise> as _precio_use ,
+        #<@sql_exitencia> existencia,#<@precio_usar_sise> as _precio_use ,
         (
             CASE
-                WHEN @exit_a_info = '@global' THEN TRIM(SUM(e.existencia))
-                WHEN @exit_a_info = '@por_almacen' THEN CONCAT(a.descripcion,' : ',SUM(e.existencia))
-                ELSE TRIM(SUM(e.existencia))
+                WHEN @exit_a_info = '@global' THEN TRIM(#<@sql_exitencia>)
+                WHEN @exit_a_info = '@por_almacen' THEN CONCAT(a.descripcion,' : ',#<@sql_exitencia>)
+                ELSE TRIM(#<@sql_exitencia>)
             END
-        )str_existencia
+        )str_existencia,
+        (CONVERT(REPLACE(SUBSTRING_INDEX(i.i1venta, '|', #<@zimpuesto>),'%',''), DECIMAL(18,6)) / 100) AS i1_tasa,
+         (CONVERT(REPLACE(SUBSTRING_INDEX(i.i2venta, '|',#<@zimpuesto>),'%',''), DECIMAL(18,6)) / 100) AS i2_tasa,
+         (CONVERT(REPLACE(SUBSTRING_INDEX(i.i3venta, '|',#<@zimpuesto>),'%',''), DECIMAL(18,6)) / 100) AS i3_tasa,
+         (CONVERT(REPLACE(SUBSTRING_INDEX(i.i4venta, '|',#<@zimpuesto>),'%',''), DECIMAL(18,6)) / 100) AS i4_tasa,
+         p.desc2,p.desc3,p.desc4,p.desc5
         FROM producto p
+        INNER JOIN cfgimpuesto i ON p.impuestos=i.sys_pk
         INNER JOIN existencias e ON p.sys_pk=e.fk_producto_iexistencias
         INNER JOIN almacen a ON e.ialmacen=a.sys_pk
         WHERE ("+list_id+")
         AND (IFNULL(@almacen,'')='' OR a.codigo=@almacen)
         "+sql_group_by+"
         "
-        // sql="select *,#<@precio_usar_sise> as _precio_use from producto where ("+list_id+")"
 
         ref productos=dbr.list(db,ftext(sql),p)
         
@@ -96,10 +107,31 @@ module ""
             @descripcion=@@(prod,"$descripcion")
             @unidad=@@(prod,"$unidad")
             @almacen=@@(prod,"$almacen")
-            @existencia=@@(prod,"#existencia")
-            @precio=@@(prod,"$_precio_use")
+            @existencia=round(@@(prod,"#existencia"),@decimals_existencia)
+            
             @str_existencia=@@(prod,"$str_existencia")
+            //cacular impuestos
+            descuentos=@@(prod,"#desc2") + @@(prod,"#desc3") + @@(prod,"#desc4")+ @@(prod,"#desc5")
+            sub_desc = (@@(prod,"#_precio_use") - descuentos)
+            i1_tasa = @@(prod,"#i1_tasa")
+            i2_tasa = @@(prod,"#i2_tasa")
+            i3_tasa = @@(prod,"#i3_tasa")
+            i4_tasa = @@(prod,"#i4_tasa")
+            
+            impuesto1 = (sub_desc * i1_tasa)
+            impuesto2 = (sub_desc * i2_tasa)
 
+            i1_i2 = (impuesto1 + impuesto2)
+            sub_desc_i1_i2 = (sub_desc + i1_i2)
+            impuesto3 = (sub_desc_i1_i2 * i3_tasa)
+            impuesto4 = (sub_desc_i1_i2 * i4_tasa)
+        
+        
+            i3_i4 = (impuesto3 + impuesto4)
+            impuestos = (i1_i2 + i3_i4)
+            precio = (sub_desc + impuestos)
+
+            @precio=round(precio,@decimales_precio)
             if i == 0 && field.exist(p,"almacen")
             {
                 template=template + " Almacén: "+@almacen+ "\n---\n"
@@ -109,7 +141,7 @@ module ""
             template=template + "Producto: #<@descripcion>\n"
             template=template + "Unidad: #<@unidad>\n"
             template=template + "Existencia: #<@str_existencia>\n"
-            template=template + "Precio unitario: #<@precio> \n--- \n"
+            template=template + "Precio unitario: #<@precio> \n---\n"
             template=ftext(template)
         }
         if template != ""{response=template}
