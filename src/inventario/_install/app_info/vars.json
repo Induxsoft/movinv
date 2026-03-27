@@ -38,6 +38,97 @@
                 "varcaption": "Referencia para el cardex",
                 "vartype": "string",
                 "varinput": { "control": "text" }
+            },
+            {
+                "varname": "clave_vector_registro",
+                "vardefault": "codigo",
+                "varvalue": "codigo",
+                "varcaption": "Clave de relación (vector-registro)",
+                "vartype": "string",
+                "varinput": { "control": "text" }
+            },
+            {
+                "varname": "precio_usar_sise",
+                "vardefault": "precio1",
+                "varvalue": "precio1",
+                "varcaption": "Número de precio a usar en SISE.",
+                "vartype": "string",
+                "varinput": 
+                {
+                    "control": "select",
+                    "source":
+                    {
+                        "type":"list",
+                        "values":
+                        [
+                            {"val":"precio1", "text":"Precio 1"},
+                            {"val":"precio2", "text":"Precio 2"},
+                            {"val":"precio3", "text":"Precio 3"},
+                            {"val":"precio4", "text":"Precio 4"},
+                            {"val":"precio5", "text":"Precio 5"},
+
+                            {"val":"precio106", "text":"Precio 6"},
+                            {"val":"precio107", "text":"Precio 7"},
+                            {"val":"precio108", "text":"Precio 8"},
+                            {"val":"precio109", "text":"Precio 9"},
+                            {"val":"precio110", "text":"Precio 10"},
+                            {"val":"precio111", "text":"Precio 11"},
+                            {"val":"precio112", "text":"Precio 12"},
+                            {"val":"precio113", "text":"Precio 13"},
+                            {"val":"precio114", "text":"Precio 14"},
+                            {"val":"precio115", "text":"Precio 15"},
+                            {"val":"precio116", "text":"Precio 16"},
+                            {"val":"precio117", "text":"Precio 17"},
+                            {"val":"precio118", "text":"Precio 18"},
+                            {"val":"precio119", "text":"Precio 19"},
+                            {"val":"precio120", "text":"Precio 20"}
+                        ],
+                        "showfield":"text",
+                        "keyfield":"val"
+                    }
+                }
+            },
+            {
+                "varname": "existencia_a_informar",
+                "vardefault": "@global",
+                "varvalue": "@global",
+                "varcaption": "Existencia a informar",
+                "vartype": "string",
+                "varinput": 
+                {
+                    "control": "select",
+                    "source":
+                    {
+                        "type":"query",
+                        "query":"SELECT '@global' codigo, 'Global' descripcion UNION  SELECT '@por_almacen' codigo, 'Por almacén' descripcion union SELECT  a.codigo, a.descripcion  FROM almacen a WHERE IFNULL(sys_deleted,0)=0;",
+                        "keyfield":"codigo",
+                        "showfield":"descripcion"
+                    }
+                }
+            },
+            {
+                "varname": "inventario_id_engine",
+                "vardefault": "",
+                "varvalue": "",
+                "varcaption": "Id. Motor de motor de resultados semánticos",
+                "vartype": "string",
+                "varinput": { "control": "text" }
+            },
+            {
+                "varname": "inventario_token_engine",
+                "vardefault": "",
+                "varvalue": "",
+                "varcaption": "Token de seguridad del motor",
+                "vartype": "string",
+                "varinput": { "control": "text" }
+            },
+            {
+                "varname": "inventario_limit",
+                "vardefault": "10",
+                "varvalue": "10",
+                "varcaption": "Elementos por respuesta",
+                "vartype": "int",
+                "varinput": { "control": "int" }
             }
         ]
     }

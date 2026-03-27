@@ -17,6 +17,7 @@ program "instalador"
         "divisa.csv",
         "categoria.csv",
         "almacen.csv",
+        "sys_rest_integration.csv"
     ]')
 
     // Lista de privilegios iniciales (arreglo de id de privilegios)
