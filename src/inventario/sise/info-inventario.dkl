@@ -87,8 +87,9 @@ module ""
          (CONVERT(REPLACE(SUBSTRING_INDEX(i.i2venta, '|',#<@zimpuesto>),'%',''), DECIMAL(18,6)) / 100) AS i2_tasa,
          (CONVERT(REPLACE(SUBSTRING_INDEX(i.i3venta, '|',#<@zimpuesto>),'%',''), DECIMAL(18,6)) / 100) AS i3_tasa,
          (CONVERT(REPLACE(SUBSTRING_INDEX(i.i4venta, '|',#<@zimpuesto>),'%',''), DECIMAL(18,6)) / 100) AS i4_tasa,
-         p.desc2,p.desc3,p.desc4,p.desc5
+         p.desc2,p.desc3,p.desc4,p.desc5,d.codigo AS divisa
         FROM producto p
+        INNER JOIN divisa d ON p.idivisa=d.sys_pk
         INNER JOIN cfgimpuesto i ON p.impuestos=i.sys_pk
         INNER JOIN existencias e ON p.sys_pk=e.fk_producto_iexistencias
         INNER JOIN almacen a ON e.ialmacen=a.sys_pk
@@ -108,7 +109,8 @@ module ""
             @unidad=@@(prod,"$unidad")
             @almacen=@@(prod,"$almacen")
             @existencia=round(@@(prod,"#existencia"),@decimals_existencia)
-            
+            @divisa=@@(prod,"$divisa")
+
             @str_existencia=@@(prod,"$str_existencia")
             //cacular impuestos
             descuentos=@@(prod,"#desc2") + @@(prod,"#desc3") + @@(prod,"#desc4")+ @@(prod,"#desc5")
@@ -141,7 +143,7 @@ module ""
             template=template + "Producto: #<@descripcion>\n"
             template=template + "Unidad: #<@unidad>\n"
             template=template + "Existencia: #<@str_existencia>\n"
-            template=template + "Precio unitario: #<@precio> \n---\n"
+            template=template + "Precio unitario: #<@precio> #<@divisa> \n---\n"
             template=ftext(template)
         }
         if template != ""{response=template}
