@@ -208,7 +208,7 @@ module ":erp.inventario"
             do dbr.begin(db) 
             start_transaction=@true
         }
-
+        ref dcardex=record.create()
         for i=0;i<@count(detalle)
         {
             ref dcardex=@item(detalle,i)
@@ -255,6 +255,9 @@ module ":erp.inventario"
                 if @@(dcardex,"#reqlote"){
                     do lotes.afectar_existencia(db,@@(dcardex,"#ilote"),@@(dcardex,"#ialmacen"),@@(dcardex,"#salidas")*-1) }
             }
+
+            //calcular costo promedio
+            do ActCostoPromedio(db,@@(dcardex,"#iproducto"),@false)
         }
 
         using p
@@ -264,9 +267,7 @@ module ":erp.inventario"
         }
 
         do dbr.execute(db,"update cardex set aplicado=@aplicado, valuado=@valuado where sys_pk=@mov_sys_pk",p)
-        
-        //calcular costo promedio
-        do ActCostoPromedio(db,@@(dcardex,"#iproducto"),@false)
+    
         
         if start_transaction { do dbr.commit(db) }
         
