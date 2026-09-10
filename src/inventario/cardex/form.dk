@@ -60,6 +60,7 @@ module "form.dk"
     new table_definition
     {
         @"datatable*": movs
+        @"tableheight": "95%"
         @"leyend": "Mostrando los primeros # documentos ordenados por fecha"
         member @"columns"
         {
@@ -113,7 +114,8 @@ module "form.dk"
 
     new nav_config
     {
-        @"title": cut("Cardex - "+@@(producto,"$cproducto"),50)
+        // @"title": cut("Cardex - "+@@(producto,"$cproducto"),50)
+        @"title": @@(producto,'$dproducto')
         @"buttons*": @null
         @"urlexit": @INVENTARIO
     }
@@ -123,11 +125,77 @@ module "form.dk"
     for i = 0; i < list.count(list_years) { fdr_year_opt = fdr_year_opt + list.str(list_years,i) + "," }
     fdr_year_opt = rremove(fdr_year_opt,1)
 
-    #$ div(class="container-fluid p-0")
+    #$ div(class="container-fluid p-0" id="view")
     {
-        #! do uie.printV12FormBar(nav_config)
+        section(id="top_area")
+        {
+            #!
+            do uie.printV12FormBar(nav_config)
+            #$
 
-        #$ div(id="work_area" class="container-section p-2 pt-0")
+            form(action="./" method="GET" id="form_filter" class="no-print mb-1")
+            {
+                div(class="py-1 w-100 d-flex gap-2 align-items-center flex-wrap")
+                {
+                    div(class="d-flex gap-2")
+                    {
+                        div{#! do uie.dbSelect(def_almacenes)} #$
+                        div(class="d-flex align-items-center gap-3")
+                        {
+                            span{ small(class="fw-bold"){$"Existencia y saldo: "} $"#<format(@@(producto,'#existencia'),'#,0.0000')>" }
+                            span{ small(class="fw-bold"){$""} $"#<@@(producto,'$unidad')>" }
+                            span{ small(class="fw-bold"){$""} $"#<@@(producto,'$cdivisa')>" }
+                            span{ small(class="fw-bold"){$""} $"#<format(@@(producto,'#saldo'),'$ #,0.0000')>" }
+                        }
+                    }
+                    div(class="flex-grow-1")
+                    {
+                        "filter-date-range"(
+                            "mode-field"="filter-mode"
+                            "year-field"="year"
+                            "month-field"="month"
+                            "range-field"="range"
+                            "from-field"="datefrom"
+                            "to-field"="dateto"
+                            "selection"='#<to.json(get)>'
+                            "lastdays-options"="15,30,45,60,90"
+                            "years-options"="#<fdr_year_opt>"
+                            "custom-range"="true"
+                            "form"="#form_filter"
+                            "auto-submit"="true"
+                            "label-months"="Ver por cada mes"
+                            "label-days"="Últ. @lastdays días"
+                            "label-custom"="Personalizado"
+                            "label-from"="Desde:"
+                            "label-to"="Hasta:"
+                            "month-names"="Enero,Febrero,Marzo,Abril,Mayo,Junio,Julio,Agosto,Septiembre,Octubre,Noviembre,Diciembre"
+                        ){$""}
+                    }
+                }
+
+                div(class="py-1 w-100 d-flex gap-2 align-items-center flex-wrap")
+                {
+                    div(class="d-flex gap-2")
+                    {
+                        div{#! do uie.dbSelect(def_category) } #$
+                    }
+                    div(class="flex-grow-1")
+                    {
+                        #$ "filter-text"(
+                            "id"="ft_search"
+                            "text-field"="s"
+                            "placeholder"="Buscar por referencia"
+                            "form"="#form_filter"
+                            "value"="#<@@(get,'$s')>"
+                            "auto-submit"="true"
+                            "class"="w-100"
+                        ){$""}
+                    }
+                }
+            }
+        }
+
+        div(id="work_area" class="container-section p-2 pt-0")
         {
             div(class="show-on-print"){
             div(class="row")
@@ -139,7 +207,7 @@ module "form.dk"
                 }
                 div(class="col-6 text-center")
                 {
-                    h4(class=""){$"Cardex de producto"}
+                    h4(class=""){"Cardex - #<@@(producto,'$dproducto')>"}
                 }
                 div(class="col-3 text-end")
                 {
@@ -147,86 +215,20 @@ module "form.dk"
                 }
             }}
 
-            div
-            {
-                div(class="d-flex justify-content-end flex-wrap gap-3 mb-1")
-                {
-                    span(class="flex-grow-1 fw-bold"){$"#<@@(producto,'$dproducto')> (#<@@(producto,'$cdivisa')>)"}
-
-                    span{ small(class="fw-bold"){$"Existencia y saldo: "} $"#<format(@@(producto,'#existencia'),'#,0.0000')>" }
-                    span{ small(class="fw-bold"){$""} $"#<@@(producto,'$unidad')>" }
-                    span{ small(class="fw-bold"){$""} $"#<@@(producto,'$cdivisa')>" }
-                    span{ small(class="fw-bold"){$""} $"#<format(@@(producto,'#saldo'),'$ #,0.0000')>" }
-
-                    small(class="text-muted"){$"|"}
-
-                    span{ small(class="fw-bold"){$"Entradas: "} $"#<format(@@(ttl_movs,'#entradas'),'#,0.0000')>" }
-                    span{ small(class="fw-bold"){$"Salidas: "} $"#<format(@@(ttl_movs,'#salidas'),'#,0.0000')>" }
-                    span{ small(class="fw-bold"){$"Cargos: "} $"#<format(@@(ttl_movs,'#cargos'),'$ #,0.0000')>" }
-                    span{ small(class="fw-bold"){$"Abonos: "} $"#<format(@@(ttl_movs,'#abonos'),'$ #,0.0000')>" }
-                }
-
-                div(class="#<ifstr(@('error/message')!='','alert alert-danger','')> overflow-auto"){$"#<@('error/message')>"}
-
-                form(action="./" method="GET" id="form_filter" class="no-print mb-1")
-                {
-                    div(class="py-1 w-100 d-flex gap-2 align-items-center flex-wrap")
-                    {
-                        div(class="d-flex gap-2")
-                        {
-                            div{#! do uie.dbSelect(def_almacenes)} #$
-                        }
-                        div(class="flex-grow-1")
-                        {
-                            "filter-date-range"(
-                                "mode-field"="filter-mode"
-                                "year-field"="year"
-                                "month-field"="month"
-                                "range-field"="range"
-                                "from-field"="datefrom"
-                                "to-field"="dateto"
-                                "selection"='#<to.json(get)>'
-                                "lastdays-options"="15,30,45,60,90"
-                                "years-options"="#<fdr_year_opt>"
-                                "custom-range"="true"
-                                "form"="#form_filter"
-                                "auto-submit"="true"
-                                "label-months"="Ver por cada mes"
-                                "label-days"="Últ. @lastdays días"
-                                "label-custom"="Personalizado"
-                                "label-from"="Desde:"
-                                "label-to"="Hasta:"
-                                "month-names"="Enero,Febrero,Marzo,Abril,Mayo,Junio,Julio,Agosto,Septiembre,Octubre,Noviembre,Diciembre"
-                            ){$""}
-                        }
-                    }
-
-                    div(class="py-1 w-100 d-flex gap-2 align-items-center flex-wrap")
-                    {
-                        div(class="d-flex gap-2")
-                        {
-                            div{#! do uie.dbSelect(def_category) } #$
-                        }
-                        div(class="flex-grow-1")
-                        {
-                            #$ "filter-text"(
-                                "id"="ft_search"
-                                "text-field"="s"
-                                "placeholder"="Buscar por referencia"
-                                "form"="#form_filter"
-                                "value"="#<@@(get,'$s')>"
-                                "auto-submit"="true"
-                                "class"="w-100"
-                            ){$""}
-                        }
-                    }
-                }
-                #! do uie.dbeditable(table_definition,"table_cardex")
-            }
+            #!
+            do uie.dbeditable(table_definition,"table_cardex")
+            #$
         }
-        #$ div(id="status_bar" class="container-section")
+
+        section(id="bottom_area")
         {
-            $""
+            div(class="d-flex justify-content-end gap-3")
+            {
+                span{ small(class="fw-bold"){$"Entradas: "} $"#<format(@@(ttl_movs,'#entradas'),'#,0.0000')>" }
+                span{ small(class="fw-bold"){$"Salidas: "} $"#<format(@@(ttl_movs,'#salidas'),'#,0.0000')>" }
+                span{ small(class="fw-bold"){$"Cargos: "} $"#<format(@@(ttl_movs,'#cargos'),'$ #,0.0000')>" }
+                span{ small(class="fw-bold"){$"Abonos: "} $"#<format(@@(ttl_movs,'#abonos'),'$ #,0.0000')>" }
+            }
         }
 
         script(type="text/javascript")
