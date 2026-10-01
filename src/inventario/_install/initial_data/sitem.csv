@@ -35,6 +35,7 @@ GE3C,Valor del inventario,inventario.reports
 GE3D,Informe de exitencias debajo del mínimo o el punto de reorden,inventario.reports
 GE3E,Vales de entrada,inventario.reports
 GE3F,Vales de salida,inventario.reports
+GE3G,Inventario,inventario.reports
 inventario.conteofisico,"Conteo físico",inventario
 GE40,Conteo físico,inventario.conteofisico
 GE41,Agregar Conteo físico,inventario.conteofisico

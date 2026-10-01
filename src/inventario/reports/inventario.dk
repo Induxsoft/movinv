@@ -1,0 +1,256 @@
+#include "dkli.dkh"
+#!
+module "Inventario"
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "uielements.v12.dkl"
+    #include "inventario/config.dk"
+    #include "dbr.dkh"
+    #include "dbr.vars.dkl"
+    #include "dbr.localize.dkl"
+
+    do @context.begin(@crud_context)
+
+    ref data = ifnull(@("&./data"),list.create())
+    ref titles = ifnull(@("&./titles"),record.create())
+    
+    new fil_almacen
+    {
+        @"datatable*": ifnull(@("&./list_almcns"),list.create())
+        @"id": "fil_almacen"
+        new member "attributes"
+        {
+            @"class": "form-select form-select-sm rounded-0"
+            @"name": "almacen"
+        }
+        @"first_value": "-1"
+        @"first_text": "(Todos los almacenes)"
+        @"value_field": "sys_pk"
+        @"text_field": "descripcion"
+        @"selected": @("#parameters/almacen")
+    }
+
+    before_rowgroup::&params,&row
+    {
+        if (field.exist(row,"cod_divisa"))
+        {
+            params<"columns/costopromedio/format">: dbr.localize.money_format(@crud_context.database,row.cod_divisa)
+            params<"columns/s_inicial/format">: dbr.localize.money_format(@crud_context.database,row.cod_divisa)
+            params<"columns/cargos/format">: dbr.localize.money_format(@crud_context.database,row.cod_divisa)
+            params<"columns/abonos/format">: dbr.localize.money_format(@crud_context.database,row.cod_divisa)
+            params<"columns/s_final/format">: dbr.localize.money_format(@crud_context.database,row.cod_divisa)
+        }
+    }
+
+    before_cell::&params,&row,&cell
+    {
+        if @@(cell,"$cell_type")=="header_group"
+        {
+            using cell
+            {
+                member @"attributes"
+                {
+                    colspan:=8
+                }
+            }
+        }
+    }
+
+    new nav_config
+    {
+        @"title": "Inventario"
+        @"urlexit": "javascript:window.history.back()"
+    }
+
+    #$
+    div(class="container v12-list-view" id="view")
+    {
+        section(class="bg-white" id="top_area")
+        {
+            #!
+            do uie.printV12FormBar(nav_config)
+            #$
+            style
+            {$'
+                tr th { font-size:.9rem; outline:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; -o-text-overflow:ellipsis; }
+                tr td { font-size:.8rem; }
+            '}
+            
+            form(class="" action="./" method="GET" id="form-filter")
+            {
+                div(class="d-flex align-items-center gap-2 flex-wrap w-100 py-1")
+                {
+                    div(class="d-flex gap-2")
+                    {
+                        div{ #! do uie.dbSelect(fil_almacen) } #$
+                        div(class="d-inline-flex gap-1")
+                        {
+                            input(class="form-control form-control-sm rounded-0" type="date" name="fecha_inicial" id="fil_fi" title="Fecha inicial" value="#<@('$parameters/fecha_inicial')>")
+                            input(class="form-control form-control-sm rounded-0" type="date" name="fecha_final" id="fil_ff" title="Fecha final" value="#<@('$parameters/fecha_final')>")
+                        }
+                    }
+                    div(class="d-flex flex-grow-1 justify-content-end"){ button(class="btn btn-sm btn-primary rounded-0" type="submit" id="btn_filter"){$"Aplicar"} }
+                }
+                
+                //input(class="form-control form-control-sm rounded-0" type="text" name="text" value="#<@('$parameters/text')>" placeholder="Filtrar por..." id="fil_text")
+            }
+        }
+
+        div(class="bg-light w-100 p-2" style="max-height:80vh; overflow-y:auto;") 
+        {
+            div(class="" style="box-shadow: inset 0 -3em 3em rgba(0, 0, 0, 0.1), 0.3em 0.3em 1em rgba(0, 0, 0, 0.3);")
+            {
+                section(class="bg-white p-1" id="work_area")
+                {
+                    p(class="text-center mb-0"){$"#<@@(titles,'$title')>"}
+                    p(class="text-center mb-0"){$"#<@@(titles,'$subtitle')>"}
+                    p(class="text-center mb-0"){$"#<@@(titles,'$subtitle_2')>"}
+
+                    div(class="row")
+                    {
+                        div(class="col-3")
+                        {
+                            small(class="d-block"){ "#<cut(@('$http/session/user/name'),25)>" }
+                            small(class="d-block"){ b{"Impresión: "} "#<date_str(now(),'dd/MMM/yyyy')>" }
+                        }
+                        div(class="col-6")
+                        {
+                            h5(class="text-center"){"Inventario"}
+                        }
+                        div(class="col-3 text-end")
+                        {
+                            small(class="d-block text-end"){"#<@('$./periodo')>"}
+                        }
+                    }
+                    
+                    #!
+                    point bce to before_cell
+                    point bre to before_rowgroup
+                    
+                    new tdetail
+                    {
+                        @"datatable*":@("&./detail")
+                        @"group_by":"agrupacion"
+                        @"before_cell*":bce
+                        @"before_row*":bre
+
+                        member @"columns"
+                        {
+                            member @"cod_producto"
+                            {
+                                caption:="Código"
+                            }
+                            member @"producto"
+                            {
+                                caption:="Descripción"
+                            }
+                            member @"m_valuacion"
+                            {
+                                caption:="M. Valuación"
+                            }
+                            member @"unidad"
+                            {
+                                caption:="Unidad"
+                            }
+
+                            member @"e_inicial"
+                            {
+                                caption:="Inicial"
+                                member @"attributes"
+                                {
+                                    class:="text-center"
+                                }
+                            }
+                            member @"entradas"
+                            {
+                                caption:="Entradas"
+                                member @"attributes"
+                                {
+                                    class:="text-center"
+                                }
+                            }
+                            member @"salidas"
+                            {
+                                caption:="Salidas"
+                                member @"attributes"
+                                {
+                                    class:="text-center"
+                                }
+                            }
+                            member @"e_final"
+                            {
+                                caption:="Final"
+                                member @"attributes"
+                                {
+                                    class:="text-center"
+                                }
+                            }
+
+                            member @"costopromedio"
+                            {
+                                caption:="C. Prom"
+                                member @"attributes"
+                                {
+                                    class:="text-end"
+                                }
+                            }
+                            
+                            member @"s_inicial"
+                            {
+                                caption:="S. Inicial"
+                                summary:="sum"
+                                member @"attributes"
+                                {
+                                    class:="text-end"
+                                }
+                            }
+                            member @"cargos"
+                            {
+                                caption:="Cargos"
+                                summary:="sum"
+                                member @"attributes"
+                                {
+                                    class:="text-end"
+                                }
+                            }
+                            member @"abonos"
+                            {
+                                caption:="Abonos"
+                                summary:="sum"
+                                member @"attributes"
+                                {
+                                    class:="text-end"
+                                }
+                            }
+                            member @"s_final"
+                            {
+                                caption:="S. Final"
+                                summary:="sum"
+                                member @"attributes"
+                                {
+                                    class:="text-end"
+                                }
+                            }
+                        }
+
+                        show_summary_group:=@true
+                        show_summary:=@false
+                        
+                        member @"attributes"
+                        {
+                            class:="table table-sm table-bordered my-2"
+                        }
+                    }
+
+                    do uie.dbTable(tdetail)
+                    #$
+                    p(class="text-center mb-0"){$"#<@@(titles,'$footer')>"}
+                }
+            }
+        }
+    }
+    #!
+
+    do @context.end()
+}

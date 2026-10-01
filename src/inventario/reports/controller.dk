@@ -4,6 +4,12 @@ module "ReportController"
 {
     switch @@(@http_context,"$request/get/_entity_id")
     {
+        case "inventario"
+        {
+            @form_view = "inventario.dk"
+            point @read to Report.Inventario
+            break
+        }
         case "existencias"
         {
             @form_view = "existencias.dk"

@@ -21,6 +21,7 @@ GE3C,Valor del inventario,V. Inventario,,/!/inventario/reports/valor-inventario/
 GE3D,Informe de exitencias debajo del mínimo o el punto de reorden,Existencias,,/!/inventario/reports/existencias/,0,inventario.reports,DET077,0,report
 GE3E,Vales de entrada,Existencias,,/!/inventario/reports/vales-de-entrada/,0,inventario.reports,DET077,0,report
 GE3F,Vales de salida,Existencias,,/!/inventario/reports/vales-de-salida/,0,inventario.reports,DET077,0,report
+GE3G,Inventario,Inventario,,/!/inventario/reports/inventario/,0,inventario.reports,DET077,0,action
 
 GE40,Conteo físico,Conteo,,/!/inventario/conteo-fisico/,0,inventario.conteo_fisico,DET0A4,0,action
 GE41,Agregar Conteo físico,Conteo,,/!/inventario/conteo-fisico/_new/,0,inventario.conteo_fisico,DET0A4,0,action

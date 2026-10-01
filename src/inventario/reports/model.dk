@@ -15,6 +15,14 @@ module "Reportes de movimiento de inventario. :Report"
         
         switch @@(@http_context,"$request/get/_entity_id")
         {
+            case "inventario"
+            {
+                using data
+                {
+                    @"list_almcns*": dbr.list(db,sql_almcns,@null)
+                }
+                break
+            }
             case "existencias"
             {
                 using data
@@ -102,10 +110,6 @@ module "Reportes de movimiento de inventario. :Report"
                 {
                     @"list_almcns*": dbr.list(db,sql_almcns,@null)
                     @"list_catmov*": dbr.list(db,sql_catmov,@null)
-                    @"list_clases*": dbr.list(db,sql_clases,@null)
-                    @"list_lineas*": dbr.list(db,sql_lineas,params)
-                    @"list_marcas*": dbr.list(db,sql_marcas,@null)
-                    @"list_deptos*": dbr.list(db,sql_deptos,@null)
                 }
                 break
             }
@@ -130,6 +134,83 @@ module "Reportes de movimiento de inventario. :Report"
                 @"footer": dbr.vars.getd(db,"FXCA111","")
             }
         }
+    }
+
+    function Inventario(&db,&params)
+    {
+        do dbr.apps.action.grant("GE3G")
+
+        if @@(params,"$fecha_inicial")=="" { params<"fecha_inicial">:date_str(now(),"yyyy-MM-dd") }
+        if @@(params,"$fecha_final")=="" { params<"fecha_final">:date_str(now(),"yyyy-MM-dd") }
+
+        // Se consideran todos los movimientos aplicados hasta la fecha final;
+        // los anteriores a la fecha inicial forman el saldo/existencia inicial.
+        filter = "( date(dc.sys_timestamp) <= date(@fecha_final) ) "
+        if @@(params,"#almacen")>0 { filter = filter + " AND a.sys_pk=@almacen " }
+
+        params.m_decs:=val(dbr.vars.get(db,"FXCA001")) //Decimales de precisión en dinero
+        params.v_decs:=val(dbr.vars.get(db,"FXCA002")) //Decimales de precisión en volúmenes
+
+        sql = ftext("
+            select x.*,
+                round(x.e_inicial + x.entradas - x.salidas, @v_decs) e_final,
+                round(x.s_inicial + x.cargos - x.abonos, @m_decs) s_final
+            from (
+                select
+                    concat(a.codigo, ' ', a.descripcion,' (',m.codigo, ') ', m.descripcion, ' ') agrupacion,
+                    a.codigo cod_almacen,
+                    a.descripcion almacen,
+                    p.codigo cod_producto,
+                    p.descripcion producto,
+                    p.unidad,
+                    p.costopromedio,
+                    m.codigo cod_divisa,
+                    m.descripcion divisa,
+                    mv.const m_valuacion,
+
+                    -- Inicial: todo lo anterior a la fecha inicial
+                    round(sum(case when date(dc.sys_timestamp) < date(@fecha_inicial)
+                                then ifnull(dc.entradas,0) - ifnull(dc.salidas,0) else 0 end),@v_decs) e_inicial,
+                    round(sum(case when date(dc.sys_timestamp) < date(@fecha_inicial)
+                                then ifnull(dc.cargos,0) - ifnull(dc.abonos,0) else 0 end),@m_decs) s_inicial,
+
+                    -- Movimientos dentro del periodo
+                    round(sum(case when date(dc.sys_timestamp) >= date(@fecha_inicial)
+                                then ifnull(dc.entradas,0) else 0 end),@v_decs) entradas,
+                    round(sum(case when date(dc.sys_timestamp) >= date(@fecha_inicial)
+                                then ifnull(dc.salidas,0) else 0 end),@v_decs) salidas,
+                    round(sum(case when date(dc.sys_timestamp) >= date(@fecha_inicial)
+                                then ifnull(dc.cargos,0) else 0 end),@m_decs) cargos,
+                    round(sum(case when date(dc.sys_timestamp) >= date(@fecha_inicial)
+                                then ifnull(dc.abonos,0) else 0 end),@m_decs) abonos
+                from cardex c
+                    inner join dcardex dc on c.sys_pk= dc.fk_cardex_movimientos
+                    inner join producto p on dc.iproducto=p.sys_pk
+                    inner join cmetodosvaluacion mv on p.metodovaluacion = mv.id
+                    inner join divisa m on p.idivisa=m.sys_pk
+                    inner join almacen a on dc.ialmacen=a.sys_pk
+                where ifnull(c.aplicado,0) and #<filter>
+                group by a.sys_pk, p.sys_pk
+            ) x
+            -- Solo productos con existencia/saldo inicial o con movimientos en el periodo
+            where x.e_inicial <> 0 or x.s_inicial <> 0
+            or x.entradas <> 0 or x.salidas <> 0
+            or x.cargos <> 0 or x.abonos <> 0
+            order by x.agrupacion, x.producto;
+        ")
+
+        new data
+        {
+            @"detail*": dbr.list(db,sql,params)
+        }
+        do Report.prepareView(db,params,data)
+
+        // Rango de fechas que comprende el informe
+        data<"periodo"> : "Del " + @@(params,"$fecha_inicial") + " al " + @@(params,"$fecha_final")
+
+        return data
+
+        exception{ do catch() }
     }
 
     function Existencias(&db,&params)
