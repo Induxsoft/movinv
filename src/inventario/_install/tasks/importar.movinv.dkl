@@ -144,10 +144,11 @@ program "Importar movimientos"
             if salidas > 1 { salidas = 1 }
         }
 
-        cargos = @@(obj,"#importe")
-        abonos = @@(obj,"#importe")
-        if cargos <= 0 { cargos = (@@(producto,"#costoultimo") * entradas) }
-        if abonos <= 0 { abonos = (@@(producto,"#costoultimo") * salidas) }
+        cargos = if(entradas > 0, @@(obj,"#importe"), 0)
+        abonos = if(salidas > 0, @@(obj,"#importe"), 0)
+
+        if cargos <= 0 && entradas > 0 { cargos = (@@(producto,"#costoultimo") * entradas) }
+        if abonos <= 0 && salidas > 0 { abonos = (@@(producto,"#costoultimo") * salidas) }
 
         new dcardex
         {
