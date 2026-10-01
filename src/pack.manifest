@@ -1,6 +1,6 @@
 {
 	"id":"inventario",
 	"installable":["inventario"],
-	"version":"1.0.119",
+	"version":"1.0.120",
 	"schema_ver":"1.0.10"
 }

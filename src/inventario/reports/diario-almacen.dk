@@ -49,12 +49,22 @@ module "Diario de almacén"
         @"selected": @("#parameters/categoria")
     }
 
+    @saldo_cargos = 0
+    @saldo_abonos = 0
+
     before_rowgroup::&params,&row
     {
         if (field.exist(row,"cod_divisa"))
         {
             params<"columns/cargos/format">: dbr.localize.money_format(@crud_context.database,row.cod_divisa)
             params<"columns/abonos/format">: dbr.localize.money_format(@crud_context.database,row.cod_divisa)
+        }
+
+        // Solo se suman las filas de detalle
+        if @@(row,"$_row_type")=="detail"
+        {
+            @saldo_cargos = @saldo_cargos + @@(row,"#cargos")
+            @saldo_abonos = @saldo_abonos + @@(row,"#abonos")
         }
     }
 
@@ -70,11 +80,46 @@ module "Diario de almacén"
                 }
             }
         }
+        // Texto "Totales" en la fila de totales de cada almacén
+        if @@(cell,"$cell_type")=="summary_group" && @@(cell,"$column")=="descripcion"
+        {
+            cell<"text">: "Totales:"
+            using cell
+            {
+                member @"attributes"
+                {
+                    class:="text-end fw-bold"
+                }
+            }
+        }
     }
 
+    after_rowgroup::&params,&row
+    {
+        if @@(row,"$_row_type")=="summary_group"
+        {
+            saldo = @saldo_cargos - @saldo_abonos
+            fmt = @@(params,"$columns/cargos/format")
+            if fmt=="" { fmt = "$ #,0.00" }
+            txt_saldo = format(saldo,fmt)
+
+            #$
+            tr(class="fw-bold")
+            {
+                td(colspan="6" class="text-end"){$"Saldo:"}
+                td(colspan="2" class="text-end"){$"#<txt_saldo>"}
+            }
+            #!
+
+            // Reinicia para el siguiente almacén
+            @saldo_cargos = 0
+            @saldo_abonos = 0
+        }
+    }
+    
     new nav_config
     {
-        @"title": "Diario de almacén"
+        @"title": "Reporte general por almacén de entradas y salidas"
         @"urlexit": "javascript:window.history.back()"
     }
 
@@ -132,7 +177,7 @@ module "Diario de almacén"
                         }
                         div(class="col-6")
                         {
-                            h5(class="text-center"){$"Diario de almacén"}
+                            h5(class="text-center"){$"Reporte general por almacén de entradas y salidas"}
                         }
                         div(class="col-3 text-end")
                         {
@@ -143,70 +188,71 @@ module "Diario de almacén"
                     #!
                     point bce to before_cell
                     point bre to before_rowgroup
+                    point are to after_rowgroup
                     //do rise_error(0,to.json(@("&./detail")))
                     new tdetail
-                {
-                    @"datatable*":@("&./detail")
-                    @"group_by":"agrupacion"
-                    @"before_cell*":bce
-                    @"before_row*":bre
-
-                    member @"columns"
                     {
-                        member @"sys_pk"
+                        @"datatable*":@("&./detail")
+                        @"group_by":"agrupacion"
+                        @"before_cell*":bce
+                        @"before_row*":bre
+                        @"after_row*":are
+                        member @"columns"
                         {
-                            caption:="# Mov."
-                        }
-                        member @"actualizacion"
-                        {
-                            caption:="F. operación"
-                        }
-                        member @"cod_categoria"
-                        {
-                            caption:="C. Cat."
-                        }
-                        member @"categoria"
-                        {
-                            caption:="Categoría"
-                        }
-                        member @"referencia"
-                        {
-                            caption:="Referencia"
-                        }
-                        member @"descripcion"
-                        {
-                            caption:="Descripción"
-                        }
-                        member @"cargos"
-                        {
-                            caption:="Cargos"
-                            summary:="sum"
-                            member @"attributes"
+                            member @"sys_pk"
                             {
-                                class:="text-end"
+                                caption:="# Mov."
                             }
-                        }
-                        member @"abonos"
-                        {
-                            caption:="Abonos"
-                            summary:="sum"
-                            member @"attributes"
+                            member @"actualizacion"
                             {
-                                class:="text-end"
+                                caption:="F. operación"
                             }
+                            member @"cod_categoria"
+                            {
+                                caption:="C. Cat."
+                            }
+                            member @"categoria"
+                            {
+                                caption:="Categoría"
+                            }
+                            member @"referencia"
+                            {
+                                caption:="Referencia"
+                            }
+                            member @"descripcion"
+                            {
+                                caption:="Descripción"
+                            }
+                            member @"cargos"
+                            {
+                                caption:="Cargos"
+                                summary:="sum"
+                                member @"attributes"
+                                {
+                                    class:="text-end"
+                                }
+                            }
+                            member @"abonos"
+                            {
+                                caption:="Abonos"
+                                summary:="sum"
+                                member @"attributes"
+                                {
+                                    class:="text-end"
+                                }
+                            }
+                            
                         }
+                        show_summary_group:=@true
+                        show_summary:=@false
                         
+                        member @"attributes"
+                        {
+                            class:="table table-sm table-bordered my-2"
+                        }
                     }
-                    show_summary_group:=@true
-                    show_summary:=@false
-                    
-                    member @"attributes"
-                    {
-                        class:="table table-sm table-bordered my-2"
-                    }
-                }
 
-                do uie.dbTable(tdetail)
+                    do uie.dbTable(tdetail)
                     #$
 
                     p(class="text-center mb-0"){$"#<@@(titles,'$footer')>"}

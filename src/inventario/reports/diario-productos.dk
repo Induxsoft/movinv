@@ -47,12 +47,22 @@ module "Diario de productos"
         @"selected": @("#parameters/categoria")
     }
 
+    @saldo_cargos = 0
+    @saldo_abonos = 0
+
     before_rowgroup::&params,&row
     {
         if (field.exist(row,"cod_divisa"))
         {
             params<"columns/cargos/format">: dbr.localize.money_format(@crud_context.database,row.cod_divisa)
             params<"columns/abonos/format">: dbr.localize.money_format(@crud_context.database,row.cod_divisa)
+        }
+
+        // Solo se suman las filas de detalle
+        if @@(row,"$_row_type")=="detail"
+        {
+            @saldo_cargos = @saldo_cargos + @@(row,"#cargos")
+            @saldo_abonos = @saldo_abonos + @@(row,"#abonos")
         }
     }
 
@@ -67,6 +77,42 @@ module "Diario de productos"
                     colspan:=8
                 }
             }
+        }
+
+        // Texto "Totales" en la fila de totales de cada almacén
+        if @@(cell,"$cell_type")=="summary_group" && @@(cell,"$column")=="salidas"
+        {
+            cell<"text">: "Totales:"
+            using cell
+            {
+                member @"attributes"
+                {
+                    class:="text-end fw-bold"
+                }
+            }
+        }
+    }
+
+    after_rowgroup::&params,&row
+    {
+        if @@(row,"$_row_type")=="summary_group"
+        {
+            saldo = @saldo_cargos - @saldo_abonos
+            fmt = @@(params,"$columns/cargos/format")
+            if fmt=="" { fmt = "$ #,0.00" }
+            txt_saldo = format(saldo,fmt)
+
+            #$
+            tr(class="fw-bold")
+            {
+                td(colspan="6" class="text-end"){$"Saldo:"}
+                td(colspan="2" class="text-end"){$"#<txt_saldo>"}
+            }
+            #!
+
+            // Reinicia para el siguiente almacén
+            @saldo_cargos = 0
+            @saldo_abonos = 0
         }
     }
 
@@ -141,6 +187,7 @@ module "Diario de productos"
                     #!
                     point bce to before_cell
                     point bre to before_rowgroup
+                    point are to after_rowgroup
                     //do rise_error(0,to.json(@("&./detail")))
                     new tdetail
                     {
@@ -148,6 +195,7 @@ module "Diario de productos"
                         @"group_by":"agrupacion"
                         @"before_cell*":bce
                         @"before_row*":bre
+                        @"after_row*":are
 
                         member @"columns"
                         {
@@ -177,6 +225,14 @@ module "Diario de productos"
                                     class:="text-center"
                                 }
                             }
+                            member @"salidas"
+                            {
+                                caption:="Salidas"
+                                member @"attributes"
+                                {
+                                    class:="text-center"
+                                }
+                            }
                             member @"cargos"
                             {
                                 caption:="Cargos"
@@ -184,14 +240,6 @@ module "Diario de productos"
                                 member @"attributes"
                                 {
                                     class:="text-end"
-                                }
-                            }
-                            member @"salidas"
-                            {
-                                caption:="Salidas"
-                                member @"attributes"
-                                {
-                                    class:="text-center"
                                 }
                             }
                             member @"abonos"
