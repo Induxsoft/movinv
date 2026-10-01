@@ -157,6 +157,7 @@ module "Inventario"
                             member @"e_inicial"
                             {
                                 caption:="Inicial"
+                                summary:="sum"
                                 member @"attributes"
                                 {
                                     class:="text-center"
@@ -165,6 +166,7 @@ module "Inventario"
                             member @"entradas"
                             {
                                 caption:="Entradas"
+                                summary:="sum"
                                 member @"attributes"
                                 {
                                     class:="text-center"
@@ -173,6 +175,7 @@ module "Inventario"
                             member @"salidas"
                             {
                                 caption:="Salidas"
+                                summary:="sum"
                                 member @"attributes"
                                 {
                                     class:="text-center"
@@ -181,6 +184,7 @@ module "Inventario"
                             member @"e_final"
                             {
                                 caption:="Final"
+                                summary:="sum"
                                 member @"attributes"
                                 {
                                     class:="text-center"
@@ -190,6 +194,7 @@ module "Inventario"
                             member @"costopromedio"
                             {
                                 caption:="C. Prom"
+                                summary:="sum"
                                 member @"attributes"
                                 {
                                     class:="text-end"
